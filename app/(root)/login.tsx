@@ -19,9 +19,9 @@ const LoginScreen = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const navigation = useNavigation();
 
-   const handleSignUp = () => {
+  const handleSignUp = () => {
     console.log("Sign Up button pressed");
-    
+
     router.push("/signup");
   };
 
@@ -135,9 +135,7 @@ const LoginScreen = () => {
       {/* Sign Up Prompt - moved just below blue area with ~5px space */}
       <View className="flex-row justify-center mt-2 mb-5 z-10">
         <Text className="text-textBlack">Don't have an account? </Text>
-        <TouchableOpacity
-          onPress={handleSignUp}
-        >
+        <TouchableOpacity onPress={handleSignUp}>
           <Text className="text-primary font-bold">Sign Up</Text>
         </TouchableOpacity>
       </View>
