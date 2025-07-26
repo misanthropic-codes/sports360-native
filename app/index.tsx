@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import "../../global.css"
+import "./global.css";
 
 /**
  * AuthScreen Component
@@ -28,8 +28,7 @@ export default function AuthScreen() {
 
   const handleSignUp = () => {
     console.log("Sign Up button pressed");
-    // Navigate to the signup screen. Ensure you have a 'signup.tsx' file.
-    // For example: app/signup.tsx
+    
     router.push("/signup");
   };
 

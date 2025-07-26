@@ -1,4 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -17,6 +18,12 @@ const LoginScreen = () => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigation = useNavigation();
+
+   const handleSignUp = () => {
+    console.log("Sign Up button pressed");
+    
+    router.push("/signup");
+  };
 
   return (
     <SafeAreaView className="flex-1 relative bg-white">
@@ -128,7 +135,9 @@ const LoginScreen = () => {
       {/* Sign Up Prompt - moved just below blue area with ~5px space */}
       <View className="flex-row justify-center mt-2 mb-5 z-10">
         <Text className="text-textBlack">Don't have an account? </Text>
-        <TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleSignUp}
+        >
           <Text className="text-primary font-bold">Sign Up</Text>
         </TouchableOpacity>
       </View>
