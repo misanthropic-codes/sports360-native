@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import Feather from "react-native-vector-icons/Feather";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -15,61 +17,74 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 
 type Role = "Player" | "Organizer" | "Ground Owner";
 
-import { router } from "expo-router";
-import type { ColorValue } from "react-native";
-
-interface RoleCardProps {
-  IconComponent: React.ComponentType<{
-    name: string;
-    size?: number;
-    color?: string | number | ColorValue;
-  }>;
-  iconName: string;
-  label: Role;
-  selected: Role;
-  onPress: (label: Role) => void;
-}
-
-const RoleCard: React.FC<RoleCardProps> = ({
+const RoleCard = ({
   IconComponent,
   iconName,
   label,
   selected,
   onPress,
+}: {
+  IconComponent: any;
+  iconName: string;
+  label: Role;
+  selected: Role;
+  onPress: (role: Role) => void;
 }) => {
-  const isOrganizer = label === "Organizer";
   const isSelected = selected === label;
-
-  const containerStyle = `
-    flex-1 items-center justify-center bg-white rounded-2xl h-28 mx-2
-    ${isSelected && isOrganizer ? "border-2 border-purple-600" : ""}
-    ${isSelected && !isOrganizer ? "border-2 border-primary" : "border border-gray-200"}
-  `;
-
-  const iconColor = isSelected
-    ? isOrganizer
-      ? "#8B5CF6"
-      : "#166FFF"
-    : "#166FFF";
-  const textColor = isSelected
-    ? isOrganizer
-      ? "text-purple-600"
-      : "text-primary"
-    : "text-primary";
+  const isOrganizer = label === "Organizer";
 
   return (
-    <TouchableOpacity className={containerStyle} onPress={() => onPress(label)}>
-      <IconComponent name={iconName} size={32} color={iconColor} />
-      <Text className={`mt-2 font-rubikMedium ${textColor}`}>{label}</Text>
+    <TouchableOpacity
+      onPress={() => onPress(label)}
+      className={`flex-1 items-center justify-center h-28 mx-2 rounded-2xl bg-white 
+        ${isSelected ? (isOrganizer ? "border-2 border-purple-600" : "border-2 border-primary") : "border border-gray-200"}
+      `}
+    >
+      <IconComponent
+        name={iconName}
+        size={32}
+        color={isSelected ? (isOrganizer ? "#8B5CF6" : "#166FFF") : "#166FFF"}
+      />
+      <Text
+        className={`mt-2 font-rubikMedium ${
+          isSelected
+            ? isOrganizer
+              ? "text-purple-600"
+              : "text-primary"
+            : "text-primary"
+        }`}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };
 
-const App = () => {
+const SignupScreen = () => {
   const [selectedRole, setSelectedRole] = useState<Role>("Organizer");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
+
+  const handleSignUp = () => {
+    if (!fullName || !email || !phone || !password || !confirmPassword) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    const encodedRole = encodeURIComponent(selectedRole);
+    router.push(`/onboarding/choose-domain?role=${encodedRole}`);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -84,9 +99,10 @@ const App = () => {
               Create Your Account
             </Text>
             <Text className="text-white font-rubik text-base mt-1">
-              Join Sports360 community today !
+              Join Sports360 community today!
             </Text>
           </View>
+
           <View className="mt-6">
             <View className="flex-row items-center px-6">
               <View className="flex-1 h-px bg-white/50" />
@@ -95,6 +111,7 @@ const App = () => {
               </Text>
               <View className="flex-1 h-px bg-white/50" />
             </View>
+
             <View className="flex-row justify-between mt-4 px-4">
               <RoleCard
                 label="Player"
@@ -122,30 +139,35 @@ const App = () => {
         </View>
 
         <View className="px-6 py-6">
-          <View>
+          <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
-              Enter full Name
+              Enter full name
             </Text>
             <TextInput
-              className="bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2 font-rubik text-textBlack"
+              className="bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2"
               placeholder="Riya Singh"
               placeholderTextColor="#C0C0C0"
+              value={fullName}
+              onChangeText={setFullName}
             />
           </View>
 
-          <View className="mt-4">
+          <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
               Enter email address
             </Text>
             <TextInput
-              className="bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2 font-rubik text-textBlack"
+              className="bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2"
               placeholder="riyasingh@gmail.com"
               placeholderTextColor="#C0C0C0"
               keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
             />
           </View>
 
-          <View className="mt-4">
+          <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
               Enter phone number
             </Text>
@@ -156,6 +178,8 @@ const App = () => {
                 placeholder="9876543210"
                 placeholderTextColor="#C0C0C0"
                 keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
               />
               <TouchableOpacity onPress={() => router.push("/verifyScreen")}>
                 <Text className="font-rubikSemiBold text-primary">
@@ -165,7 +189,7 @@ const App = () => {
             </View>
           </View>
 
-          <View className="mt-4">
+          <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
               Create password
             </Text>
@@ -175,9 +199,11 @@ const App = () => {
                 placeholder="********"
                 placeholderTextColor="#C0C0C0"
                 secureTextEntry={!isPasswordVisible}
+                value={password}
+                onChangeText={setPassword}
               />
               <TouchableOpacity
-                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                onPress={() => setIsPasswordVisible((prev) => !prev)}
               >
                 <Feather
                   name={isPasswordVisible ? "eye" : "eye-off"}
@@ -188,7 +214,7 @@ const App = () => {
             </View>
           </View>
 
-          <View className="mt-4">
+          <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
               Confirm password
             </Text>
@@ -198,11 +224,11 @@ const App = () => {
                 placeholder="********"
                 placeholderTextColor="#C0C0C0"
                 secureTextEntry={!isConfirmPasswordVisible}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
               />
               <TouchableOpacity
-                onPress={() =>
-                  setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
-                }
+                onPress={() => setIsConfirmPasswordVisible((prev) => !prev)}
               >
                 <Feather
                   name={isConfirmPasswordVisible ? "eye" : "eye-off"}
@@ -213,8 +239,11 @@ const App = () => {
             </View>
           </View>
 
-          <TouchableOpacity className="bg-primary rounded-full h-14 items-center justify-center mt-8">
-            <Text className="text-white font-rubikBold text-lg">SignUp</Text>
+          <TouchableOpacity
+            onPress={handleSignUp}
+            className="bg-primary rounded-full h-14 items-center justify-center mt-8"
+          >
+            <Text className="text-white font-rubikBold text-lg">Sign Up</Text>
           </TouchableOpacity>
 
           <View className="flex-row justify-center mt-6">
@@ -231,4 +260,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default SignupScreen;
