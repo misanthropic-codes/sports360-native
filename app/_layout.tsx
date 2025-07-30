@@ -22,6 +22,8 @@ export default function RootLayout() {
         <Stack.Screen name="(root)/login" />
         <Stack.Screen name="(root)/signup" />
         <Stack.Screen name="verifyScreen/index" />
+        <Stack.Screen name="onboarding/choose-domain" />
+         <Stack.Screen name="onboarding/player/cricket-form" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
