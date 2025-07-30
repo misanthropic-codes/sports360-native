@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   Alert,
@@ -12,6 +13,12 @@ import {
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
+
+const handleSignUp = () => {
+  console.log("Sign Up button pressed");
+
+  router.push("/signup");
+};
 
 const VerifyScreen: React.FC = () => {
   const [isVerified, setIsVerified] = useState<boolean>(false);
@@ -76,7 +83,7 @@ const VerifyScreen: React.FC = () => {
         <View className="p-6">
           <TouchableOpacity
             className="bg-white w-full py-4 rounded-full items-center"
-            onPress={() => console.log("Continue to the next page!")}
+            onPress={handleSignUp}
           >
             <Text className="text-blue-600 text-lg font-bold">Continue</Text>
           </TouchableOpacity>
