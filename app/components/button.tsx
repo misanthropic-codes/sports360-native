@@ -1,37 +1,50 @@
 import React, { FC } from "react";
-import { GestureResponderEvent, Pressable, Text } from "react-native";
+import {
+  GestureResponderEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+} from "react-native";
 
 // --- Type Definitions ---
 
+type RoleType = "player" | "organizer" | "owner";
+
 interface ReusableButtonProps {
-  /**
-   * The text to display inside the button.
-   */
   title: string;
-  /**
-   * Function to execute on button press.
-   */
   onPress: (event: GestureResponderEvent) => void;
-  /**
-   * Optional additional class names for custom styling.
-   */
   className?: string;
+  isSelected?: boolean;
+  
+  role?: RoleType;
 }
 
-// --- Component ---
 
-/**
- * A reusable button component with consistent styling.
- */
+
 const ReusableButton: FC<ReusableButtonProps> = ({
   onPress,
   title,
   className = "",
+  isSelected = false,
+  role = "player", 
 }) => {
+  const roleStyles = {
+    player: styles.player,
+    organizer: styles.organizer,
+    owner: styles.owner,
+  };
+
   return (
     <Pressable
       onPress={onPress}
-      className={`py-3 px-8 bg-blue-600 rounded-full flex-row justify-center items-center active:bg-blue-700 ${className}`}
+      className={`py-3 px-8 rounded-full flex-row justify-center items-center ${className}`}
+      style={[
+        roleStyles[role],
+        isSelected && {
+          borderWidth: 2,
+          borderColor: "#2563eb",
+        },
+      ]}
     >
       <Text className="text-white text-lg font-semibold">{title}</Text>
     </Pressable>
@@ -39,3 +52,16 @@ const ReusableButton: FC<ReusableButtonProps> = ({
 };
 
 export default ReusableButton;
+
+
+const styles = StyleSheet.create({
+  player: {
+    backgroundColor: "#0D3BF9",
+  },
+  organizer: {
+    backgroundColor: "#510EB1",
+  },
+  owner: {
+    backgroundColor: "#0D991E",
+  },
+});
