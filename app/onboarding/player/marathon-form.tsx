@@ -1,61 +1,15 @@
 import ReusableButton from "@/app/components/button";
+import CheckboxItem from "@/app/components/CheckBoxItem";
 import ReusableDropdown from "@/app/components/dropdown";
+import SelectionPill from "@/app/components/SelelctionPill";
+import ReusableTextInput from "@/app/components/TextInput";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { FC, useState } from "react";
-import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
-// Reusable Subcomponents
-const FormInput = ({ label, isOptional, children, ...props }: any) => (
-  <View className="mb-4">
-    <Text className="text-sm text-gray-600 mb-2">
-      {label} {isOptional && <Text className="text-gray-400">(optional)</Text>}
-    </Text>
-    <View className="flex-row items-center">
-      <TextInput
-        className={`flex-1 bg-white border border-gray-300 rounded-lg p-4 text-base ${props.multiline ? "h-24" : ""}`}
-        placeholderTextColor="#9CA3AF"
-        {...props}
-      />
-      {children}
-    </View>
-  </View>
-);
-
-const SelectableButton = ({ label, onPress, isSelected }: any) => (
-  <Pressable
-    onPress={onPress}
-    className={`py-3 px-5 rounded-full border ${isSelected ? "bg-blue-100 border-blue-500" : "bg-white border-gray-300"}`}
-  >
-    <Text
-      className={`text-base font-medium ${isSelected ? "text-blue-600" : "text-gray-700"}`}
-    >
-      {label}
-    </Text>
-  </Pressable>
-);
-
-const PreferenceCheckbox = ({ label, isSelected, onPress }: any) => (
-  <Pressable onPress={onPress} className="flex-row items-center py-2">
-    <View
-      className={`w-6 h-6 rounded-full border-2 mr-3 justify-center items-center ${isSelected ? "border-blue-500 bg-blue-500" : "border-gray-400"}`}
-    >
-      {isSelected && <View className="w-3 h-3 rounded-full bg-white" />}
-    </View>
-    <Text className="text-base text-gray-700">{label}</Text>
-  </Pressable>
-);
-
 const CompleteMarathonProfileScreen: FC = () => {
-  // State for marathon runner profile
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -115,26 +69,26 @@ const CompleteMarathonProfileScreen: FC = () => {
         </View>
 
         <View className="px-4">
-          <FormInput
+          <ReusableTextInput
             label="Enter full name *"
             value={fullName}
             onChangeText={setFullName}
             placeholder="e.g. John Doe"
           />
 
-          <FormInput
+          <ReusableTextInput
             label="Date of Birth *"
             value={dob}
             placeholder="DD/MM/YYYY"
-            editable={false}
-          >
-            <Pressable
-              onPress={() => setShowDatePicker(true)}
-              className="-ml-10"
-            >
-              <Ionicons name="calendar" size={24} color="#9CA3AF" />
-            </Pressable>
-          </FormInput>
+            rightIcon={
+              <Pressable
+                onPress={() => setShowDatePicker(true)}
+                className="-ml-10"
+              >
+                <Ionicons name="calendar" size={24} color="#9CA3AF" />
+              </Pressable>
+            }
+          />
 
           {showDatePicker && (
             <DateTimePicker
@@ -161,7 +115,7 @@ const CompleteMarathonProfileScreen: FC = () => {
             <Text className="text-sm text-gray-600 mb-2">Running Style *</Text>
             <View className="flex-row space-x-4">
               {["Forefoot", "Midfoot"].map((style) => (
-                <SelectableButton
+                <SelectionPill
                   key={style}
                   label={style}
                   isSelected={runningStyle === style}
@@ -175,10 +129,9 @@ const CompleteMarathonProfileScreen: FC = () => {
             <Text className="text-sm text-gray-600 mb-2">
               Experience level *
             </Text>
-            {/* Layout adjusted to stack buttons vertically */}
             <View className="flex-col items-start space-y-3">
               {["Beginner", "Intermediate", "Advanced"].map((level) => (
-                <SelectableButton
+                <SelectionPill
                   key={level}
                   label={level}
                   isSelected={experience === level}
@@ -188,38 +141,37 @@ const CompleteMarathonProfileScreen: FC = () => {
             </View>
           </View>
 
-          <FormInput
+          <ReusableTextInput
             label="Best Finish Time *"
             value={bestFinishTime}
             onChangeText={setBestFinishTime}
             placeholder="HH:MM:SS"
           />
 
-          <FormInput
+          <ReusableTextInput
             label="Bio"
             value={bio}
             onChangeText={setBio}
             placeholder="Tell us about your running journey..."
-            isOptional
             multiline
           />
 
           <View className="mb-6">
             <Text className="text-sm text-gray-600 mb-2">Preferences</Text>
             <View className="bg-blue-50 p-4 rounded-lg">
-              <PreferenceCheckbox
+              <CheckboxItem
                 label="Available for team selection"
-                isSelected={prefs.team}
+                isChecked={prefs.team}
                 onPress={() => setPrefs({ ...prefs, team: !prefs.team })}
               />
-              <PreferenceCheckbox
+              <CheckboxItem
                 label="Available for captain roles"
-                isSelected={prefs.captain}
+                isChecked={prefs.captain}
                 onPress={() => setPrefs({ ...prefs, captain: !prefs.captain })}
               />
-              <PreferenceCheckbox
+              <CheckboxItem
                 label="Receive Tournament Notifications"
-                isSelected={prefs.tournament}
+                isChecked={prefs.tournament}
                 onPress={() =>
                   setPrefs({ ...prefs, tournament: !prefs.tournament })
                 }
@@ -229,6 +181,7 @@ const CompleteMarathonProfileScreen: FC = () => {
 
           <ReusableButton
             title="Complete Profile"
+            role="player"
             onPress={() => console.log("Marathon Profile Submitted!")}
           />
 
