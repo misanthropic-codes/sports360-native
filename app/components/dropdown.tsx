@@ -1,5 +1,6 @@
 import React, { FC, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
 
 // --- Type Definitions ---
 
@@ -23,23 +24,24 @@ interface ReusableDropdownProps {
 // --- Components ---
 
 /**
- * SVG Checkmark Icon to avoid external dependencies.
+ * Native SVG Checkmark Icon for React Native.
  */
 const CheckIcon: FC<CheckIconProps> = ({ className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
+  <Svg
+    width={24}
+    height={24}
     viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={`w-5 h-5 ${className}`}
+    style={{ width: 20, height: 20 }}
   >
-    <polyline points="20 6 9 17 4 12"></polyline>
-  </svg>
+    <Polyline
+      points="20 6 9 17 4 12"
+      stroke="#2563eb"
+      strokeWidth={2}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
 );
 
 /**
