@@ -17,11 +17,73 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 const LoginScreen = () => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState(""); // 🆕 state for email
+  const [password, setPassword] = useState(""); // 🆕 state for password
+
   const navigation = useNavigation();
+
+  const handleLogin = (inputEmail: string, inputPassword: string) => {
+    console.log("Login button pressed");
+
+    // Hardcoded user data with all 6 combinations
+    const users = [
+      {
+        email: "cricketplayer@example.com",
+        password: "cricket123",
+        role: "player",
+        type: "cricket",
+      },
+      {
+        email: "marathonplayer@example.com",
+        password: "marathon123",
+        role: "player",
+        type: "marathon",
+      },
+      {
+        email: "cricketowner@example.com",
+        password: "owner123",
+        role: "ground-owner",
+        type: "cricket",
+      },
+      {
+        email: "marathonowner@example.com",
+        password: "owner456",
+        role: "ground-owner",
+        type: "marathon",
+      },
+      {
+        email: "cricketorganizer@example.com",
+        password: "organizer123",
+        role: "organizer",
+        type: "cricket",
+      },
+      {
+        email: "marathonorganizer@example.com",
+        password: "organizer456",
+        role: "organizer",
+        type: "marathon",
+      },
+    ];
+
+    // Authenticate user
+    const user = users.find(
+      (u) => u.email === inputEmail && u.password === inputPassword
+    );
+
+    if (!user) {
+      console.log("Invalid credentials");
+      alert("Invalid email or password");
+      return;
+    }
+
+    const { role, type } = user;
+    const route = `/dashboard/${role}/${type}`;
+    console.log(`Redirecting to ${route}`);
+    router.push(route as any);
+  };
 
   const handleSignUp = () => {
     console.log("Sign Up button pressed");
-
     router.push("/signup");
   };
 
@@ -29,7 +91,7 @@ const LoginScreen = () => {
     <SafeAreaView className="flex-1 relative bg-white">
       <StatusBar barStyle="light-content" backgroundColor="#166FFF" />
 
-      {/* Blue background stretched */}
+      {/* Blue background */}
       <View className="absolute top-0 left-0 right-0 h-[90%] bg-primary rounded-b-[40px] z-0" />
 
       {/* Back Button */}
@@ -44,7 +106,7 @@ const LoginScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 z-10"
       >
-        {/* Header Content */}
+        {/* Header */}
         <View className="items-center mt-24 px-5">
           <Text className="text-white text-lg">Welcome Back!</Text>
           <Text className="text-white text-3xl font-bold mt-2 text-center">
@@ -55,7 +117,7 @@ const LoginScreen = () => {
           </Text>
         </View>
 
-        {/* Login Form Card */}
+        {/* Login Form */}
         <View className="bg-white rounded-2xl p-6 mx-5 mt-10 shadow-lg z-10">
           <Text className="text-grayText text-center text-sm">
             Continue with
@@ -81,7 +143,8 @@ const LoginScreen = () => {
               placeholder="riyasingh@gmail.com"
               placeholderTextColor="#636364"
               keyboardType="email-address"
-              defaultValue="riyasingh@gmail.com"
+              value={email}
+              onChangeText={setEmail}
             />
           </View>
 
@@ -92,7 +155,8 @@ const LoginScreen = () => {
               placeholder="********"
               placeholderTextColor="#636364"
               secureTextEntry={!isPasswordShown}
-              defaultValue="********"
+              value={password}
+              onChangeText={setPassword}
             />
             <TouchableOpacity
               onPress={() => setIsPasswordShown(!isPasswordShown)}
@@ -125,14 +189,17 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Log In Button */}
-          <TouchableOpacity className="bg-primary py-4 rounded-lg items-center">
+          {/* ✅ Fixed Login Button */}
+          <TouchableOpacity
+            onPress={() => handleLogin(email, password)}
+            className="bg-primary py-4 rounded-lg items-center"
+          >
             <Text className="text-white text-lg font-bold">Log In</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
-      {/* Sign Up Prompt - moved just below blue area with ~5px space */}
+      {/* Sign Up Prompt */}
       <View className="flex-row justify-center mt-2 mb-5 z-10">
         <Text className="text-textBlack">Don't have an account? </Text>
         <TouchableOpacity onPress={handleSignUp}>
