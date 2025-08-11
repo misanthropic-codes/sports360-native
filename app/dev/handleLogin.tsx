@@ -10,13 +10,13 @@ const handleLogin = (inputEmail: string, inputPassword: string) => {
       email: "cricketplayer@example.com",
       password: "cricket123",
       role: "player",
-      type: "cricket"
+      type: "cricket",
     },
     {
       email: "marathonplayer@example.com",
       password: "marathon123",
       role: "player",
-      type: "marathon"
+      type: "marathon",
     },
 
     // Ground Owners
@@ -24,13 +24,13 @@ const handleLogin = (inputEmail: string, inputPassword: string) => {
       email: "cricketowner@example.com",
       password: "owner123",
       role: "groundowner",
-      type: "cricket"
+      type: "cricket",
     },
     {
       email: "marathonowner@example.com",
       password: "owner456",
       role: "groundowner",
-      type: "marathon"
+      type: "marathon",
     },
 
     // Organizers
@@ -38,14 +38,14 @@ const handleLogin = (inputEmail: string, inputPassword: string) => {
       email: "cricketorganizer@example.com",
       password: "organizer123",
       role: "organizer",
-      type: "cricket"
+      type: "cricket",
     },
     {
       email: "marathonorganizer@example.com",
       password: "organizer456",
       role: "organizer",
-      type: "marathon"
-    }
+      type: "marathon",
+    },
   ];
 
   // Authenticate user
@@ -59,6 +59,8 @@ const handleLogin = (inputEmail: string, inputPassword: string) => {
     return;
   }
 
+  // Successful login message
+  console.log("User successfully logged in");
   // Navigate to the dashboard route
   const { role, type } = user;
   const route = `/dashboard/${role}/${type}`;

@@ -24,11 +24,13 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, active, onPress }) => (
 );
 
 interface BottomNavBarProps {
-  activeScreen?: string;
+  activeScreen: string;
+  setActiveScreen: (screenName: string) => void; // Added for navigation state
 }
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({
-  activeScreen = "Home",
+  activeScreen,
+  setActiveScreen,
 }) => {
   const navItems = [
     { name: "Teams", icon: Users },
@@ -45,7 +47,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
           key={item.name}
           icon={item.icon}
           active={activeScreen === item.name}
-          onPress={() => console.log(`${item.name} pressed`)}
+          onPress={() => setActiveScreen(item.name)} // Connects to App's state
         />
       ))}
     </View>

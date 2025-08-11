@@ -1,7 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage"; // ✨ ADDED: For token storage
 import { useNavigation } from "@react-navigation/native";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator, // ✨ ADDED for loading state
+  Alert, // ✨ ADDED for user feedback
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -13,100 +16,91 @@ import {
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import api from "../api/api"; // ✨ ADDED: Central API service
 
 const LoginScreen = () => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [email, setEmail] = useState(""); // 🆕 state for email
-  const [password, setPassword] = useState(""); // 🆕 state for password
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false); // ✨ ADDED: For loading state
 
   const navigation = useNavigation();
 
-  const handleLogin = (inputEmail: string, inputPassword: string) => {
-    console.log("Login button pressed");
-
-    // Hardcoded user data with all 6 combinations
-    const users = [
-      {
-        email: "cricketplayer@example.com",
-        password: "cricket123",
-        role: "player",
-        type: "cricket",
-      },
-      {
-        email: "marathonplayer@example.com",
-        password: "marathon123",
-        role: "player",
-        type: "marathon",
-      },
-      {
-        email: "cricketowner@example.com",
-        password: "owner123",
-        role: "ground-owner",
-        type: "cricket",
-      },
-      {
-        email: "marathonowner@example.com",
-        password: "owner456",
-        role: "ground-owner",
-        type: "marathon",
-      },
-      {
-        email: "cricketorganizer@example.com",
-        password: "organizer123",
-        role: "organizer",
-        type: "cricket",
-      },
-      {
-        email: "marathonorganizer@example.com",
-        password: "organizer456",
-        role: "organizer",
-        type: "marathon",
-      },
-    ];
-
-    // Authenticate user
-    const user = users.find(
-      (u) => u.email === inputEmail && u.password === inputPassword
-    );
-
-    if (!user) {
-      console.log("Invalid credentials");
-      alert("Invalid email or password");
+  // ✨ CHANGED: Switched to async API call
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter both email and password.");
       return;
     }
 
-    const { role, type } = user;
-    const route = `/dashboard/${role}/${type}`;
-    console.log(`Redirecting to ${route}`);
-    router.push(route as any);
+    setLoading(true); // Start loading
+
+    try {
+      const response = await api.post("/auth/login", {
+        identifier: email, // API expects "identifier"
+        password: password,
+      });
+
+      // Assuming successful login returns a 200 status and data
+      if (response.data && response.data.success) {
+        const { token, role } = response.data.data;
+
+        // Store the token and role securely
+        await AsyncStorage.setItem("token", token);
+        await AsyncStorage.setItem("userRole", role);
+
+        Alert.alert("Success", "Logged in successfully!");
+
+        // Navigate to the dashboard based on the role from the API
+        // NOTE: The API provides 'role' but not 'type'. Adjusting route accordingly.
+        router.push(`/dashboard/${role}/cricket` as any);
+      } else {
+        // Handle cases where API returns success: false
+        throw new Error(response.data.message || "An unknown error occurred");
+      }
+    } catch (error) {
+      // Handle network errors or errors from the API
+      console.error("Login failed:", error);
+      let errorMessage = "Invalid credentials or server error.";
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as any).response === "object" &&
+        (error as any).response !== null &&
+        "data" in (error as any).response &&
+        typeof (error as any).response.data === "object" &&
+        (error as any).response.data !== null &&
+        "message" in (error as any).response.data
+      ) {
+        errorMessage = (error as any).response.data.message;
+      }
+      Alert.alert("Login Failed", errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignUp = () => {
-    console.log("Sign Up button pressed");
     router.push("/signup");
   };
 
   return (
     <SafeAreaView className="flex-1 relative bg-white">
+      {/* ... (Your existing UI code remains mostly the same) ... */}
       <StatusBar barStyle="light-content" backgroundColor="#166FFF" />
-
-      {/* Blue background */}
       <View className="absolute top-0 left-0 right-0 h-[90%] bg-primary rounded-b-[40px] z-0" />
-
-      {/* Back Button */}
       <TouchableOpacity
-        onPress={() => navigation.navigate("/" as never)}
+        onPress={() => navigation.goBack()} // Use goBack() for better navigation practice
         className="absolute top-14 left-5 p-2 z-20"
       >
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 z-10"
       >
-        {/* Header */}
         <View className="items-center mt-24 px-5">
           <Text className="text-white text-lg">Welcome Back!</Text>
           <Text className="text-white text-3xl font-bold mt-2 text-center">
@@ -116,9 +110,8 @@ const LoginScreen = () => {
             Enter your email and password to log in
           </Text>
         </View>
-
-        {/* Login Form */}
         <View className="bg-white rounded-2xl p-6 mx-5 mt-10 shadow-lg z-10">
+          {/* ... (Google login and divider) ... */}
           <Text className="text-grayText text-center text-sm">
             Continue with
           </Text>
@@ -128,8 +121,6 @@ const LoginScreen = () => {
               Continue with Google
             </Text>
           </TouchableOpacity>
-
-          {/* Divider */}
           <View className="flex-row items-center my-6">
             <View className="flex-1 h-px bg-gray-200" />
             <Text className="mx-3 text-grayText text-sm">Or login with</Text>
@@ -140,11 +131,12 @@ const LoginScreen = () => {
           <View className="flex-row items-center border border-gray-200 rounded-lg px-4 mb-4">
             <TextInput
               className="flex-1 h-12 text-base text-textBlack"
-              placeholder="riyasingh@gmail.com"
+              placeholder="Enter your email"
               placeholderTextColor="#636364"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
+              autoCapitalize="none"
             />
           </View>
 
@@ -152,7 +144,7 @@ const LoginScreen = () => {
           <View className="flex-row items-center border border-gray-200 rounded-lg px-4 mb-4">
             <TextInput
               className="flex-1 h-12 text-base text-textBlack"
-              placeholder="********"
+              placeholder="Enter your password"
               placeholderTextColor="#636364"
               secureTextEntry={!isPasswordShown}
               value={password}
@@ -169,7 +161,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Remember Me & Forgot Password */}
+          {/* ... (Remember me and Forgot Password) ... */}
           <View className="flex-row justify-between items-center mb-5">
             <TouchableOpacity
               className="flex-row items-center"
@@ -189,12 +181,17 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ Fixed Login Button */}
+          {/* ✨ CHANGED: Login Button now shows ActivityIndicator */}
           <TouchableOpacity
-            onPress={() => handleLogin(email, password)}
-            className="bg-primary py-4 rounded-lg items-center"
+            onPress={handleLogin}
+            className="bg-primary py-4 rounded-lg items-center flex-row justify-center"
+            disabled={loading} // Disable button when loading
           >
-            <Text className="text-white text-lg font-bold">Log In</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text className="text-white text-lg font-bold">Log In</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
