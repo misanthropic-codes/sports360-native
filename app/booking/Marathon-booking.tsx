@@ -1,4 +1,4 @@
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import React from "react";
 import { SafeAreaView, ScrollView, View } from "react-native";
 import BottomNavBar from "../components/BottomNavBar";
@@ -7,69 +7,69 @@ import FilterPills from "../components/FilterPills";
 import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
 
-type GroundBookingScreenProps = {
-  navigation: NativeStackNavigationProp<any>;
-};
-
-const venues = [
+const tracks = [
   {
     id: 1,
-    imageUrl: "https://placehold.co/600x400/5A9A78/ffffff?text=Stadium+1",
+    imageUrl: "https://placehold.co/600x400/D2B48C/ffffff?text=Track+1",
     availabilityText: "Available",
     initialIsFavorited: true,
     rating: 4.8,
-    stadiumName: "Govind Stadium",
+    stadiumName: "Govind Running Track",
     location: "Sector 6, Noida",
     price: "Rs 1200/-",
-    features: ["Parking", "Floodlights"],
+    features: ["Parking", "First Aid"],
   },
   {
     id: 2,
-    imageUrl: "https://placehold.co/600x400/6B8E23/ffffff?text=Stadium+2",
+    imageUrl: "https://placehold.co/600x400/BC8F8F/ffffff?text=Track+2",
     availabilityText: "Available",
     initialIsFavorited: true,
     rating: 4.8,
-    stadiumName: "Govind Stadium",
+    stadiumName: "Govind Running Track",
     location: "Sector 6, Noida",
     price: "Rs 1200/-",
-    features: ["Parking", "Floodlights"],
+    features: ["Parking", "First Aid"],
   },
   {
     id: 3,
-    imageUrl: "https://placehold.co/600x400/2E8B57/ffffff?text=Stadium+3",
+    imageUrl: "https://placehold.co/600x400/CD853F/ffffff?text=Track+3",
     availabilityText: "Available",
     initialIsFavorited: true,
     rating: 4.8,
-    stadiumName: "Govind Stadium",
+    stadiumName: "Govind Running Track",
     location: "Sector 6, Noida",
     price: "Rs 1200/-",
-    features: ["Parking", "Floodlights"],
+    features: ["Parking", "First Aid"],
   },
 ];
 
-const GroundBookingScreen = ({ navigation }: GroundBookingScreenProps) => {
+type TrackBookingScreenProps = {
+  navigation: StackNavigationProp<any>;
+};
+
+const TrackBookingScreen = ({ navigation }: TrackBookingScreenProps) => {
   const [activeScreen, setActiveScreen] = React.useState("Home");
 
-  // Example — you would replace with your auth state/context
-  const role = "player"; // or "groundowner", "organizer"
-  const type = "cricket"; // or "marathon"
-        
+  // Replace with your actual auth state
+  const role = "player"; // or groundowner, organizer
+  const type = "marathon";
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <Header
-        name="GroundBooking"
-        title="Ground Booking"
+        type="title"
+        title="Track Booking"
         showBackButton={true}
         onBackPress={() => navigation.goBack()}
       />
       <SearchBar />
       <FilterPills />
       <ScrollView>
-        {venues.map((venue) => (
+        {tracks.map((track) => (
           <VenueCard
-            key={venue.id}
-            {...venue}
-            onBookNowPress={() => console.log(`Booking ${venue.stadiumName}`)}
+            key={track.id}
+            {...track}
+            onBookNowPress={() => console.log(`Booking ${track.stadiumName}`)}
           />
         ))}
         <View className="h-24" />
@@ -85,4 +85,4 @@ const GroundBookingScreen = ({ navigation }: GroundBookingScreenProps) => {
   );
 };
 
-export default GroundBookingScreen;
+export default TrackBookingScreen;

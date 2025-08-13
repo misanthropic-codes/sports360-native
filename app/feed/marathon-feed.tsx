@@ -1,8 +1,7 @@
 import { PersonSimpleRun } from "phosphor-react-native";
 import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { SafeAreaView, ScrollView, View } from "react-native";
 
-// Import Reusable Components
 import BottomNavBar from "../components/BottomNavBar";
 import CategoryCard from "../components/CategoriesCard";
 import FeaturedEventCard from "../components/EventsCard";
@@ -11,8 +10,13 @@ import SectionHeader from "../components/SectionHeader";
 import TopNavBar from "../components/TopNavbar";
 import UpcomingEventCard from "../components/UpcomingEventCard";
 
-const MarathonScreen = () => {
+const MarathonScreen = ({ navigation }: { navigation?: any }) => {
   const [activeTab, setActiveTab] = useState("All");
+  const [activeScreen, setActiveScreen] = useState("Home");
+
+  const role = "player"; // could come from context/auth
+  const type = "marathon";
+
   const filterTabs = ["All", "Upcoming", "Live", "Completed"];
 
   const categories = [
@@ -29,6 +33,7 @@ const MarathonScreen = () => {
       color: "#EEF2FF",
     },
   ];
+
   const categories2 = [
     {
       icon: <PersonSimpleRun size={32} color="#16A34A" />,
@@ -45,14 +50,19 @@ const MarathonScreen = () => {
   ];
 
   return (
-    // Use a View with flex: 1 instead of SafeAreaView if your navigator already handles safe areas.
-    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
-      <TopNavBar title="Marathons" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
+      <TopNavBar
+        title="Marathons"
+        showBackButton
+        onBackPress={() => navigation?.goBack?.()}
+      />
+
       <FilterTabs
         tabs={filterTabs}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
+
       <ScrollView>
         <FeaturedEventCard
           date="12 August 2025"
@@ -61,6 +71,7 @@ const MarathonScreen = () => {
           location="Marine Drive"
           type="Full Marathon"
         />
+
         <SectionHeader title="Categories" />
         <View className="flex-row px-4 gap-3 mt-2">
           {categories.map((cat) => (
@@ -72,6 +83,7 @@ const MarathonScreen = () => {
             <CategoryCard key={cat.title} {...cat} />
           ))}
         </View>
+
         <SectionHeader title="Upcoming Events" />
         <UpcomingEventCard
           title="Kolkata Marathon"
@@ -79,31 +91,39 @@ const MarathonScreen = () => {
           status="Open"
           price="Rs 1200/-"
           date="22 Aug 2025"
-          location="Ground no. 6" participants={0}        />
-        <UpcomingEventCard
-          title="Kolkata Marathon"
-          subtitle="Half Marathon - 21.1 KM"
-          status="Open"
-          price="Rs 1200/-"
-          date="20 Aug 2025"
-          location="Ground no. 6" participants={0}        />
-        <UpcomingEventCard
-          title="Kolkata Marathon"
-          subtitle="Half Marathon - 21.1 KM"
-          status="Open"
-          price="Rs 1200/-"
-          date="20 Aug 2025"
-          location="Ground no. 6" participants={0}        />
-        {/* Add padding to the bottom to ensure it doesn't get hidden by your bottom nav bar */}
-        <BottomNavBar
-          activeScreen={"Home"}
-          setActiveScreen={function (screenName: string): void {
-            throw new Error("Function not implemented.");
-          }}
+          location="Ground no. 6"
+          participants={0}
         />
-        <View style={{ height: 80 }} />
+        <UpcomingEventCard
+          title="Kolkata Marathon"
+          subtitle="Half Marathon - 21.1 KM"
+          status="Open"
+          price="Rs 1200/-"
+          date="20 Aug 2025"
+          location="Ground no. 6"
+          participants={0}
+        />
+        <UpcomingEventCard
+          title="Kolkata Marathon"
+          subtitle="Half Marathon - 21.1 KM"
+          status="Open"
+          price="Rs 1200/-"
+          date="20 Aug 2025"
+          location="Ground no. 6"
+          participants={0}
+        />
+
+        {/* Spacer so last card isn't hidden behind nav */}
+        <View style={{ height: 100 }} />
       </ScrollView>
-    </View>
+
+      <BottomNavBar
+        activeScreen={activeScreen}
+        setActiveScreen={setActiveScreen}
+        role={role}
+        type={type}
+      />
+    </SafeAreaView>
   );
 };
 

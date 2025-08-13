@@ -1,6 +1,6 @@
 import { Cricket } from "phosphor-react-native";
 import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { SafeAreaView, ScrollView, View } from "react-native";
 
 import BottomNavBar from "../components/BottomNavBar";
 import CategoryCard from "../components/CategoriesCard";
@@ -10,13 +10,14 @@ import SectionHeader from "../components/SectionHeader";
 import TopNavBar from "../components/TopNavbar";
 import UpcomingEventCard from "../components/UpcomingEventCard";
 
-interface CricketScreenProps {
-  navigation?: any; // You can replace 'any' with StackNavigationProp if using React Navigation types
-}
-
-const CricketScreen: React.FC<CricketScreenProps> = ({ navigation }) => {
+const CricketScreen = ({ navigation }: { navigation?: any }) => {
   const [activeTab, setActiveTab] = useState("All");
-  const filterTabs: string[] = ["All", "Upcoming", "Live", "Completed"];
+  const [activeScreen, setActiveScreen] = useState("Home");
+
+  const role = "player"; // Could come from context
+  const type = "cricket";
+
+  const filterTabs = ["All", "Upcoming", "Live", "Completed"];
 
   const categories = [
     {
@@ -57,11 +58,11 @@ const CricketScreen: React.FC<CricketScreenProps> = ({ navigation }) => {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <TopNavBar
         title="Matches"
         showBackButton
-        onBackPress={() => console.log("Back Pressed")} // Or navigation.goBack()
+        onBackPress={() => navigation?.goBack?.()}
       />
       <FilterTabs
         tabs={filterTabs}
@@ -118,15 +119,18 @@ const CricketScreen: React.FC<CricketScreenProps> = ({ navigation }) => {
           location="S.K Stadium"
           participants={10500}
         />
-        <BottomNavBar
-          activeScreen={"Home"}
-          setActiveScreen={function (screenName: string): void {
-            throw new Error("Function not implemented.");
-          }}
-        />
+
+        {/* Spacer so last card isn't hidden behind navbar */}
         <View style={{ height: 100 }} />
       </ScrollView>
-    </View>
+
+      <BottomNavBar
+        activeScreen={activeScreen}
+        setActiveScreen={setActiveScreen}
+        role={role}
+        type={type}
+      />
+    </SafeAreaView>
   );
 };
 
