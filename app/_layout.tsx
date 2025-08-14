@@ -23,7 +23,19 @@ export default function RootLayout() {
         <Stack.Screen name="(root)/signup" />
         <Stack.Screen name="verifyScreen/index" />
         <Stack.Screen name="onboarding/choose-domain" />
-         <Stack.Screen name="onboarding/player/cricket-form" />
+        <Stack.Screen name="onboarding/player/cricket-form" />
+        <Stack.Screen name="onboarding/player/marathon-form" />
+        <Stack.Screen name="onboarding/organizer/cricket-form" />
+        <Stack.Screen name="onboarding/organizer/marathon-form" />
+        <Stack.Screen name="onboarding/ground-owner/cricket-form" />
+        <Stack.Screen name="feed/cricket-feed" />
+        <Stack.Screen name="feed/marathon-feed" />
+        <Stack.Screen name="booking/Marathon-booking" />
+        <Stack.Screen name="booking/Cricket-booking" />
+
+        <Stack.Screen name="matches/MatchDetail" />
+        <Stack.Screen name="team/Myteam" />
+        <Stack.Screen name="team/CreateTeam" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
