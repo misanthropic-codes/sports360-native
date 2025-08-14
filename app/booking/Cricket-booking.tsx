@@ -1,5 +1,5 @@
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React from "react";
+import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View } from "react-native";
 import BottomNavBar from "../components/BottomNavBar";
 import VenueCard from "../components/Card";
@@ -10,6 +10,8 @@ import SearchBar from "../components/SearchBar";
 type GroundBookingScreenProps = {
   navigation: NativeStackNavigationProp<any>;
 };
+
+const [activeScreen, setActiveScreen] = useState("Home");
 
 const venues = [
   {
@@ -53,7 +55,7 @@ const GroundBookingScreen = ({ navigation }: GroundBookingScreenProps) => {
   // Example — you would replace with your auth state/context
   const role = "player"; // or "groundowner", "organizer"
   const type = "cricket"; // or "marathon"
-        
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <Header
@@ -75,12 +77,7 @@ const GroundBookingScreen = ({ navigation }: GroundBookingScreenProps) => {
         <View className="h-24" />
       </ScrollView>
 
-      <BottomNavBar
-        activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
-        role={role}
-        type={type}
-      />
+      <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );
 };
