@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { BarChart2, Home, Trophy, User, Users } from "lucide-react-native";
-import React from "react";
+import React, { useState } from "react";
 import { TouchableOpacity, View } from "react-native";
 
 interface NavItemProps {
@@ -25,19 +25,15 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, active, onPress }) => (
 );
 
 interface BottomNavBarProps {
-  activeScreen: string;
-  setActiveScreen: (screenName: string) => void;
   role: string; // player, groundowner, organizer
   type: string; // cricket, marathon
 }
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({
-  activeScreen,
-  setActiveScreen,
-  role,
-  type,
-}) => {
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   const router = useRouter();
+
+  // Manage active screen internally
+  const [activeScreen, setActiveScreen] = useState("Home");
 
   const navItems = [
     { name: "Teams", icon: Users },
@@ -52,19 +48,18 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
     switch (screenName) {
       case "Home":
-        router.push(`/feed/${type}` as any); // /feed/cricket or /feed/marathon
+        router.push(`/feed/${type}` as any);
         break;
       case "Activity":
-        router.push(`/matches/MatchDetail`);
+        router.push(`/matches/MatchDetail` as any);
         break;
       case "Teams":
-        router.push(`/Team/Myteam` as any);
+        router.push(`/team/Myteam` as any);
         break;
       case "Profile":
         router.push(`/dashboard/${role}/${type}` as any);
         break;
       case "Trophy":
-        // Add your Trophy navigation if needed
         router.push(`/trophies` as any);
         break;
     }
