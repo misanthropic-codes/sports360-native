@@ -6,9 +6,19 @@ import ReusableTextInput from "@/app/components/TextInput";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { FC, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
+
+const BASE_URL = "https://sport360-services-production.up.railway.app"; // <-- Replace with your actual API base URL
+const USER_ID = "7bd02eab-f348-4d08-9ca5-f7873c377b40"; // <-- Replace with dynamic userId if needed
 
 const CompleteProfileScreen: FC = () => {
   const [fullName, setFullName] = useState("");
@@ -37,6 +47,42 @@ const CompleteProfileScreen: FC = () => {
     }
   };
 
+  const handleSubmit = async () => {
+    const payload = {
+      userId: USER_ID,
+      bowlerType: bowlingStyle, // Map correctly if API requires different naming
+      batsmanType: "Aggressive", // You can make this dynamic
+      playingPosition: playingPosition?.toLowerCase(),
+      bowlingStyle: bowlingStyle?.toLowerCase().replace(/\s+/g, "_"),
+      battingStyle: battingStyle?.toLowerCase().replace(/\s+/g, "_"),
+      experienceLevel: experience,
+      location: location,
+      bio: bio,
+      availableForTeamSelection: prefs.team,
+      availableForCaptain: prefs.captain,
+      receiveTournamentNotifications: prefs.tournament,
+    };
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/user/cricket-profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log("✅ Profile submitted successfully:", data);
+      Alert.alert("Success", "Profile submitted successfully!");
+    } catch (error) {
+      console.error("❌ Failed to submit profile:", error);
+      Alert.alert("Error", "Something went wrong while submitting profile");
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <View className="p-4 flex-row items-center bg-blue-600">
@@ -48,6 +94,7 @@ const CompleteProfileScreen: FC = () => {
         </Text>
       </View>
 
+      {/* Progress Bar */}
       <View className="p-4">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-sm text-gray-500">Step 2 of 2</Text>
@@ -102,6 +149,7 @@ const CompleteProfileScreen: FC = () => {
             />
           )}
 
+          {/* Playing Position */}
           <View className="mb-4">
             <Text className="text-sm text-gray-600 mb-2">Playing Position</Text>
             <ReusableDropdown
@@ -112,6 +160,7 @@ const CompleteProfileScreen: FC = () => {
             />
           </View>
 
+          {/* Batting Style */}
           <View className="mb-4">
             <Text className="text-sm text-gray-600 mb-2">Batting Style</Text>
             <View className="flex-row space-x-4">
@@ -126,6 +175,7 @@ const CompleteProfileScreen: FC = () => {
             </View>
           </View>
 
+          {/* Bowling Style */}
           <View className="mb-4">
             <Text className="text-sm text-gray-600 mb-2">Bowling Style</Text>
             <ReusableDropdown
@@ -136,6 +186,7 @@ const CompleteProfileScreen: FC = () => {
             />
           </View>
 
+          {/* Experience */}
           <View className="mb-4">
             <Text className="text-sm text-gray-600 mb-2">Experience level</Text>
             <View className="flex-row space-x-4">
@@ -165,6 +216,7 @@ const CompleteProfileScreen: FC = () => {
             multiline
           />
 
+          {/* Preferences */}
           <View className="mb-6">
             <Text className="text-sm text-gray-600 mb-2">Preferences</Text>
             <View className="bg-blue-50 p-4 rounded-lg">
@@ -191,7 +243,7 @@ const CompleteProfileScreen: FC = () => {
           <ReusableButton
             title="Complete Profile"
             role="player"
-            onPress={() => console.log("Profile Submitted!")}
+            onPress={handleSubmit}
           />
 
           <Text className="text-center text-xs text-gray-500 mt-4">

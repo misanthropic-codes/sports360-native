@@ -116,13 +116,7 @@ const MarathonScreen = ({ navigation }: { navigation?: any }) => {
         {/* Spacer so last card isn't hidden behind nav */}
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      <BottomNavBar
-        activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
-        role={role}
-        type={type}
-      />
+      <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );
 };

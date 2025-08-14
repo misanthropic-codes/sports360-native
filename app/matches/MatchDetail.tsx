@@ -109,12 +109,7 @@ const TournamentDetailsScreen = ({
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <BottomNavBar
-        activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
-        role={role}
-        type={type}
-      />
+      <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );
 };
