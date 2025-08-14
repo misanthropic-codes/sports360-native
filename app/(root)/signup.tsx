@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -31,29 +32,29 @@ const RoleCard = ({
   onPress: (role: Role) => void;
 }) => {
   const isSelected = selected === label;
-  const isOrganizer = label === "Organizer";
+
+  // Assign colors based on role
+  const roleColors: Record<Role, string> = {
+    Player: "#166FFF", // blue
+    Organizer: "#8B5CF6", // purple
+    "Ground Owner": "#FF9800", // orange
+  };
+
+  const borderColor = isSelected ? roleColors[label] : "#E5E7EB";
+  const textColor = isSelected ? roleColors[label] : "#166FFF";
+  const iconColor = isSelected ? roleColors[label] : "#166FFF";
 
   return (
     <TouchableOpacity
       onPress={() => onPress(label)}
-      className={`flex-1 items-center justify-center h-28 mx-2 rounded-2xl bg-white 
-        ${isSelected ? (isOrganizer ? "border-2 border-purple-600" : "border-2 border-primary") : "border border-gray-200"}
-      `}
+      className="flex-1 items-center justify-center h-28 mx-2 rounded-2xl bg-white"
+      style={{
+        borderWidth: isSelected ? 2 : 1,
+        borderColor,
+      }}
     >
-      <IconComponent
-        name={iconName}
-        size={32}
-        color={isSelected ? (isOrganizer ? "#8B5CF6" : "#166FFF") : "#166FFF"}
-      />
-      <Text
-        className={`mt-2 font-rubikMedium ${
-          isSelected
-            ? isOrganizer
-              ? "text-purple-600"
-              : "text-primary"
-            : "text-primary"
-        }`}
-      >
+      <IconComponent name={iconName} size={32} color={iconColor} />
+      <Text className="mt-2 font-rubikMedium" style={{ color: textColor }}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -70,20 +71,60 @@ const SignupScreen = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!fullName || !email || !phone || !password || !confirmPassword) {
-      alert("Please fill all fields");
+      Alert.alert("Missing Fields", "Please fill all fields");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      Alert.alert("Password Mismatch", "Passwords do not match");
       return;
     }
 
-    const encodedRole = encodeURIComponent(selectedRole);
-    router.push(`/onboarding/choose-domain?role=${encodedRole}`);
+    const payload = {
+      fullName,
+      email,
+      profilePicUrl: "https://example.com/default-avatar.png",
+      phone: `+91 ${phone}`,
+      password,
+      role: selectedRole.toLowerCase().replace(" ", "_"),
+    };
+
+    console.log("Sending payload:", payload);
+
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/register/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await res.json();
+      console.log("API Response:", data);
+
+      if (!res.ok) {
+        const msg = data?.message || "Sign up failed";
+        Alert.alert("Error", msg);
+        return;
+      }
+
+      Alert.alert("Success", "Account created successfully!");
+      router.push(
+        `/onboarding/choose-domain?role=${encodeURIComponent(selectedRole)}`
+      );
+    } catch (err) {
+      console.error("Sign Up Error:", err);
+      Alert.alert("Network Error", "Could not connect to server");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,7 +133,10 @@ const SignupScreen = () => {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View className="bg-primary pt-6 pb-8 rounded-b-[40px]">
           <View className="px-5">
-            <TouchableOpacity className="self-start p-2 -ml-2">
+            <TouchableOpacity
+              className="self-start p-2 -ml-2"
+              onPress={() => router.back()}
+            >
               <Feather name="arrow-left" size={28} color="#fff" />
             </TouchableOpacity>
             <Text className="text-white font-rubikBold text-3xl mt-4">
@@ -241,9 +285,12 @@ const SignupScreen = () => {
 
           <TouchableOpacity
             onPress={handleSignUp}
+            disabled={loading}
             className="bg-primary rounded-full h-14 items-center justify-center mt-8"
           >
-            <Text className="text-white font-rubikBold text-lg">Sign Up</Text>
+            <Text className="text-white font-rubikBold text-lg">
+              {loading ? "Signing Up..." : "Sign Up"}
+            </Text>
           </TouchableOpacity>
 
           <View className="flex-row justify-center mt-6">
