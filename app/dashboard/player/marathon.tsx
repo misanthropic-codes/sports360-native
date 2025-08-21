@@ -75,7 +75,7 @@ const RunningHomeScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      <BottomNavBar activeScreen="Home" />
+      <BottomNavBar role="player" type="marathon" />
     </AppScreen>
   );
 };

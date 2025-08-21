@@ -74,7 +74,7 @@ const CricketHomeScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      <BottomNavBar activeScreen="Home" />
+      <BottomNavBar role="player" type="cricket" />
     </AppScreen>
   );
 };

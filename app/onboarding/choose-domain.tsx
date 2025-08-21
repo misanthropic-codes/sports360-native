@@ -1,6 +1,8 @@
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -15,7 +17,6 @@ import {
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 
-// --- Reusable Progress Indicator ---
 interface ProgressIndicatorProps {
   currentStep: number;
   totalSteps: number;
@@ -26,7 +27,6 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   totalSteps,
 }) => {
   const percentage = Math.round((currentStep / totalSteps) * 100);
-
   return (
     <View className="w-full px-6 pt-4">
       <View className="flex-row justify-between items-center mb-2">
@@ -37,7 +37,6 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           {percentage}%
         </Text>
       </View>
-
       <View className="w-full h-3 bg-white/30 rounded-full relative overflow-hidden">
         <View
           style={{ width: `${percentage}%` }}
@@ -55,47 +54,129 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   );
 };
 
-// --- Domain options ---
 interface Domain {
   name: string;
   icon: string;
 }
+
+type ValidRole = "player" | "organizer" | "ground-owner";
+type ValidDomain = "cricket" | "marathon";
 
 const domains: Domain[] = [
   { name: "Cricket", icon: "cricket" },
   { name: "Marathon", icon: "run" },
 ];
 
-// --- Main Screen ---
 const ChooseDomainScreen: React.FC = () => {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
-  const { role } = useLocalSearchParams();
+  const [role, setRole] = useState<ValidRole | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      try {
+        const storedRole = await AsyncStorage.getItem("userRole");
+        if (storedRole) {
+          setRole(storedRole.toLowerCase() as ValidRole);
+          console.log("Role loaded from AsyncStorage:", storedRole);
+        } else {
+          Alert.alert("Error", "Role not found. Please log in again.", [
+            {
+              text: "Go to Login",
+              onPress: () => router.replace("/(auth)/login" as any),
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching role:", error);
+        Alert.alert(
+          "Error",
+          "Failed to load role. Please try logging in again.",
+          [
+            {
+              text: "Go to Login",
+              onPress: () => router.replace("/(auth)/login" as any),
+            },
+          ]
+        );
+      }
+    };
+
+    fetchRole();
+  }, []);
+
+  const isValidDomain = (domain: string): domain is ValidDomain => {
+    return ["cricket", "marathon"].includes(domain.toLowerCase());
+  };
 
   const handleContinue = () => {
-    if (!selectedDomain || !role) {
-      console.warn("Missing role or domain");
+    if (!selectedDomain) {
+      Alert.alert("Selection Required", "Please select a domain to continue.");
       return;
     }
 
-    const formattedRole = String(role).toLowerCase().replace(/\s+/g, "-");
-    const formattedDomain = selectedDomain.toLowerCase();
+    if (!role) {
+      Alert.alert(
+        "Error",
+        "Role information is missing. Please try logging in again.",
+        [
+          {
+            text: "Go to Login",
+            onPress: () => router.replace("/(auth)/login" as any),
+          },
+        ]
+      );
+      return;
+    }
 
-    const targetRoute = `/onboarding/${formattedRole}/${formattedDomain}-form`;
+    const normalizedDomain = selectedDomain.toLowerCase();
 
-    console.log("Navigating to:", targetRoute);
-    router.push(targetRoute);
+    if (!isValidDomain(normalizedDomain)) {
+      console.error("Invalid domain:", normalizedDomain);
+      Alert.alert("Error", "Invalid domain selected. Please try again.");
+      return;
+    }
+
+    // Construct the path dynamically
+    const targetPathname = `/onboarding/${role}/${normalizedDomain}-form`;
+
+    console.log("Navigating to:", targetPathname);
+
+    try {
+      router.push({
+        pathname: targetPathname as any,
+        params: {
+          role,
+          domain: normalizedDomain,
+        },
+      });
+    } catch (error) {
+      console.error("Navigation error:", error);
+      Alert.alert(
+        "Navigation Error",
+        "Failed to navigate to the next screen. Please try again."
+      );
+    }
   };
+
+  if (!role) {
+    return (
+      <SafeAreaView className="flex-1 bg-blue-600">
+        <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-white text-lg text-center">Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-blue-600">
       <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
-
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={{ flex: 1 }}
         >
-          {/* Blue Header Area */}
           <View className="bg-blue-600 pt-8 pb-6 px-4">
             <View className="flex-row items-center mb-4">
               <TouchableOpacity onPress={() => router.back()}>
@@ -105,11 +186,9 @@ const ChooseDomainScreen: React.FC = () => {
                 Complete Your Profile
               </Text>
             </View>
-
             <ProgressIndicator currentStep={1} totalSteps={2} />
           </View>
 
-          {/* White Content Area */}
           <View className="flex-1 bg-gray-100 rounded-t-3xl">
             <View className="items-center p-6">
               <View className="bg-blue-500 rounded-full py-3 px-6 mb-8 shadow-md shadow-black">
@@ -117,6 +196,12 @@ const ChooseDomainScreen: React.FC = () => {
                   Choose Your Domain
                 </Text>
               </View>
+
+              {/* Role info */}
+              <Text className="text-gray-600 text-base mb-6 text-center">
+                Setting up profile for:{" "}
+                <Text className="font-bold capitalize">{role}</Text>
+              </Text>
 
               <View className="w-full items-center">
                 {domains.map((domain) => {
@@ -154,7 +239,6 @@ const ChooseDomainScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Continue Button */}
             <View className="p-6 mt-auto">
               <TouchableOpacity
                 className={`w-full py-4 rounded-full items-center shadow-md shadow-black ${

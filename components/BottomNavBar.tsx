@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { BarChart2, Home, Trophy, User, Users } from "lucide-react-native";
-import React, { useState } from "react";
+import React from "react";
 import { TouchableOpacity, View } from "react-native";
 
 interface NavItemProps {
@@ -31,50 +31,33 @@ interface BottomNavBarProps {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   const router = useRouter();
-
-  // Manage active screen internally
-  const [activeScreen, setActiveScreen] = useState("Home");
+  const pathname = usePathname(); // ✅ gives current route path
 
   const navItems = [
-    { name: "Teams", icon: Users },
-    { name: "Activity", icon: BarChart2 },
-    { name: "Trophy", icon: Trophy },
-    { name: "Home", icon: Home },
-    { name: "Profile", icon: User },
+    { name: "Teams", icon: Users, path: `/team/Myteam` },
+    { name: "Activity", icon: BarChart2, path: `/matches/MatchDetail` },
+    { name: "Trophy", icon: Trophy, path: `/trophies` },
+    { name: "Home", icon: Home, path: `/feed/${type}` },
+    { name: "Profile", icon: User, path: `/dashboard/${role}/${type}` },
   ];
 
-  const handleNavigation = (screenName: string) => {
-    setActiveScreen(screenName);
-
-    switch (screenName) {
-      case "Home":
-        router.push(`/feed/${type}` as any);
-        break;
-      case "Activity":
-        router.push(`/matches/MatchDetail` as any);
-        break;
-      case "Teams":
-        router.push(`/team/Myteam` as any);
-        break;
-      case "Profile":
-        router.push(`/dashboard/${role}/${type}` as any);
-        break;
-      case "Trophy":
-        router.push(`/trophies` as any);
-        break;
-    }
+  const handleNavigation = (path: string) => {
+    router.push(path as any);
   };
 
   return (
     <View className="absolute bottom-4 left-4 right-4 h-16 bg-blue-500 rounded-full flex-row items-center justify-around shadow-lg">
-      {navItems.map((item) => (
-        <NavItem
-          key={item.name}
-          icon={item.icon}
-          active={activeScreen === item.name}
-          onPress={() => handleNavigation(item.name)}
-        />
-      ))}
+      {navItems.map((item) => {
+        const active = pathname.startsWith(item.path); // ✅ check active via path
+        return (
+          <NavItem
+            key={item.name}
+            icon={item.icon}
+            active={active}
+            onPress={() => handleNavigation(item.path)}
+          />
+        );
+      })}
     </View>
   );
 };

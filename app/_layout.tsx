@@ -17,7 +17,14 @@ const InitialLayout = () => {
     const inAuthGroup = segments[0] === "(root)";
 
     if (user && inAuthGroup) {
-      router.replace("/feed/cricket-feed");
+      const role = user.role;
+      const domain = user.domains?.[0]; // first domain or selected domain
+
+      if (role && domain) {
+        router.replace(`/dashboard/${role}/${domain}` as any);
+      } else {
+        router.replace("/onboarding/choose-domain");
+      }
     } else if (!user && !inAuthGroup) {
       router.replace("/(root)/login");
     }

@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import { useNavigation } from "@react-navigation/native";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -18,6 +18,30 @@ import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+
+interface UserData {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  domains?: string[];
+  token: string;
+}
+
+interface LoginResponse {
+  success: boolean;
+  data: UserData;
+  message?: string;
+}
+
+interface AuthUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  domains: string[];
+  token: string;
+}
 
 const LoginScreen = () => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
@@ -44,35 +68,63 @@ const LoginScreen = () => {
       });
 
       if (response.data && response.data.success) {
-        const { token, role } = response.data.data;
+        const userData: UserData = response.data.data;
 
-        await AsyncStorage.setItem("token", token);
-        await AsyncStorage.setItem("userRole", role);
+        // Save user to context
+        await login({
+          id: userData.id,
+          fullName: userData.fullName,
+          email: userData.email,
+          role: userData.role,
+          domains: userData.domains || [],
+          token: userData.token,
+        });
 
-        login(); // Set user in context
+        // Store role and domain (if present) in AsyncStorage
+        await AsyncStorage.setItem("userRole", userData.role);
+        if (userData.domains && userData.domains.length > 0) {
+          await AsyncStorage.setItem("userDomain", userData.domains[0]);
+        }
 
         Alert.alert("Success", "Logged in successfully!");
 
-        router.replace(`/dashboard/${role}/cricket` as any);
+        const role = userData.role;
+        const domain = userData.domains?.[0];
+
+        console.log("Login successful, user role:", role);
+
+        if (role && !domain) {
+          console.log(
+            "Role present but no domain, redirecting to choose-domain"
+          );
+          router.replace("/onboarding/choose-domain");
+        } else if (role && domain) {
+          console.log(
+            "Role and domain present, redirecting to dashboard:",
+            role,
+            domain
+          );
+          router.replace(`/dashboard/${role}/${domain}` as any);
+        } else {
+          console.log("Fallback redirect to feed/cricket-feed");
+          router.replace("/feed/cricket-feed");
+        }
       } else {
         throw new Error(response.data.message || "An unknown error occurred");
       }
     } catch (error) {
       console.error("Login failed:", error);
       let errorMessage = "Invalid credentials or server error.";
+
       if (
         typeof error === "object" &&
         error !== null &&
         "response" in error &&
-        typeof (error as any).response === "object" &&
-        (error as any).response !== null &&
-        "data" in (error as any).response &&
-        typeof (error as any).response.data === "object" &&
-        (error as any).response.data !== null &&
-        "message" in (error as any).response.data
+        (error as any).response?.data?.message
       ) {
         errorMessage = (error as any).response.data.message;
       }
+
       Alert.alert("Login Failed", errorMessage);
     } finally {
       setLoading(false);
@@ -80,24 +132,29 @@ const LoginScreen = () => {
   };
 
   const handleSignUp = () => {
-    router.push("signup");
+    router.push("/(root)/signup");
   };
 
   return (
     <SafeAreaView className="flex-1 relative bg-white">
-      {/* ... (Your existing UI code remains mostly the same) ... */}
       <StatusBar barStyle="light-content" backgroundColor="#166FFF" />
+
+      {/* Background header container */}
       <View className="absolute top-0 left-0 right-0 h-[90%] bg-primary rounded-b-[40px] z-0" />
+
+      {/* Back button */}
       <TouchableOpacity
-        onPress={() => navigation.goBack()} // Use goBack() for better navigation practice
+        onPress={() => navigation.goBack()}
         className="absolute top-14 left-5 p-2 z-20"
       >
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 z-10"
       >
+        {/* Welcome texts */}
         <View className="items-center mt-24 px-5">
           <Text className="text-white text-lg">Welcome Back!</Text>
           <Text className="text-white text-3xl font-bold mt-2 text-center">
@@ -107,8 +164,10 @@ const LoginScreen = () => {
             Enter your email and password to log in
           </Text>
         </View>
+
+        {/* Login Box */}
         <View className="bg-white rounded-2xl p-6 mx-5 mt-10 shadow-lg z-10">
-          {/* ... (Google login and divider) ... */}
+          {/* Google login button */}
           <Text className="text-grayText text-center text-sm">
             Continue with
           </Text>
@@ -118,6 +177,8 @@ const LoginScreen = () => {
               Continue with Google
             </Text>
           </TouchableOpacity>
+
+          {/* Divider */}
           <View className="flex-row items-center my-6">
             <View className="flex-1 h-px bg-gray-200" />
             <Text className="mx-3 text-grayText text-sm">Or login with</Text>
@@ -158,7 +219,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* ... (Remember me and Forgot Password) ... */}
+          {/* Remember me + Forgot password */}
           <View className="flex-row justify-between items-center mb-5">
             <TouchableOpacity
               className="flex-row items-center"
@@ -178,11 +239,11 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* ✨ CHANGED: Login Button now shows ActivityIndicator */}
+          {/* Login Button with Loader */}
           <TouchableOpacity
             onPress={handleLogin}
             className="bg-primary py-4 rounded-lg items-center flex-row justify-center"
-            disabled={loading} // Disable button when loading
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator size="small" color="#ffffff" />
