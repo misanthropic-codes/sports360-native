@@ -1,6 +1,4 @@
 // --- FILE: ./src/screens/CreateTeamScreen.tsx ---
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import React, { useState } from "react";
 import {
   Alert,
@@ -10,11 +8,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import BottomNavBar from "../components/BottomNavBar";
-import FormImagePicker from "../components/FormImagePicker";
-import FormInput from "../components/FormInput";
-import FormSwitch from "../components/FormSwitch";
-import Header from "../components/Header";
+import api from "../../api/api";
+import BottomNavBar from "../../components/BottomNavBar";
+import FormImagePicker from "../../components/FormImagePicker";
+import FormInput from "../../components/FormInput";
+import FormSwitch from "../../components/FormSwitch";
+import Header from "../../components/Header";
 
 const CreateTeamScreen: React.FC = () => {
   const role = "player";
@@ -45,29 +44,7 @@ const CreateTeamScreen: React.FC = () => {
     };
 
     try {
-      const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
-      if (!baseURL) {
-        console.error("Base URL not found in .env");
-        Alert.alert("Error", "Base URL not configured.");
-        return;
-      }
-
-      // 🔑 Get token from AsyncStorage
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        Alert.alert("Error", "You must be logged in to create a team.");
-        return;
-      }
-
-      console.log(`Sending request to: ${baseURL}/api/v1/team`);
-      console.log(`Using Bearer token: ${token}`);
-
-      const response = await axios.post(`${baseURL}/api/v1/team`, formData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post("/team", formData);
 
       console.log("✅ Team created successfully:", response.data);
       Alert.alert("Success", "Your team has been created!");

@@ -2,7 +2,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-const BASE_URL = "https://sport360-services-production.up.railway.app/api/v1";
+const BASE_URL = `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1`;
 
 const api = axios.create({
   baseURL: BASE_URL,

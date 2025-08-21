@@ -17,7 +17,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 const handleSignUp = () => {
   console.log("Sign Up button pressed");
 
-  router.push("/signup");
+  router.push("/(root)/signup");
 };
 
 const VerifyScreen: React.FC = () => {

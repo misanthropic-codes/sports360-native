@@ -5,13 +5,13 @@ import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 
 import { router } from "expo-router";
-import ActivityCard from "../components/ActivityCard";
-import BottomNavBar from "../components/BottomNavBar";
-import CreateTeamButton from "../components/CreatTeamButton";
-import Header from "../components/Header";
-import SectionTitle from "../components/SectiontitleM";
-import StatPillBar from "../components/StatPillBar";
-import TeamCard from "../components/TeamCard";
+import ActivityCard from "../../components/ActivityCard";
+import BottomNavBar from "../../components/BottomNavBar";
+import CreateTeamButton from "../../components/CreatTeamButton";
+import Header from "../../components/Header";
+import SectionTitle from "../../components/SectiontitleM";
+import StatPillBar from "../../components/StatPillBar";
+import TeamCard from "../../components/TeamCard";
 
 type MyTeamScreenProps = {
   navigation: any;

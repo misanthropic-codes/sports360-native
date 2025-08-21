@@ -1,8 +1,9 @@
-import ReusableButton from "@/app/components/button";
-import CheckboxItem from "@/app/components/CheckBoxItem";
-import ReusableDropdown from "@/app/components/dropdown";
-import SelectionPill from "@/app/components/SelelctionPill";
-import ReusableTextInput from "@/app/components/TextInput";
+import ReusableButton from "@/components/button";
+import CheckboxItem from "@/components/CheckBoxItem";
+import ReusableDropdown from "@/components/dropdown";
+import SelectionPill from "@/components/SelelctionPill";
+import ReusableTextInput from "@/components/TextInput";
+import api from "../../../api/api";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { FC, useState } from "react";
@@ -17,7 +18,6 @@ import {
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
-const BASE_URL = "https://sport360-services-production.up.railway.app"; // <-- Replace with your actual API base URL
 const USER_ID = "7bd02eab-f348-4d08-9ca5-f7873c377b40"; // <-- Replace with dynamic userId if needed
 
 const CompleteProfileScreen: FC = () => {
@@ -64,19 +64,12 @@ const CompleteProfileScreen: FC = () => {
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/api/v1/user/cricket-profile`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await api.post("/user/cricket-profile", payload);
 
-      if (!res.ok) {
-        throw new Error(`Request failed with status ${res.status}`);
+      if (response.status >= 200 && response.status < 300) {
+        console.log("✅ Profile submitted successfully:", response.data);
+        Alert.alert("Success", "Profile submitted successfully!");
       }
-
-      const data = await res.json();
-      console.log("✅ Profile submitted successfully:", data);
-      Alert.alert("Success", "Profile submitted successfully!");
     } catch (error) {
       console.error("❌ Failed to submit profile:", error);
       Alert.alert("Error", "Something went wrong while submitting profile");

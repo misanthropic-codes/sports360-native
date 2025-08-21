@@ -1,8 +1,8 @@
-import ReusableButton from "@/app/components/button";
-import CheckboxItem from "@/app/components/CheckBoxItem";
-import ReusableDropdown from "@/app/components/dropdown";
-import SelectionPill from "@/app/components/SelelctionPill";
-import ReusableTextInput from "@/app/components/TextInput";
+import ReusableButton from "@/components/button";
+import CheckboxItem from "@/components/CheckBoxItem";
+import ReusableDropdown from "@/components/dropdown";
+import SelectionPill from "@/components/SelelctionPill";
+import ReusableTextInput from "@/components/TextInput";
 import React, { useState } from "react";
 import {
   SafeAreaView,

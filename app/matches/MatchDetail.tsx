@@ -2,13 +2,13 @@ import { Calendar, FileText, MapPin, Users } from "lucide-react-native";
 import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View } from "react-native";
 
-import BottomNavBar from "../components/BottomNavBar";
-import Header from "../components/Header";
-import InfoRow from "../components/InfoRow";
-import RegistrationCard from "../components/RegistrationCard";
-import SectionTitle from "../components/SectionTitile";
-import StatsBar from "../components/StatsBar";
-import TournamentBanner from "../components/TournamentBanner";
+import BottomNavBar from "../../components/BottomNavBar";
+import Header from "../../components/Header";
+import InfoRow from "../../components/InfoRow";
+import RegistrationCard from "../../components/RegistrationCard";
+import SectionTitle from "../../components/SectionTitile";
+import StatsBar from "../../components/StatsBar";
+import TournamentBanner from "../../components/TournamentBanner";
 
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 

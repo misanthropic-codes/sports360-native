@@ -10,11 +10,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import api from "../../api/api";
 
 import Feather from "react-native-vector-icons/Feather";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { useAuth } from "../../context/AuthContext";
 
 type Role = "Player" | "Organizer" | "Ground Owner";
 
@@ -72,6 +74,7 @@ const SignupScreen = () => {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleSignUp = async () => {
     if (!fullName || !email || !phone || !password || !confirmPassword) {
@@ -97,26 +100,20 @@ const SignupScreen = () => {
 
     try {
       setLoading(true);
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/register/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await api.post("/auth/register/", payload);
 
-      const data = await res.json();
-      console.log("API Response:", data);
+      console.log("API Response:", response.data);
 
-      if (!res.ok) {
-        const msg = data?.message || "Sign up failed";
+      if (response.status < 200 || response.status >= 300) {
+        const msg = response.data?.message || "Sign up failed";
         Alert.alert("Error", msg);
         return;
       }
 
+      login();
+
       Alert.alert("Success", "Account created successfully!");
-      router.push(
+      router.replace(
         `/onboarding/choose-domain?role=${encodeURIComponent(selectedRole)}`
       );
     } catch (err) {
@@ -297,7 +294,7 @@ const SignupScreen = () => {
             <Text className="font-rubikMedium text-grayText">
               Already have an account?{" "}
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/(root)/login")}>
               <Text className="font-rubikBold text-primary">Login</Text>
             </TouchableOpacity>
           </View>

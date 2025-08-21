@@ -4,13 +4,13 @@ import { BookOpen, PlusCircle, Shield, Trophy } from "lucide-react-native";
 import React from "react";
 import { ScrollView, View } from "react-native";
 
-import AppScreen from "@/app/components/AppScreen";
-import ActivityCard from "../../components/ActivityCard";
-import BottomNavBar from "../../components/BottomNavBar";
-import Header from "../../components/Header";
-import QuickActionCard from "../../components/QuickActionCard";
-import SectionHeader from "../../components/SectionHeader";
-import StatCard from "../../components/StatCard";
+import AppScreen from "@/components/AppScreen";
+import ActivityCard from "../../../components/ActivityCard";
+import BottomNavBar from "../../../components/BottomNavBar";
+import Header from "../../../components/Header";
+import QuickActionCard from "../../../components/QuickActionCard";
+import SectionHeader from "../../../components/SectionHeader";
+import StatCard from "../../../components/StatCard";
 
 const CricketHomeScreen: React.FC = () => {
   return (

@@ -1,11 +1,11 @@
 import type { StackNavigationProp } from "@react-navigation/stack";
 import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View } from "react-native";
-import BottomNavBar from "../components/BottomNavBar";
-import VenueCard from "../components/Card";
-import FilterPills from "../components/FilterPills";
-import Header from "../components/Header";
-import SearchBar from "../components/SearchBar";
+import BottomNavBar from "../../components/BottomNavBar";
+import VenueCard from "../../components/Card";
+import FilterPills from "../../components/FilterPills";
+import Header from "../../components/Header";
+import SearchBar from "../../components/SearchBar";
 
 const [activeScreen, setActiveScreen] = useState("Home");
 

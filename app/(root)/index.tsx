@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import "./global.css";
+import "../global.css";
 
 /**
  * AuthScreen Component
@@ -23,13 +23,13 @@ export default function AuthScreen() {
     console.log("Log In button pressed");
     // Navigate to the login screen. Ensure you have a 'login.tsx' file
     // in your app directory structure. For example: app/login.tsx
-    router.push("/login");
+    router.push("/(root)/login");
   };
 
   const handleSignUp = () => {
     console.log("Sign Up button pressed");
-    
-    router.push("/signup");
+
+    router.push("/(root)/signup");
   };
 
   return (

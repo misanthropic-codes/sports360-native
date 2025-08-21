@@ -1,10 +1,10 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"; // ✨ ADDED: For token storage
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator, // ✨ ADDED for loading state
-  Alert, // ✨ ADDED for user feedback
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -16,51 +16,48 @@ import {
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import api from "../api/api"; // ✨ ADDED: Central API service
+import api from "../../api/api";
+import { useAuth } from "../../context/AuthContext";
 
 const LoginScreen = () => {
   const [isPasswordShown, setIsPasswordShown] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); // ✨ ADDED: For loading state
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const navigation = useNavigation();
 
-  // ✨ CHANGED: Switched to async API call
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter both email and password.");
       return;
     }
 
-    setLoading(true); // Start loading
+    setLoading(true);
 
     try {
       const response = await api.post("/auth/login", {
-        identifier: email, // API expects "identifier"
+        identifier: email,
         password: password,
       });
 
-      // Assuming successful login returns a 200 status and data
       if (response.data && response.data.success) {
         const { token, role } = response.data.data;
 
-        // Store the token and role securely
         await AsyncStorage.setItem("token", token);
         await AsyncStorage.setItem("userRole", role);
 
+        login(); // Set user in context
+
         Alert.alert("Success", "Logged in successfully!");
 
-        // Navigate to the dashboard based on the role from the API
-        // NOTE: The API provides 'role' but not 'type'. Adjusting route accordingly.
-        router.push(`/dashboard/${role}/cricket` as any);
+        router.replace(`/dashboard/${role}/cricket` as any);
       } else {
-        // Handle cases where API returns success: false
         throw new Error(response.data.message || "An unknown error occurred");
       }
     } catch (error) {
-      // Handle network errors or errors from the API
       console.error("Login failed:", error);
       let errorMessage = "Invalid credentials or server error.";
       if (
@@ -83,7 +80,7 @@ const LoginScreen = () => {
   };
 
   const handleSignUp = () => {
-    router.push("/signup");
+    router.push("signup");
   };
 
   return (

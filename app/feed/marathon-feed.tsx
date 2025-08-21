@@ -2,13 +2,13 @@ import { PersonSimpleRun } from "phosphor-react-native";
 import React, { useState } from "react";
 import { SafeAreaView, ScrollView, View } from "react-native";
 
-import BottomNavBar from "../components/BottomNavBar";
-import CategoryCard from "../components/CategoriesCard";
-import FeaturedEventCard from "../components/EventsCard";
-import FilterTabs from "../components/FilterTab";
-import SectionHeader from "../components/SectionHeader";
-import TopNavBar from "../components/TopNavbar";
-import UpcomingEventCard from "../components/UpcomingEventCard";
+import BottomNavBar from "../../components/BottomNavBar";
+import CategoryCard from "../../components/CategoriesCard";
+import FeaturedEventCard from "../../components/EventsCard";
+import FilterTabs from "../../components/FilterTab";
+import SectionHeader from "../../components/SectionHeader";
+import TopNavBar from "../../components/TopNavbar";
+import UpcomingEventCard from "../../components/UpcomingEventCard";
 
 const MarathonScreen = ({ navigation }: { navigation?: any }) => {
   const [activeTab, setActiveTab] = useState("All");
