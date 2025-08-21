@@ -4,8 +4,11 @@ import ReusableDropdown from "@/components/dropdown";
 import SelectionPill from "@/components/SelelctionPill";
 import ReusableTextInput from "@/components/TextInput";
 
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
+  Image,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -29,6 +32,7 @@ const CompleteProfileScreen = () => {
 
   const [orgType, setOrgType] = useState<string | null>(null);
   const [frequency, setFrequency] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const handleToggle = (
     field: "tournamentTypes" | "experience",
@@ -53,6 +57,19 @@ const CompleteProfileScreen = () => {
     }));
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+
   const experienceOptions = [
     "New organizer",
     "1-2 years",
@@ -71,11 +88,20 @@ const CompleteProfileScreen = () => {
   const frequencyOptions = ["Weekly", "Monthly", "Quarterly", "Yearly"];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#4D1A88]">
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView
+      className="flex-1 bg-[#4D1A88]"
+      style={{
+        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+      }}
+    >
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#4D1A88"
+        translucent={true}
+      />
 
       {/* Header */}
-      <View className="p-4 flex-row items-center justify-between">
+      <View className="px-4 py-3 flex-row items-center justify-between">
         <TouchableOpacity>
           <Icon name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
@@ -88,7 +114,7 @@ const CompleteProfileScreen = () => {
       </View>
 
       {/* Progress Bar */}
-      <View className="px-4 pb-4">
+      <View className="px-4 pb-6">
         <View className="flex-row justify-between items-center mb-1">
           <Text className="text-white font-semibold">Step 1 of 1</Text>
           <Text className="text-white font-semibold">100%</Text>
@@ -98,20 +124,33 @@ const CompleteProfileScreen = () => {
         </View>
       </View>
 
+      {/* White Scrollable Section */}
       <ScrollView
-        className="bg-gray-50"
+        className="bg-gray-50 flex-1 relative"
         style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+        showsVerticalScrollIndicator={false}
       >
-        <View className="p-6">
-          {/* Avatar */}
-          <View className="items-center -mt-16 mb-6">
-            <TouchableOpacity className="w-24 h-24 bg-gray-200 rounded-full justify-center items-center border-4 border-white shadow-md">
+        {/* Profile Picture - Positioned */}
+        <View className="items-center absolute -top-12 left-0 right-0 z-20">
+          <TouchableOpacity
+            onPress={pickImage}
+            className="w-24 h-24 bg-gray-200 rounded-full justify-center items-center border-4 border-white shadow-md overflow-hidden"
+          >
+            {profileImage ? (
+              <Image
+                source={{ uri: profileImage }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
               <Icon name="camera-outline" size={32} color="#888" />
-            </TouchableOpacity>
-          </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
+        <View className="px-4 pt-20 pb-6">
           {/* Form Fields */}
-          <View className="space-y-4">
+          <View className="space-y-5">
             <ReusableTextInput
               label="Organisation name*"
               placeholder="Enter your organisation name..."
@@ -130,7 +169,7 @@ const CompleteProfileScreen = () => {
             />
 
             <View>
-              <Text className="text-gray-600 text-sm font-medium mb-2">
+              <Text className="text-gray-600 text-sm font-medium mb-3">
                 Experience in Organizing
               </Text>
               <View className="flex-row flex-wrap gap-2">
@@ -150,7 +189,7 @@ const CompleteProfileScreen = () => {
             <ReusableTextInput label="Primary location *" placeholder="Patna" />
 
             <View>
-              <Text className="text-gray-600 text-sm font-medium mb-2">
+              <Text className="text-gray-600 text-sm font-medium mb-3">
                 Tournament types you organize
               </Text>
               <View className="flex-row flex-wrap gap-2">
@@ -182,7 +221,7 @@ const CompleteProfileScreen = () => {
               <Text className="text-gray-800 text-lg font-bold mb-3">
                 Preferences
               </Text>
-              <View className="bg-purple-100/50 p-4 rounded-lg">
+              <View className="bg-purple-100/50 p-3 rounded-lg">
                 <CheckboxItem
                   label="Accept team registration requests"
                   isChecked={formState.preferences.registrations}
@@ -201,7 +240,7 @@ const CompleteProfileScreen = () => {
               </View>
             </View>
 
-            <View className="pt-4 items-center">
+            <View className="pt-2 items-center">
               <ReusableButton
                 title="Complete Profile"
                 role="organizer"

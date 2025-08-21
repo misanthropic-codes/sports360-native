@@ -5,7 +5,16 @@ import SelectionPill from "@/components/SelelctionPill";
 import ReusableTextInput from "@/components/TextInput";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { FC, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  View,
+} from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -29,46 +38,78 @@ const CompleteMarathonProfileScreen: FC = () => {
     setShowDatePicker(false);
     if (selectedDate) {
       setDate(selectedDate);
-      const formatted = `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`;
+      const formatted = `${selectedDate.getDate()}/${
+        selectedDate.getMonth() + 1
+      }/${selectedDate.getFullYear()}`;
       setDob(formatted);
     }
   };
 
+  const handleSubmit = () => {
+    const payload = {
+      fullName,
+      dob,
+      runningCategory,
+      runningStyle,
+      experienceLevel: experience,
+      bestFinishTime,
+      bio,
+      availableForTeamSelection: prefs.team,
+      availableForCaptain: prefs.captain,
+      receiveTournamentNotifications: prefs.tournament,
+    };
+    console.log("Marathon Profile Submitted:", payload);
+    Alert.alert("Success", "Profile submitted successfully!");
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="p-4 flex-row items-center bg-white border-b border-gray-200">
+    <SafeAreaView
+      className="flex-1 bg-blue-600"
+      style={{
+        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+      }}
+    >
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#1D4ED8"
+        translucent={true}
+      />
+
+      {/* Header */}
+      <View className="px-4 py-3 flex-row items-center justify-between">
         <Pressable>
-          <Ionicons name="arrow-back" size={24} color="black" />
+          <Ionicons name="arrow-back" size={24} color="white" />
         </Pressable>
-        <Text className="text-black text-xl font-bold ml-4">
+        <Text className="text-white text-xl font-bold absolute left-0 right-0 text-center">
           Complete Your Profile
         </Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <View className="p-4">
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-sm text-gray-500">Step 2 of 2</Text>
-          <Text className="text-sm text-blue-600 font-semibold">100%</Text>
+      {/* Progress Bar */}
+      <View className="px-4 pb-4">
+        <View className="flex-row justify-between items-center mb-1">
+          <Text className="text-white font-semibold text-sm">Step 2 of 2</Text>
+          <Text className="text-white font-semibold text-sm">100%</Text>
         </View>
-        <View className="w-full bg-gray-200 rounded-full h-2">
-          <View
-            className="bg-blue-500 h-2 rounded-full"
-            style={{ width: "100%" }}
-          />
+        <View className="w-full bg-white/30 rounded-full h-1.5">
+          <View className="bg-white h-1.5 rounded-full w-full" />
         </View>
       </View>
 
       <ScrollView
-        className="flex-1"
+        className="bg-gray-50 flex-1"
+        style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
         contentContainerStyle={{ paddingBottom: 30 }}
       >
-        <View className="items-center my-4">
-          <View className="w-32 h-32 rounded-full bg-gray-200 justify-center items-center">
+        {/* Profile Picture */}
+        <View className="items-center -mt-16 mb-6">
+          <Pressable className="w-32 h-32 bg-gray-200 rounded-full border-4 border-white justify-center items-center shadow-md">
             <Feather name="camera" size={28} color="#6B7280" />
-          </View>
+          </Pressable>
         </View>
 
-        <View className="px-4">
+        <View className="px-4 space-y-5">
           <ReusableTextInput
             label="Enter full name *"
             value={fullName}
@@ -76,19 +117,19 @@ const CompleteMarathonProfileScreen: FC = () => {
             placeholder="e.g. John Doe"
           />
 
-          <ReusableTextInput
-            label="Date of Birth *"
-            value={dob}
-            placeholder="DD/MM/YYYY"
-            rightIcon={
-              <Pressable
-                onPress={() => setShowDatePicker(true)}
-                className="-ml-10"
-              >
-                <Ionicons name="calendar" size={24} color="#9CA3AF" />
-              </Pressable>
-            }
-          />
+          <View>
+            <ReusableTextInput
+              label="Date of Birth *"
+              value={dob}
+              placeholder="DD/MM/YYYY"
+            />
+            <Pressable
+              style={{ position: "absolute", right: 0, top: 32, padding: 8 }}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar" size={24} color="#9CA3AF" />
+            </Pressable>
+          </View>
 
           {showDatePicker && (
             <DateTimePicker
@@ -99,21 +140,19 @@ const CompleteMarathonProfileScreen: FC = () => {
             />
           )}
 
-          <View className="mb-4">
-            <Text className="text-sm text-gray-600 mb-2">
-              Running Category *
-            </Text>
-            <ReusableDropdown
-              selectedValue={runningCategory}
-              onValueChange={setRunningCategory}
-              placeholder="Select Category"
-              options={["5K", "10K", "Half Marathon", "Full Marathon"]}
-            />
-          </View>
+          {/* Running Category */}
+          <ReusableDropdown
+            label="Running Category"
+            selectedValue={runningCategory}
+            onValueChange={setRunningCategory}
+            placeholder="Select Category"
+            options={["5K", "10K", "Half Marathon", "Full Marathon"]}
+          />
 
-          <View className="mb-4">
-            <Text className="text-sm text-gray-600 mb-2">Running Style *</Text>
-            <View className="flex-row space-x-4">
+          {/* Running Style */}
+          <View>
+            <Text className="text-gray-600 text-sm mb-2">Running Style</Text>
+            <View className="flex-row flex-wrap gap-2">
               {["Forefoot", "Midfoot"].map((style) => (
                 <SelectionPill
                   key={style}
@@ -125,11 +164,10 @@ const CompleteMarathonProfileScreen: FC = () => {
             </View>
           </View>
 
-          <View className="mb-4">
-            <Text className="text-sm text-gray-600 mb-2">
-              Experience level *
-            </Text>
-            <View className="flex-col items-start space-y-3">
+          {/* Experience Level */}
+          <View>
+            <Text className="text-gray-600 text-sm mb-2">Experience Level</Text>
+            <View className="flex-row flex-wrap gap-2">
               {["Beginner", "Intermediate", "Advanced"].map((level) => (
                 <SelectionPill
                   key={level}
@@ -156,9 +194,12 @@ const CompleteMarathonProfileScreen: FC = () => {
             multiline
           />
 
-          <View className="mb-6">
-            <Text className="text-sm text-gray-600 mb-2">Preferences</Text>
-            <View className="bg-blue-50 p-4 rounded-lg">
+          {/* Preferences */}
+          <View>
+            <Text className="text-gray-800 text-lg font-bold mb-2">
+              Preferences
+            </Text>
+            <View className="bg-blue-100 p-4 rounded-lg space-y-2">
               <CheckboxItem
                 label="Available for team selection"
                 isChecked={prefs.team}
@@ -179,15 +220,16 @@ const CompleteMarathonProfileScreen: FC = () => {
             </View>
           </View>
 
-          <ReusableButton
-            title="Complete Profile"
-            role="player"
-            onPress={() => console.log("Marathon Profile Submitted!")}
-          />
-
-          <Text className="text-center text-xs text-gray-500 mt-4">
-            You can update your profile anytime in the settings
-          </Text>
+          <View className="pt-4 items-center">
+            <ReusableButton
+              title="Complete Profile"
+              role="player"
+              onPress={handleSubmit}
+            />
+            <Text className="text-gray-500 text-xs mt-3 text-center">
+              You can update your profile anytime in the settings
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
