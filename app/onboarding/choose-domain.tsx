@@ -59,7 +59,7 @@ interface Domain {
   icon: string;
 }
 
-type ValidRole = "player" | "organizer" | "ground-owner";
+type ValidRole = "player" | "organizer" | "ground owner";
 type ValidDomain = "cricket" | "marathon";
 
 const domains: Domain[] = [
