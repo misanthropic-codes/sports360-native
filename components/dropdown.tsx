@@ -1,19 +1,17 @@
+import { ChevronDown } from "lucide-react-native";
 import React, { FC, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
 
 // --- Type Definitions ---
-
 interface CheckIconProps {
   className?: string;
 }
-
 interface DropdownItemProps {
   label: string;
   onPress: () => void;
   isSelected: boolean;
 }
-
 interface ReusableDropdownProps {
   options: string[];
   selectedValue: string | null;
@@ -22,11 +20,7 @@ interface ReusableDropdownProps {
 }
 
 // --- Components ---
-
-/**
- * Native SVG Checkmark Icon for React Native.
- */
-const CheckIcon: FC<CheckIconProps> = ({ className = "" }) => (
+const CheckIcon: FC<CheckIconProps> = () => (
   <Svg
     width={24}
     height={24}
@@ -35,7 +29,7 @@ const CheckIcon: FC<CheckIconProps> = ({ className = "" }) => (
   >
     <Polyline
       points="20 6 9 17 4 12"
-      stroke="#2563eb"
+      stroke="#4F46E5" // Changed to match theme color
       strokeWidth={2}
       fill="none"
       strokeLinecap="round"
@@ -44,9 +38,6 @@ const CheckIcon: FC<CheckIconProps> = ({ className = "" }) => (
   </Svg>
 );
 
-/**
- * A reusable dropdown item component.
- */
 const DropdownItem: FC<DropdownItemProps> = ({
   label,
   onPress,
@@ -55,10 +46,10 @@ const DropdownItem: FC<DropdownItemProps> = ({
   return (
     <Pressable onPress={onPress} className="flex-row items-center p-4">
       <View className="w-6 h-6 mr-3 items-center justify-center">
-        {isSelected && <CheckIcon className="text-blue-500" />}
+        {isSelected && <CheckIcon />}
       </View>
       <Text
-        className={`text-lg ${isSelected ? "text-blue-500 font-bold" : "text-gray-800"}`}
+        className={`text-base ${isSelected ? "text-indigo-600 font-bold" : "text-slate-800"}`}
       >
         {label}
       </Text>
@@ -66,9 +57,6 @@ const DropdownItem: FC<DropdownItemProps> = ({
   );
 };
 
-/**
- * A reusable dropdown menu component.
- */
 const ReusableDropdown: FC<ReusableDropdownProps> = ({
   options,
   selectedValue,
@@ -83,20 +71,23 @@ const ReusableDropdown: FC<ReusableDropdownProps> = ({
   };
 
   return (
-    <View className="w-full">
-      {/* The button that opens the dropdown */}
+    <View>
       <Pressable
         onPress={() => setIsOpen(true)}
-        className="w-full bg-gray-100 border border-gray-300 rounded-lg p-4 flex-row justify-between items-center"
+        className="bg-white border border-slate-300 rounded-lg p-3 h-14 flex-row justify-between items-center"
       >
-        <Text className="text-lg text-gray-800">
+        <Text
+          className={
+            selectedValue
+              ? "text-base text-slate-900"
+              : "text-base text-slate-400"
+          }
+        >
           {selectedValue || placeholder}
         </Text>
-        {/* You can add a chevron icon here if you like */}
-        <Text className="text-lg">▼</Text>
+        <ChevronDown size={20} color="#64748B" />
       </Pressable>
 
-      {/* The Modal that contains the dropdown options */}
       <Modal
         transparent={true}
         visible={isOpen}
@@ -104,12 +95,11 @@ const ReusableDropdown: FC<ReusableDropdownProps> = ({
         onRequestClose={() => setIsOpen(false)}
       >
         <Pressable
-          className="flex-1 justify-center items-center bg-black/50"
-          onPress={() => setIsOpen(false)} // Close modal on outside touch
+          className="flex-1 justify-center items-center bg-black/50 p-8"
+          onPress={() => setIsOpen(false)}
         >
           <View
-            className="w-4/5 bg-white rounded-xl shadow-lg overflow-hidden"
-            // This prevents the parent Pressable from capturing the press
+            className="w-full bg-white rounded-xl shadow-lg overflow-hidden"
             onStartShouldSetResponder={() => true}
           >
             {options.map((option, index) => (

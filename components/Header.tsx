@@ -1,9 +1,4 @@
-import {
-  ArrowLeft,
-  Bell,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react-native";
+import { ArrowLeft, Bell, Search } from "lucide-react-native";
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 
@@ -13,16 +8,17 @@ type HeaderProps = {
   title?: string;
   showBackButton?: boolean;
   onBackPress?: () => void;
+  rightComponent?: React.ReactNode;
 };
 
 const Header: React.FC<HeaderProps> = ({
-  type = "title", // 'title' or 'welcome'
+  type = "title",
   name,
   title,
   showBackButton,
   onBackPress,
+  rightComponent,
 }) => {
-  // Renders the "Welcome Back" style header
   if (type === "welcome") {
     return (
       <View className="flex-row items-center justify-between p-4 bg-white">
@@ -54,26 +50,23 @@ const Header: React.FC<HeaderProps> = ({
     );
   }
 
-  // Renders the centered title style header (previously TopNavBar)
+  // Title type header
   return (
-    <View className="flex-row items-center justify-between p-4 bg-white">
-      <View className="flex-1">
+    <View className="flex-row items-center justify-between p-4 bg-white shadow-sm">
+      <View className="w-1/4">
         {showBackButton && (
           <TouchableOpacity onPress={onBackPress} className="p-1 self-start">
             <ArrowLeft size={28} color="#334155" />
           </TouchableOpacity>
         )}
       </View>
-      <View className="flex-1 items-center">
-        <Text className="text-2xl font-bold text-slate-800">{title}</Text>
+      <View className="w-1/2 items-center">
+        <Text className="text-xl font-bold text-slate-800" numberOfLines={1}>
+          {title}
+        </Text>
       </View>
-      <View className="flex-1 flex-row items-center justify-end gap-4">
-        <TouchableOpacity>
-          <SlidersHorizontal size={26} color="#334155" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Search size={26} color="#334155" />
-        </TouchableOpacity>
+      <View className="w-1/4 flex-row items-center justify-end">
+        {rightComponent}
       </View>
     </View>
   );

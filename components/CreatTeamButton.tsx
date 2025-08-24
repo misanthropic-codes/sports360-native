@@ -1,24 +1,27 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { PlusCircle } from 'lucide-react-native';
+import React from "react";
+import { Text, TouchableOpacity } from "react-native";
 
-interface CreateTeamButtonProps {
+interface CreateTournamentButtonProps {
   onPress: () => void;
+  title: string;
+  color?: "indigo" | "purple"; // two color options
 }
 
-const CreateTeamButton: React.FC<CreateTeamButtonProps> = ({ onPress }) => {
+const CreateTournamentButton: React.FC<CreateTournamentButtonProps> = ({
+  onPress,
+  title,
+  color = "indigo", // default is indigo
+}) => {
+  const bgColor = color === "indigo" ? "bg-indigo-600" : "bg-[#510EB0]";
+
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="bg-blue-500 m-4 rounded-xl p-4 flex-row items-center justify-between shadow-lg"
+      className={`${bgColor} mx-4 my-4 rounded-xl p-4 items-center justify-center shadow-lg`}
     >
-      <View>
-        <Text className="text-white font-bold text-lg">Create Your Team</Text>
-        <Text className="text-blue-200 text-sm">Create Your Own Squad</Text>
-      </View>
-      <PlusCircle size={36} color="#FFFFFF" />
+      <Text className="text-white font-bold text-lg">{title}</Text>
     </TouchableOpacity>
   );
 };
 
-export default CreateTeamButton;
+export default CreateTournamentButton;
