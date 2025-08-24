@@ -4,10 +4,9 @@ import { PersonStanding, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 
-import { router } from "expo-router";
 import ActivityCard from "../../components/ActivityCard";
 import BottomNavBar from "../../components/BottomNavBar";
-import CreateTeamButton from "../../components/CreatTeamButton";
+import CreateTournamentButton from "../../components/CreatTeamButton";
 import Header from "../../components/Header";
 import SectionTitle from "../../components/SectiontitleM";
 import StatPillBar from "../../components/StatPillBar";
@@ -105,12 +104,9 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
         onBackPress={() => navigation.goBack()}
       />
       <ScrollView>
-        <CreateTeamButton
-          onPress={() => {
-            const route = "/team/CreateTeam";
-            console.log(`Navigating to route: ${route}`);
-            router.push(route);
-          }}
+        <CreateTournamentButton
+          title="Create Team"
+          onPress={() => console.log("Create Tournament pressed")}
         />
         <StatPillBar />
 
