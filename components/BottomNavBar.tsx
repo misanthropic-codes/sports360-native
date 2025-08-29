@@ -36,7 +36,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   const navItems = [
     { name: "Teams", icon: Users, path: `/team/Myteam` },
     { name: "Activity", icon: BarChart2, path: `/matches/MatchDetail` },
-    { name: "Trophy", icon: Trophy, path: `/trophies` },
+    { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament` },
     { name: "Home", icon: Home, path: `/feed/${type}` },
     { name: "Profile", icon: User, path: `/dashboard/${role}/${type}` },
   ];

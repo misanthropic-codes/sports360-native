@@ -1,9 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { PersonStanding, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 
+import { router } from "expo-router";
 import ActivityCard from "../../components/ActivityCard";
 import BottomNavBar from "../../components/BottomNavBar";
 import CreateTournamentButton from "../../components/CreatTeamButton";
@@ -11,6 +11,7 @@ import Header from "../../components/Header";
 import SectionTitle from "../../components/SectiontitleM";
 import StatPillBar from "../../components/StatPillBar";
 import TeamCard from "../../components/TeamCard";
+import { useAuth } from "../../context/AuthContext"; // ✅ use your AuthContext
 
 type MyTeamScreenProps = {
   navigation: any;
@@ -26,9 +27,7 @@ type Team = {
 };
 
 const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
-  const role = "player";
-  const type = "team";
-
+  const { user } = useAuth(); // ✅ Get user from context
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,8 +42,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
         return;
       }
 
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
+      if (!user || !user.token) {
         Alert.alert("Error", "You must be logged in to view teams.");
         return;
       }
@@ -52,7 +50,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
       console.log(`Fetching teams from: ${baseURL}/api/v1/team`);
       const response = await axios.get(`${baseURL}/api/v1/team`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${user.token}`, // ✅ token from context
         },
       });
 
@@ -75,7 +73,12 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
 
   useEffect(() => {
     fetchTeams();
-  }, []);
+  }, [user?.token]); // ✅ refetch when token changes
+
+  // Example: using role and domains from context
+  const role = user?.role || "player";
+  const type = "team";
+  const domains = user?.domains || [];
 
   const recentActivities = [
     {
@@ -106,7 +109,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
       <ScrollView>
         <CreateTournamentButton
           title="Create Team"
-          onPress={() => console.log("Create Tournament pressed")}
+          onPress={() => router.push("/team/Myteam")}
         />
         <StatPillBar />
 
@@ -122,7 +125,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
               teamName={team.name}
               status={team.isActive ? "Active" : "Pending"}
               stats={[
-                { value: "11", label: "players" }, // Replace with real data if available
+                { value: "11", label: "players" },
                 { value: "0", label: "matches" },
                 { value: "0%", label: "winning rate" },
               ]}
@@ -153,7 +156,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <BottomNavBar role={role} type={type} />
+      <BottomNavBar role="player" type="cricket" />
     </SafeAreaView>
   );
 };

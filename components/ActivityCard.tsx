@@ -12,14 +12,15 @@ interface ActivityCardProps {
 
   // Props for 'simple' layout
   description?: string;
+  timestamp?: string;
 
   // Props for 'detailed' layout
   title?: string;
   subtitle?: string;
   tag?: string;
   date?: string;
+  time?: string; // ✅ added time here
   location?: string;
-  timestamp?: string;
 }
 
 const ActivityCard: React.FC<ActivityCardProps> = ({
@@ -31,6 +32,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   subtitle,
   tag,
   date,
+  time,
   location,
   timestamp,
 }) => {
@@ -51,7 +53,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     );
   }
 
-  // 'detailed' layout for event lists, etc.
+  // 'detailed' layout for event lists
   if (layoutType === "detailed") {
     return (
       <TouchableOpacity
@@ -81,18 +83,17 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                 </Text>
               </View>
             )}
-            {timestamp && (
-              <Text className="text-xs text-gray-400 mt-1">{timestamp}</Text>
-            )}
           </View>
         </View>
 
-        {(date || location) && (
+        {(date || time || location) && (
           <View className="border-t border-gray-100 mt-3 pt-3 flex-row justify-between items-center">
             <View className="flex-row items-center">
-              {date && <Calendar color="#6B7280" size={14} />}
-              {date && (
-                <Text className="text-xs text-gray-600 ml-1">{date}</Text>
+              {(date || time) && <Calendar color="#6B7280" size={14} />}
+              {(date || time) && (
+                <Text className="text-xs text-gray-600 ml-1">
+                  {date} {time ? `• ${time}` : ""}
+                </Text>
               )}
             </View>
             <View className="flex-row items-center">
@@ -107,7 +108,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     );
   }
 
-  return null; // Return null if no valid layoutType is provided
+  return null;
 };
 
 export default ActivityCard;

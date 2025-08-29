@@ -1,10 +1,9 @@
-// screens/CricketHomeScreen.tsx
-
 import { BookOpen, PlusCircle, Shield, Trophy } from "lucide-react-native";
 import React from "react";
-import { ScrollView, View } from "react-native";
+import { Platform, ScrollView, StatusBar, View } from "react-native";
 
 import AppScreen from "@/components/AppScreen";
+import { useAuth } from "@/context/AuthContext"; // ✅ import context
 import ActivityCard from "../../../components/ActivityCard";
 import BottomNavBar from "../../../components/BottomNavBar";
 import Header from "../../../components/Header";
@@ -13,13 +12,28 @@ import SectionHeader from "../../../components/SectionHeader";
 import StatCard from "../../../components/StatCard";
 
 const CricketHomeScreen: React.FC = () => {
+  const { user } = useAuth(); // ✅ get logged in user
+  const name = user?.fullName || "Player"; // fallback if no user
+
   return (
-    <AppScreen>
-      <Header name="Riya" />
+    <AppScreen
+      style={{
+        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+      }}
+    >
+      <Header
+        type="welcome"
+        name={name} // ✅ dynamic name from context
+        avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(
+          0
+        )}`}
+        onNotificationPress={() => console.log("Notifications clicked")}
+        onProfilePress={() => console.log("Profile clicked")}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
       >
         {/* Stats Section */}
         <View className="flex-row justify-between mt-2">
@@ -31,7 +45,8 @@ const CricketHomeScreen: React.FC = () => {
         {/* Upcoming Activity Section */}
         <SectionHeader title="Upcoming Activity" />
         <ActivityCard
-          icon={Shield}
+          layoutType="detailed"
+          icon={<Shield size={20} color="white" />}
           title="City Tournament"
           subtitle="VS Delhi Riders"
           tag="Booked Free"
@@ -40,7 +55,8 @@ const CricketHomeScreen: React.FC = () => {
           location="Sports Complex"
         />
         <ActivityCard
-          icon={Shield}
+          layoutType="detailed"
+          icon={<Shield size={20} color="white" />}
           title="Practice Match"
           subtitle="VS Punjabi Munde"
           tag="Booked Free"
@@ -52,13 +68,15 @@ const CricketHomeScreen: React.FC = () => {
         {/* Recent Activity Section */}
         <SectionHeader title="Recent Activity" />
         <ActivityCard
-          icon={Trophy}
-          title="You won the match against Chennai Super Kings"
+          layoutType="simple"
+          icon={<Trophy size={20} color="gold" />}
+          description="You won the match against Chennai Super Kings"
           timestamp="2 hours ago"
         />
         <ActivityCard
-          icon={Trophy}
-          title="New tournament Summer League 2024 registration open"
+          layoutType="simple"
+          icon={<Trophy size={20} color="gold" />}
+          description="New tournament Summer League 2024 registration open"
           timestamp="1 day ago"
         />
 

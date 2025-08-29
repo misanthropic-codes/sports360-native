@@ -6,7 +6,8 @@ import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
 import { router } from "expo-router";
 import React from "react";
-import { SafeAreaView, ScrollView, StatusBar, View } from "react-native";
+import { ScrollView, StatusBar, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const tournamentsData = [
   {
@@ -54,8 +55,16 @@ const MyTournamentsScreen = () => {
   const themeColor: "purple" = "purple";
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      className="flex-1 bg-slate-50"
+      edges={["top", "left", "right"]} // ensures padding on top (status bar area) + safe sides
+    >
+      <StatusBar
+        barStyle="dark-content"
+        translucent
+        backgroundColor="transparent"
+      />
+
       <Header
         title="My Tournaments"
         showBackButton={true}
