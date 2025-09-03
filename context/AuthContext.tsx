@@ -8,11 +8,16 @@ import React, {
   useState,
 } from "react";
 
-interface User {
+export interface User {
   id: string;
   fullName: string;
   email: string;
+  dateOfBirth?: string | null;
+  profilePicUrl?: string;
+  phone?: string;
   role: string;
+  isVerified?: boolean | string;
+  createdAt?: string;
   domains: string[];
   token: string;
 }
@@ -28,7 +33,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Restore session on app reload
   useEffect(() => {
     const loadUser = async () => {
       const savedUser = await AsyncStorage.getItem("user");

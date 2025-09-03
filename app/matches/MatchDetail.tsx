@@ -1,6 +1,7 @@
 import { Calendar, FileText, MapPin, Users } from "lucide-react-native";
 import React, { useState } from "react";
-import { SafeAreaView, ScrollView, View } from "react-native";
+import { ScrollView, StatusBar, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import BottomNavBar from "../../components/BottomNavBar";
 import Header from "../../components/Header";
@@ -61,7 +62,16 @@ const TournamentDetailsScreen = ({
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      className="flex-1 bg-white"
+      edges={["top", "left", "right"]} // ✅ ensures notch + status bar safe area
+    >
+      <StatusBar
+        barStyle="dark-content"
+        translucent
+        backgroundColor="transparent"
+      />
+
       <Header
         type="title"
         title="Tournament Details"
@@ -69,7 +79,7 @@ const TournamentDetailsScreen = ({
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <TournamentBanner
           date="12 August 2025"
           title="Mumbai Premier League"

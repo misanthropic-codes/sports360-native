@@ -1,7 +1,8 @@
 import axios from "axios";
 import { PersonStanding, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Alert, SafeAreaView, ScrollView, View } from "react-native";
+import { Alert, ScrollView, StatusBar, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
 import ActivityCard from "../../components/ActivityCard";
@@ -99,21 +100,33 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView
+      className="flex-1 bg-slate-50"
+      edges={["top", "left", "right"]} // ✅ keeps content out of notch + status bar
+    >
+      <StatusBar
+        barStyle="dark-content"
+        translucent
+        backgroundColor="transparent"
+      />
+
       <Header
         type="title"
         title="My Team"
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-      <ScrollView>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
         <CreateTournamentButton
           title="Create Team"
-          onPress={() => router.push("/team/Myteam")}
+          onPress={() => router.push("/team/CreateTeam")}
         />
+
         <StatPillBar />
 
         <SectionTitle title="My Team" />
+
         {loading ? (
           <View className="p-4">
             <SectionTitle title="Loading teams..." />
@@ -143,6 +156,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
           showViewAll
           onViewAllPress={() => console.log("View All Activity")}
         />
+
         {recentActivities.map((activity, index) => (
           <ActivityCard
             key={index}
@@ -153,10 +167,11 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
           />
         ))}
 
+        {/* Spacer so content doesn't hide behind bottom nav */}
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <BottomNavBar role="player" type="cricket" />
+      <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );
 };

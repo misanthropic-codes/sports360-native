@@ -14,8 +14,11 @@ import FormImagePicker from "../../components/FormImagePicker";
 import FormInput from "../../components/FormInput";
 import FormSwitch from "../../components/FormSwitch";
 import Header from "../../components/Header";
+import { useAuth } from "../../context/AuthContext"; // ✅ import auth context
 
 const CreateTeamScreen: React.FC = () => {
+  const { user } = useAuth(); // ✅ access logged-in user + token
+
   const role = "player";
   const type = "team";
 
@@ -27,6 +30,11 @@ const CreateTeamScreen: React.FC = () => {
   const [isActive, setIsActive] = useState(true);
 
   const handleCreateTeam = async () => {
+    if (!user?.token) {
+      Alert.alert("Error", "You are not logged in.");
+      return;
+    }
+
     // ✅ Ensure logoUrl is never empty or null
     const finalLogoUrl =
       logoUrl || "https://placehold.co/128x128/3B82F6/FFFFFF?text=TEAM";
@@ -44,7 +52,11 @@ const CreateTeamScreen: React.FC = () => {
     };
 
     try {
-      const response = await api.post("/team", formData);
+      const response = await api.post("/team", formData, {
+        headers: {
+          Authorization: `Bearer ${user.token}`, // ✅ attach token
+        },
+      });
 
       console.log("✅ Team created successfully:", response.data);
       Alert.alert("Success", "Your team has been created!");

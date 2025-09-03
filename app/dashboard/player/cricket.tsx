@@ -4,6 +4,7 @@ import { Platform, ScrollView, StatusBar, View } from "react-native";
 
 import AppScreen from "@/components/AppScreen";
 import { useAuth } from "@/context/AuthContext"; // ✅ import context
+import { router } from "expo-router";
 import ActivityCard from "../../../components/ActivityCard";
 import BottomNavBar from "../../../components/BottomNavBar";
 import Header from "../../../components/Header";
@@ -28,7 +29,10 @@ const CricketHomeScreen: React.FC = () => {
           0
         )}`}
         onNotificationPress={() => console.log("Notifications clicked")}
-        onProfilePress={() => console.log("Profile clicked")}
+        onProfilePress={() => {
+          console.log("Profile button pressed");
+          router.push("/profile");
+        }}
       />
 
       <ScrollView

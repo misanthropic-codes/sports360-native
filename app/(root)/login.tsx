@@ -107,7 +107,7 @@ const LoginScreen = () => {
           router.replace(`/dashboard/${role}/${domain}` as any);
         } else {
           console.log("Fallback redirect to feed/cricket-feed");
-          router.replace("/feed/cricket-feed");
+          router.replace("/feed/cricket");
         }
       } else {
         throw new Error(response.data.message || "An unknown error occurred");

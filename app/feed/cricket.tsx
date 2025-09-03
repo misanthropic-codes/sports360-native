@@ -1,6 +1,7 @@
 import { Cricket } from "phosphor-react-native";
 import React, { useState } from "react";
-import { SafeAreaView, ScrollView, View } from "react-native";
+import { ScrollView, StatusBar, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import BottomNavBar from "../../components/BottomNavBar";
 import CategoryCard from "../../components/CategoriesCard";
@@ -58,19 +59,29 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <SafeAreaView
+      className="flex-1 bg-white"
+      edges={["top", "left", "right"]} // ✅ keeps content away from notch/status bar
+    >
+      <StatusBar
+        barStyle="dark-content"
+        translucent
+        backgroundColor="transparent"
+      />
+
       <TopNavBar
         title="Matches"
         showBackButton
         onBackPress={() => navigation?.goBack?.()}
       />
+
       <FilterTabs
         tabs={filterTabs}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
 
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <FeaturedEventCard
           date="12 August 2025"
           title="Mumbai Premier League"
