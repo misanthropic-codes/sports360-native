@@ -18,6 +18,8 @@ import {
 } from "react-native";
 // @ts-ignore - DateTimePicker types might not be available
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useNavigation } from "@react-navigation/native";
+import { router } from "expo-router";
 
 type DateTimePickerEvent = any;
 
@@ -39,6 +41,7 @@ interface FormData {
 
 const CreateTournament: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -52,6 +55,8 @@ const CreateTournament: React.FC = () => {
     startDate: new Date(),
     endDate: new Date(),
   });
+
+  const [loading, setLoading] = useState(false);
 
   const [showStartDatePicker, setShowStartDatePicker] =
     useState<boolean>(false);
@@ -173,11 +178,15 @@ const CreateTournament: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
+    if (loading) return; // prevent double click
+    setLoading(true);
+
     console.log("▶️ handleSubmit called");
 
     const error = validateForm();
     if (error) {
       Alert.alert("Validation Error", error);
+      setLoading(false);
       return;
     }
 
@@ -193,11 +202,13 @@ const CreateTournament: React.FC = () => {
     try {
       if (!user?.token) {
         Alert.alert("Error", "You must be logged in to create a tournament");
+        setLoading(false);
         return;
       }
 
       if (!BASE_URL) {
         Alert.alert("Error", "BASE_URL is not defined in .env");
+        setLoading(false);
         return;
       }
 
@@ -217,6 +228,12 @@ const CreateTournament: React.FC = () => {
 
       console.log("✅ API Response:", response.data);
       Alert.alert("Success", "Tournament Created Successfully!");
+
+      // ✅ navigate using expo-router
+      router.push({
+        pathname: "/tournament/ViewTournament",
+        params: { tournamentId: response.data?.id },
+      });
     } catch (err: unknown) {
       const error = err as any;
       console.error(
@@ -227,16 +244,18 @@ const CreateTournament: React.FC = () => {
         "Error",
         error.response?.data?.message || "Something went wrong"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleBackPress = (): void => {
     console.log("Back Pressed");
+    navigation.goBack();
   };
 
   return (
     <>
-      {/* Status Bar Configuration */}
       <StatusBar
         barStyle="light-content"
         backgroundColor="#6366f1"
@@ -265,7 +284,6 @@ const CreateTournament: React.FC = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
         >
-          {/* Tournament Details */}
           <FormSection title="Basic Information" />
 
           <FormInput
@@ -287,7 +305,6 @@ const CreateTournament: React.FC = () => {
             style={{ height: 100, textAlignVertical: "top" }}
           />
 
-          {/* Schedule Section */}
           <FormSection title="Schedule" />
 
           {/* Start Date Row */}
@@ -342,9 +359,6 @@ const CreateTournament: React.FC = () => {
             </View>
           </View>
 
-          {/* Registration Dates - REMOVED */}
-
-          {/* Location & Venue Section */}
           <FormSection title="Location & Venue" />
 
           <FormInput
@@ -354,13 +368,15 @@ const CreateTournament: React.FC = () => {
             onChangeText={(val: string) => handleInputChange("location", val)}
           />
           <FormInput
-  label="Banner Image URL*"
-  placeholder="Enter banner image link"
-  value={formData.bannerImageUrl}
-  onChangeText={(val: string) => handleInputChange("bannerImageUrl", val)}
-  keyboardType="url"
-/>
-          {/* Team Configuration */}
+            label="Banner Image URL*"
+            placeholder="Enter banner image link"
+            value={formData.bannerImageUrl}
+            onChangeText={(val: string) =>
+              handleInputChange("bannerImageUrl", val)
+            }
+            keyboardType="url"
+          />
+
           <View className="flex-row justify-between mb-4">
             <View className="w-[48%]">
               <FormInput
@@ -403,10 +419,11 @@ const CreateTournament: React.FC = () => {
           />
 
           <ReusableButton
-            title="Create Tournament"
+            title={loading ? "Creating..." : "Create Tournament"}
             onPress={handleSubmit}
             role="organizer"
             className="my-4"
+            disabled={loading}
           />
         </ScrollView>
 

@@ -15,18 +15,18 @@ interface ReusableButtonProps {
   onPress: (event: GestureResponderEvent) => void;
   className?: string;
   isSelected?: boolean;
-  
+
   role?: RoleType;
+  disabled?: boolean;
 }
-
-
 
 const ReusableButton: FC<ReusableButtonProps> = ({
   onPress,
   title,
   className = "",
   isSelected = false,
-  role = "player", 
+  role = "player",
+  disabled = false,
 }) => {
   const roleStyles = {
     player: styles.player,
@@ -36,8 +36,10 @@ const ReusableButton: FC<ReusableButtonProps> = ({
 
   return (
     <Pressable
-      onPress={onPress}
-      className={`py-3 px-8 rounded-full flex-row justify-center items-center ${className}`}
+      onPress={disabled ? undefined : onPress}
+      className={`py-3 px-8 rounded-full flex-row justify-center items-center ${className} ${
+        disabled ? "opacity-50" : ""
+      }`}
       style={[
         roleStyles[role],
         isSelected && {
@@ -45,6 +47,7 @@ const ReusableButton: FC<ReusableButtonProps> = ({
           borderColor: "#2563eb",
         },
       ]}
+      disabled={disabled}
     >
       <Text className="text-white text-lg font-semibold">{title}</Text>
     </Pressable>
@@ -52,7 +55,6 @@ const ReusableButton: FC<ReusableButtonProps> = ({
 };
 
 export default ReusableButton;
-
 
 const styles = StyleSheet.create({
   player: {

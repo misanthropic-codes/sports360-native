@@ -87,12 +87,24 @@ const CricketHomeScreen: React.FC = () => {
         {/* Quick Actions Section */}
         <SectionHeader title="Quick Actions" />
         <View className="flex-row justify-between mb-4">
-          <QuickActionCard icon={Trophy} label="Join Tournaments" />
-          <QuickActionCard icon={Shield} label="View Matches" />
+          <QuickActionCard
+            icon={Trophy}
+            label="Join Tourament"
+            onPress={() => router.push("/matches/MatchDetail")} // 👈 navigate or perform any action
+          />
+          <QuickActionCard
+            icon={Shield}
+            label="View Matches"
+            onPress={() => router.push("/tournament/ViewTournament")} // 👈 navigate or perform any action
+          />
         </View>
         <View className="flex-row justify-between">
           <QuickActionCard icon={BookOpen} label="Book Grounds" />
-          <QuickActionCard icon={PlusCircle} label="Create / Join Team" />
+          <QuickActionCard
+            icon={PlusCircle}
+            label="Create / Join Team"
+            onPress={() => router.push("/team/CreateTeam")} // 👈 navigate or perform any action
+          />
         </View>
       </ScrollView>
 

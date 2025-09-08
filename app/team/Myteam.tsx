@@ -31,7 +31,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
   const { user } = useAuth(); // ✅ Get user from context
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const auth = useAuth();
   const fetchTeams = async () => {
     try {
       setLoading(true);
@@ -76,10 +76,13 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
     fetchTeams();
   }, [user?.token]); // ✅ refetch when token changes
 
-  // Example: using role and domains from context
+  // ✅ Get role and domain (as type) dynamically from context
   const role = user?.role || "player";
-  const type = "team";
-  const domains = user?.domains || [];
+  const type = Array.isArray(user?.domains)
+    ? user.domains.join(", ")
+    : user?.domains || "team";
+
+  console.log("🔑 AuthContext values:", { role, type });
 
   const recentActivities = [
     {
@@ -102,7 +105,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView
       className="flex-1 bg-slate-50"
-      edges={["top", "left", "right"]} // ✅ keeps content out of notch + status bar
+      edges={["top", "left", "right"]}
     >
       <StatusBar
         barStyle="dark-content"
@@ -118,10 +121,12 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <CreateTournamentButton
-          title="Create Team"
-          onPress={() => router.push("/team/CreateTeam")}
-        />
+        {auth.user?.role?.toLowerCase() === "player" && (
+          <CreateTournamentButton
+            title="Create Team"
+            onPress={() => router.push("/team/CreateTeam")}
+          />
+        )}
 
         <StatPillBar />
 
@@ -167,10 +172,10 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
           />
         ))}
 
-        {/* Spacer so content doesn't hide behind bottom nav */}
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* ✅ Passing role + type dynamically */}
       <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );

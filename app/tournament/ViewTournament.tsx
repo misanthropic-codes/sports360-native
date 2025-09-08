@@ -21,7 +21,8 @@ const MyTournamentsScreen = () => {
   const tabs = ["All", "Upcoming", "Draft", "Completed"];
   const themeColor: "purple" = "purple";
 
-  const { token } = useAuth(); // 👈 get token from AuthContext
+  const auth = useAuth(); // 👈 get AuthContext value
+  const token = auth.token; // 👈 access token property if it exists
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,12 +88,14 @@ const MyTournamentsScreen = () => {
           color={themeColor}
         />
 
-        {/* Create Tournament Button */}
-        <CreateTournamentButton
-          title="Create Tournament"
-          onPress={() => router.push("/tournament/createTournament")}
-          color={themeColor}
-        />
+        {/* Create Tournament Button (only for organizer) */}
+        {auth.user?.role?.toLowerCase() === "organizer" && (
+          <CreateTournamentButton
+            title="Create Tournament"
+            onPress={() => router.push("/tournament/createTournament")}
+            color={themeColor}
+          />
+        )}
 
         {/* Tournament Cards */}
         <View className="mt-2">

@@ -1,4 +1,5 @@
 // --- FILE: ./src/screens/CreateTeamScreen.tsx ---
+import { router } from "expo-router"; // ✅ import router
 import React, { useState } from "react";
 import {
   Alert,
@@ -61,8 +62,8 @@ const CreateTeamScreen: React.FC = () => {
       console.log("✅ Team created successfully:", response.data);
       Alert.alert("Success", "Your team has been created!");
 
-      const route = "/team/CreateTeam";
-      console.log(`Navigating to route: ${route}`);
+      // ✅ Navigate to Myteam screen
+      router.push("/team/Myteam");
     } catch (error: any) {
       console.error(
         "❌ Error creating team:",

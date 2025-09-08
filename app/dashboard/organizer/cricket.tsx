@@ -1,4 +1,8 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import BottomNavBar from "@/components/BottomNavBar";
+import Header from "@/components/Header";
+import { useAuth } from "@/context/AuthContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import {
   SafeAreaView,
@@ -8,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import BottomNavBar from "@/components/BottomNavBar";
 
 // Type definitions
 interface TournamentCardProps {
@@ -38,33 +41,6 @@ interface MatchCardProps {
   team2Logo: string;
   status?: string;
 }
-
-// Header Component
-const Header: React.FC = () => {
-  return (
-    <View className="flex-row items-center justify-between px-4 py-3 bg-white">
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 bg-blue-500 rounded-full items-center justify-center mr-3">
-          <Text className="text-white font-bold text-lg">R</Text>
-        </View>
-        <View>
-          <Text className="text-gray-900 font-semibold text-base">
-            Welcome Back Raji
-          </Text>
-          <Text className="text-gray-500 text-sm">Have a nice day</Text>
-        </View>
-      </View>
-      <View className="flex-row items-center">
-        <TouchableOpacity className="mr-4">
-          <Ionicons name="notifications-outline" size={24} color="#6B7280" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="person-outline" size={24} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
 
 // Stats Cards Component
 const StatsCards: React.FC = () => {
@@ -254,15 +230,26 @@ const RevenueSummary: React.FC = () => {
   );
 };
 
-
-
 // Main Dashboard Component
 const CricketDashboard: React.FC = () => {
+  const { user } = useAuth(); // ✅ get logged in user
+  const name = user?.fullName || "Player"; // fallback if no user
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <StatusBar barStyle="dark-content" />
-      <Header />
-
+      <Header
+        type="welcome"
+        name={name} // ✅ dynamic name from context
+        avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(
+          0
+        )}`}
+        onNotificationPress={() => console.log("Notifications clicked")}
+        onProfilePress={() => {
+          console.log("Profile button pressed");
+          router.push("/profile");
+        }}
+      />
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <StatsCards />
 
