@@ -4,7 +4,7 @@ import FilterTabs from "@/components/FilterTabs2";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
-import { useAuth } from "@/context/AuthContext"; // 👈 import AuthContext
+import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -21,23 +21,26 @@ const MyTournamentsScreen = () => {
   const tabs = ["All", "Upcoming", "Draft", "Completed"];
   const themeColor: "purple" = "purple";
 
-  const auth = useAuth(); // 👈 get AuthContext value
-  const token = auth.token; // 👈 access token property if it exists
+  const auth = useAuth();
+  const token = auth.token;
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
 
   const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
+
   // Fetch tournaments from backend
   const fetchTournaments = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/api/v1/tournament/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = res.data.data || [];
+
+      const data = res.data?.data || [];
       setTournaments(data);
-      setFilteredTournaments(data); // default show all
+      setFilteredTournaments(data);
     } catch (error) {
       console.error("Error fetching tournaments:", error);
     } finally {
@@ -55,6 +58,13 @@ const MyTournamentsScreen = () => {
         tournaments.filter((t) => t.status?.toLowerCase() === tab.toLowerCase())
       );
     }
+  };
+
+  // Handle Manage button click
+  const handleManagePress = (id: string) => {
+    console.log("Manage Tournament ID:", id);
+    // You can navigate to a manage screen like:
+    router.push(`/tournament/ManageTournament?id=${id}`);
   };
 
   useEffect(() => {
@@ -105,6 +115,7 @@ const MyTournamentsScreen = () => {
             filteredTournaments.map((tournament) => (
               <TournamentCard
                 key={tournament.id}
+                id={tournament.id} // ✅ Pass ID to the card
                 name={tournament.name}
                 format={`Team Size: ${tournament.teamSize}`}
                 status={
@@ -120,7 +131,7 @@ const MyTournamentsScreen = () => {
                 dateRange={`${new Date(tournament.startDate).toLocaleDateString()} - ${new Date(
                   tournament.endDate
                 ).toLocaleDateString()}`}
-                onManagePress={() => console.log("Manage:", tournament.name)}
+                onManagePress={handleManagePress} // ✅ Use centralized handler
                 color={themeColor}
               />
             ))
