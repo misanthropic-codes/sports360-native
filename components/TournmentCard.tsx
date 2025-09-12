@@ -6,6 +6,7 @@ type Status = "Active" | "Draft" | "Completed";
 type ThemeColor = "indigo" | "purple";
 
 interface TournamentCardProps {
+  id: string;
   name: string;
   format: string;
   status: Status;
@@ -13,8 +14,8 @@ interface TournamentCardProps {
   matchCount: number;
   revenue: string;
   dateRange: string;
-  onManagePress: () => void;
-  color?: ThemeColor; // theme color
+  color?: ThemeColor;
+  onManagePress?: (id: string) => void; // ✅ Pass ID to parent callback
 }
 
 const statusColors: Record<Status, { bg: string; text: string }> = {
@@ -24,6 +25,7 @@ const statusColors: Record<Status, { bg: string; text: string }> = {
 };
 
 const TournamentCard: React.FC<TournamentCardProps> = ({
+  id,
   name,
   format,
   status,
@@ -31,8 +33,8 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   matchCount,
   revenue,
   dateRange,
+  color = "indigo",
   onManagePress,
-  color = "indigo", // default theme is indigo
 }) => {
   const colors = statusColors[status];
 
@@ -45,13 +47,11 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
       {/* Top Row */}
       <View className="flex-row items-start justify-between">
         <View className="flex-row items-start flex-1 mr-2">
-          {/* Icon */}
           <View
             className={`w-12 h-12 ${themeBg} rounded-xl items-center justify-center mr-4`}
           >
             <Trophy color={themeIcon} size={28} />
           </View>
-          {/* Title + Format */}
           <View className="flex-1">
             <Text className="text-lg font-bold text-gray-800" numberOfLines={1}>
               {name}
@@ -59,7 +59,6 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             <Text className="text-sm text-gray-500">{format}</Text>
           </View>
         </View>
-        {/* Status */}
         <View className={`px-3 py-1 rounded-full ${colors.bg}`}>
           <Text className={`text-xs font-semibold ${colors.text}`}>
             {status}
@@ -90,7 +89,11 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
           <Text className="text-sm text-gray-600 ml-2">{dateRange}</Text>
         </View>
         <TouchableOpacity
-          onPress={onManagePress}
+          onPress={() => {
+            if (onManagePress)
+              onManagePress(id); // ✅ Call parent callback
+            else console.log("Tournament ID:", id);
+          }}
           className={`${themeButton} px-6 py-2 rounded-full`}
         >
           <Text className="text-white font-semibold">Manage</Text>
