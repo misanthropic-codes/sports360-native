@@ -1,5 +1,5 @@
 // --- FILE: ./src/screens/CreateTeamScreen.tsx ---
-import { router } from "expo-router"; // ✅ import router
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -15,10 +15,10 @@ import FormImagePicker from "../../components/FormImagePicker";
 import FormInput from "../../components/FormInput";
 import FormSwitch from "../../components/FormSwitch";
 import Header from "../../components/Header";
-import { useAuth } from "../../context/AuthContext"; // ✅ import auth context
+import { useAuth } from "../../context/AuthContext";
 
 const CreateTeamScreen: React.FC = () => {
-  const { user } = useAuth(); // ✅ access logged-in user + token
+  const { user } = useAuth();
 
   const role = "player";
   const type = "team";
@@ -30,13 +30,17 @@ const CreateTeamScreen: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(true);
 
+  // ✅ new dynamic fields
+  const [sport, setSport] = useState("cricket");
+  const [teamType, setTeamType] = useState("T20");
+  const [teamSize, setTeamSize] = useState(11);
+
   const handleCreateTeam = async () => {
     if (!user?.token) {
       Alert.alert("Error", "You are not logged in.");
       return;
     }
 
-    // ✅ Ensure logoUrl is never empty or null
     const finalLogoUrl =
       logoUrl || "https://placehold.co/128x128/3B82F6/FFFFFF?text=TEAM";
 
@@ -44,32 +48,38 @@ const CreateTeamScreen: React.FC = () => {
       name: teamName,
       description,
       location,
-      sport: "cricket",
-      teamType: "T20",
-      teamSize: 11,
+      sport,
+      teamType,
+      teamSize,
       code: teamCode,
       logoUrl: finalLogoUrl,
       isActive,
     };
 
+    console.log("📤 Sending team data:", JSON.stringify(formData, null, 2));
+
     try {
       const response = await api.post("/team", formData, {
         headers: {
-          Authorization: `Bearer ${user.token}`, // ✅ attach token
+          Authorization: `Bearer ${user.token}`,
         },
       });
 
       console.log("✅ Team created successfully:", response.data);
       Alert.alert("Success", "Your team has been created!");
-
-      // ✅ Navigate to Myteam screen
       router.push("/team/Myteam");
     } catch (error: any) {
       console.error(
         "❌ Error creating team:",
         error.response?.data || error.message
       );
-      Alert.alert("Error", "Failed to create team. Please try again.");
+
+      Alert.alert(
+        "Error",
+        error.response?.data?.message ||
+          JSON.stringify(error.response?.data) ||
+          "Failed to create team. Please try again."
+      );
     }
   };
 
@@ -122,6 +132,29 @@ const CreateTeamScreen: React.FC = () => {
             onChangeText={setTeamCode}
             placeholder="A unique code for your team"
             autoCapitalize="characters"
+          />
+
+          {/* ✅ new inputs */}
+          <FormInput
+            label="Sport"
+            value={sport}
+            onChangeText={setSport}
+            placeholder="e.g., cricket"
+          />
+
+          <FormInput
+            label="Team Type"
+            value={teamType}
+            onChangeText={setTeamType}
+            placeholder="e.g., T20"
+          />
+
+          <FormInput
+            label="Team Size"
+            value={String(teamSize)}
+            onChangeText={(val) => setTeamSize(Number(val))}
+            placeholder="e.g., 11"
+            keyboardType="numeric"
           />
 
           <FormSwitch
