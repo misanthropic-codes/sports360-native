@@ -1,10 +1,12 @@
 // components/TabNavigation.tsx
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
 
 interface Tab {
   id: string;
   label: string;
+  icon: string; // Icon name from Ionicons
 }
 
 interface TabNavigationProps {
@@ -25,17 +27,23 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
           <TouchableOpacity
             key={tab.id}
             onPress={() => onTabChange(tab.id)}
-            className={`flex-1 py-4 px-4 ${
+            className={`flex-1 py-3 px-2 items-center justify-center ${
               activeTab === tab.id ? "border-b-2 border-purple-600" : ""
             }`}
+            style={{ minHeight: 48 }} // Fixed height to prevent layout shifts
           >
-            <Text
-              className={`text-center font-medium ${
-                activeTab === tab.id ? "text-purple-600" : "text-gray-600"
-              }`}
-            >
-              {tab.label}
-            </Text>
+            {activeTab === tab.id ? (
+              <Text
+                className="text-purple-600 font-medium text-sm text-center"
+                numberOfLines={1}
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
+                {tab.label}
+              </Text>
+            ) : (
+              <Icon name={tab.icon} size={22} color="#9333EA" />
+            )}
           </TouchableOpacity>
         ))}
       </View>

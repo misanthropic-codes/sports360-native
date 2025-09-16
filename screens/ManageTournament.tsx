@@ -16,6 +16,16 @@ import Header from "../components/Ui/Header";
 import StatCard from "../components/Ui/StatCard";
 import TabNavigation from "../components/Ui/TabNaviagtion";
 
+import {
+  Calendar,
+  Clock,
+  Info,
+  MapPin,
+  Play,
+  Trophy,
+  UserPlus,
+  Users,
+} from "lucide-react-native";
 interface TournamentApiResponse {
   id: string;
   name: string;
@@ -31,6 +41,60 @@ interface TournamentApiResponse {
   status: string;
   createdAt: string;
 }
+
+const toProperCase = (str: string) => {
+  if (!str) return "";
+  return str.replace(
+    /\w\S*/g,
+    (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+};
+
+const getStatusInfo = (status: string) => {
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case "active":
+    case "live":
+      return { color: "#10B981", bgColor: "#ECFDF5", icon: Play };
+    case "upcoming":
+    case "scheduled":
+      return { color: "#3B82F6", bgColor: "#EFF6FF", icon: Clock };
+    case "completed":
+    case "finished":
+      return { color: "#8B5CF6", bgColor: "#F5F3FF", icon: Trophy };
+    default:
+      return { color: "#6B7280", bgColor: "#F9FAFB", icon: Info };
+  }
+};
+
+interface InfoCardProps {
+  title: string;
+  icon: React.ReactElement<any>;
+  color?: string;
+  bgColor?: string;
+  children?: React.ReactNode;
+}
+
+const InfoCard = ({
+  title,
+  icon,
+  color = "#6B7280",
+  bgColor = "#F8FAFC",
+  children,
+}: InfoCardProps) => (
+  <View
+    className="bg-white rounded-2xl p-5 shadow-sm mb-4"
+    style={{ backgroundColor: bgColor }}
+  >
+    <View className="flex-row items-center mb-3">
+      {React.cloneElement(icon, { size: 22, color })}
+      <Text className="ml-3 text-lg font-bold" style={{ color }}>
+        {title}
+      </Text>
+    </View>
+    {children}
+  </View>
+);
 
 const ManageTournamentScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -129,28 +193,136 @@ const ManageTournamentScreen = () => {
   const handleEdit = () => console.log("Edit tournament:", tournament.id);
   const handleDelete = () => console.log("Delete tournament:", tournament.id);
 
-  // Render tabs content
-  const renderOverview = () => (
-    <View className="flex-1 bg-gray-50 p-4">
-      <View className="flex-row mb-6">
-        <StatCard label="Teams" value={tournament.teamCount} />
-        <StatCard label="Team Size" value={tournament.teamSize} />
-        <StatCard label="Prize Pool" value={`₹${tournament.prizePool}`} />
-      </View>
-      <View className="bg-white rounded-lg p-4 mb-4">
-        <Text className="text-lg font-semibold text-black mb-3">DETAILS</Text>
-        <Text className="text-gray-600">Status: {tournament.status}</Text>
-        <Text className="text-gray-600">
-          Start Date: {new Date(tournament.startDate).toDateString()}
-        </Text>
-        <Text className="text-gray-600">
-          End Date: {new Date(tournament.endDate).toDateString()}
-        </Text>
-        <Text className="text-gray-600">Location: {tournament.location}</Text>
-        <Text className="text-gray-600 mt-2">{tournament.description}</Text>
-      </View>
-    </View>
-  );
+  const renderOverview = () => {
+    const statusInfo = getStatusInfo(tournament.status);
+
+    return (
+      <ScrollView className="flex-1 bg-gray-50 p-4">
+        {/* Header Stats Row */}
+        <View className="flex-row justify-between mb-6">
+          <StatCard
+            label="Teams"
+            value={tournament.teamCount}
+            icon={<Users size={24} color="#3B82F6" />}
+            color="#3B82F6"
+            bgColor="#EFF6FF"
+          />
+          <StatCard
+            label="Team Size"
+            value={tournament.teamSize}
+            icon={<UserPlus size={24} color="#8B5CF6" />}
+            color="#8B5CF6"
+            bgColor="#F5F3FF"
+          />
+          <StatCard
+            label="Prize Pool"
+            value={`₹${tournament.prizePool}`}
+            icon={<Trophy size={24} color="#F59E0B" />}
+            color="#F59E0B"
+            bgColor="#FFFBEB"
+          />
+        </View>
+
+        {/* Status Card */}
+        <InfoCard
+          title="Tournament Status"
+          icon={<statusInfo.icon />}
+          color={statusInfo.color}
+          bgColor={statusInfo.bgColor}
+        >
+          <View className="bg-white/70 rounded-xl p-4">
+            <Text
+              className="text-2xl font-bold mb-1"
+              style={{ color: statusInfo.color }}
+            >
+              {toProperCase(tournament.status)}
+            </Text>
+            <Text className="text-gray-600">Current tournament status</Text>
+          </View>
+        </InfoCard>
+
+        {/* Schedule Card */}
+        <InfoCard
+          title="Schedule"
+          icon={<Calendar />}
+          color="#10B981"
+          bgColor="#ECFDF5"
+        >
+          <View className="space-y-3">
+            <View className="bg-white/70 rounded-xl p-4">
+              <View className="flex-row items-center justify-between">
+                <View>
+                  <Text className="text-sm text-gray-500 uppercase tracking-wide">
+                    Start Date
+                  </Text>
+                  <Text className="text-lg font-semibold text-gray-900">
+                    {new Date(tournament.startDate).toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      }
+                    )}
+                  </Text>
+                </View>
+                <Calendar size={20} color="#10B981" />
+              </View>
+            </View>
+
+            <View className="bg-white/70 rounded-xl p-4">
+              <View className="flex-row items-center justify-between">
+                <View>
+                  <Text className="text-sm text-gray-500 uppercase tracking-wide">
+                    End Date
+                  </Text>
+                  <Text className="text-lg font-semibold text-gray-900">
+                    {new Date(tournament.endDate).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </Text>
+                </View>
+                <Calendar size={20} color="#10B981" />
+              </View>
+            </View>
+          </View>
+        </InfoCard>
+
+        {/* Location Card */}
+        <InfoCard
+          title="Location"
+          icon={<MapPin />}
+          color="#EC4899"
+          bgColor="#FDF2F8"
+        >
+          <View className="bg-white/70 rounded-xl p-4">
+            <Text className="text-lg font-semibold text-gray-900 mb-1">
+              {toProperCase(tournament.location)}
+            </Text>
+            <Text className="text-gray-600">Tournament venue</Text>
+          </View>
+        </InfoCard>
+
+        {/* Description Card */}
+        <InfoCard
+          title="About Tournament"
+          icon={<Info />}
+          color="#6366F1"
+          bgColor="#EEF2FF"
+        >
+          <View className="bg-white/70 rounded-xl p-4">
+            <Text className="text-gray-700 leading-6 text-base">
+              {tournament.description}
+            </Text>
+          </View>
+        </InfoCard>
+      </ScrollView>
+    );
+  };
 
   const renderTeams = () => (
     <View className="flex-1 bg-gray-50 p-4">
