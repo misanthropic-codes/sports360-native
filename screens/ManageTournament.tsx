@@ -33,24 +33,29 @@ interface TournamentApiResponse {
 }
 
 const ManageTournamentScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>(); // ✅ get id from router
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [tournament, setTournament] = useState<TournamentApiResponse | null>(
     null
   );
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Teams state
+  const [teamsMessage, setTeamsMessage] = useState<string | null>(null);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+
+  // Fetch tournament info
   useEffect(() => {
     console.log("Tournament ID from previous screen:", id);
     if (!id) return;
 
     const fetchTournament = async () => {
       const apiUrl = `https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/tournament/get/${id}`;
-      console.log("Calling API:", apiUrl); // ✅ log the API URL
+      console.log("Calling API:", apiUrl);
 
       try {
         const res = await axios.get(apiUrl);
-        console.log("API Response:", res.data); // ✅ log the fetched data
+        console.log("API Response:", res.data);
 
         if (res.data?.data?.[0]) {
           setTournament(res.data.data[0]);
@@ -64,6 +69,36 @@ const ManageTournamentScreen = () => {
 
     fetchTournament();
   }, [id]);
+
+  // Fetch teams data whenever the Teams tab is active
+  useEffect(() => {
+    if (activeTab !== "teams" || !id) return;
+
+    const fetchTeams = async () => {
+      setTeamsLoading(true);
+      const teamsApiUrl = `https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/tournament/get/${id}/teams`;
+      console.log("Fetching teams from:", teamsApiUrl);
+
+      try {
+        const res = await axios.get(teamsApiUrl);
+        console.log("Teams API Response:", res.data);
+
+        // Display the exact message from backend
+        if (res.data?.message) {
+          setTeamsMessage(res.data.message);
+        } else {
+          setTeamsMessage("No message received from backend.");
+        }
+      } catch (err) {
+        console.error("Error fetching teams:", err);
+        setTeamsMessage("Error fetching teams.");
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
+
+    fetchTeams();
+  }, [activeTab, id]);
 
   if (loading) {
     return (
@@ -94,6 +129,7 @@ const ManageTournamentScreen = () => {
   const handleEdit = () => console.log("Edit tournament:", tournament.id);
   const handleDelete = () => console.log("Delete tournament:", tournament.id);
 
+  // Render tabs content
   const renderOverview = () => (
     <View className="flex-1 bg-gray-50 p-4">
       <View className="flex-row mb-6">
@@ -123,7 +159,17 @@ const ManageTournamentScreen = () => {
           Add Team Manually
         </Text>
       </TouchableOpacity>
-      <Text className="text-gray-500">No teams data yet</Text>
+
+      {teamsLoading ? (
+        <View className="mt-4">
+          <ActivityIndicator size="small" />
+          <Text className="text-gray-500 mt-2">Loading teams...</Text>
+        </View>
+      ) : (
+        <Text className="text-gray-700 mt-2">
+          {teamsMessage || "No teams data yet."}
+        </Text>
+      )}
     </View>
   );
 
