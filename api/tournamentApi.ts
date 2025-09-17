@@ -51,7 +51,6 @@ export interface Match {
   result?: string | null;
   createdAt: string;
   updatedAt: string;
-  // Additional fields for UI display (populated separately)
   teamA?: Team;
   teamB?: Team;
   ground?: Ground;
@@ -59,35 +58,43 @@ export interface Match {
   endTime?: string;
 }
 
-export const getTournamentById = async (id: string) => {
-  const res = await axios.get(`${BASE_URL}/get/${id}`);
+export const getTournamentById = async (id: string, token: string) => {
+  const res = await axios.get(`${BASE_URL}/get/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return res.data?.data?.[0] || null;
 };
 
-// ✅ Fixed version: return res.data directly
-export const getTeamsByTournament = async (id: string): Promise<Team[]> => {
-  const res = await axios.get(`${BASE_URL}/get/${id}/teams`);
+export const getTeamsByTournament = async (
+  id: string,
+  token: string
+): Promise<Team[]> => {
+  const res = await axios.get(`${BASE_URL}/get/${id}/teams`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return res.data;
 };
 
-export const getGrounds = async (): Promise<Ground[]> => {
-  const res = await axios.get(`${GROUND_URL}/all-grounds`);
+export const getGrounds = async (token: string): Promise<Ground[]> => {
+  const res = await axios.get(`${GROUND_URL}/all-grounds`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return res.data?.data || [];
 };
 
 export const generateFixtures = async (
-  payload: GenerateFixturePayload
+  payload: GenerateFixturePayload,
+  token: string
 ): Promise<Match[]> => {
-  const res = await axios.post(`${MATCHES_URL}/generate-fixtures`, payload);
+  const res = await axios.post(`${MATCHES_URL}/generate-fixtures`, payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return res.data?.fixtures || [];
 };
 
-// Updated deleteTournament to send auth token in headers
 export const deleteTournament = async (id: string, token: string) => {
   const res = await axios.delete(`${BASE_URL}/delete/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
 };
