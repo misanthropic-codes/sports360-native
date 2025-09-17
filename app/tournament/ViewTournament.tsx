@@ -30,6 +30,14 @@ const MyTournamentsScreen = () => {
 
   const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
 
+  // Logos for inactive tabs
+  const tabLogos = {
+    All: "📋",
+    Upcoming: "🔜",
+    Draft: "📝",
+    Completed: "✅",
+  };
+
   // Fetch tournaments from backend
   const fetchTournaments = async () => {
     setLoading(true);
@@ -63,7 +71,6 @@ const MyTournamentsScreen = () => {
   // Handle Manage button click
   const handleManagePress = (id: string) => {
     console.log("Manage Tournament ID:", id);
-    // You can navigate to a manage screen like:
     router.push(`/tournament/ManageTournament?id=${id}`);
   };
 
@@ -96,6 +103,7 @@ const MyTournamentsScreen = () => {
           tabs={tabs}
           onTabChange={handleTabChange}
           color={themeColor}
+          logos={tabLogos} // ✅ added logos for inactive tabs
         />
 
         {/* Create Tournament Button (only for organizer) */}
@@ -115,23 +123,25 @@ const MyTournamentsScreen = () => {
             filteredTournaments.map((tournament) => (
               <TournamentCard
                 key={tournament.id}
-                id={tournament.id} // ✅ Pass ID to the card
+                id={tournament.id}
                 name={tournament.name}
                 format={`Team Size: ${tournament.teamSize}`}
                 status={
                   tournament.status === "upcoming"
                     ? "Active"
                     : tournament.status === "draft"
-                      ? "Draft"
-                      : "Completed"
+                    ? "Draft"
+                    : "Completed"
                 }
                 teamCount={tournament.teamCount}
-                matchCount={0} // backend doesn’t provide match count
+                matchCount={0}
                 revenue={`₹ ${tournament.prizePool}`}
-                dateRange={`${new Date(tournament.startDate).toLocaleDateString()} - ${new Date(
+                dateRange={`${new Date(
+                  tournament.startDate
+                ).toLocaleDateString()} - ${new Date(
                   tournament.endDate
                 ).toLocaleDateString()}`}
-                onManagePress={handleManagePress} // ✅ Use centralized handler
+                onManagePress={handleManagePress}
                 color={themeColor}
               />
             ))
@@ -142,7 +152,6 @@ const MyTournamentsScreen = () => {
           )}
         </View>
 
-        {/* Spacer */}
         <View className="h-24" />
       </ScrollView>
 

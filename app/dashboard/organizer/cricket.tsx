@@ -5,9 +5,11 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import {
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -52,9 +54,7 @@ const StatsCards: React.FC = () => {
       </View>
       <View className="flex-1 bg-blue-100 rounded-2xl p-4">
         <Text className="text-blue-800 text-2xl font-bold">84</Text>
-        <Text className="text-blue-700 text-sm font-medium">
-          Matches Played
-        </Text>
+        <Text className="text-blue-700 text-sm font-medium">Matches Played</Text>
       </View>
       <View className="flex-1 bg-red-100 rounded-2xl p-4">
         <Text className="text-red-800 text-2xl font-bold">17</Text>
@@ -84,9 +84,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             <MaterialCommunityIcons name="trophy" size={18} color="white" />
           </View>
           <View>
-            <Text className="text-gray-900 font-semibold text-base">
-              {title}
-            </Text>
+            <Text className="text-gray-900 font-semibold text-base">{title}</Text>
             <Text className="text-gray-600 text-sm">{subtitle}</Text>
           </View>
         </View>
@@ -214,15 +212,11 @@ const RevenueSummary: React.FC = () => {
 
       <View className="space-y-3">
         <View className="flex-row justify-between items-center">
-          <Text className="text-gray-700 font-medium">
-            Mumbai Premier League
-          </Text>
+          <Text className="text-gray-700 font-medium">Mumbai Premier League</Text>
           <Text className="text-gray-900 font-semibold">Rs 80,000/-</Text>
         </View>
         <View className="flex-row justify-between items-center">
-          <Text className="text-gray-700 font-medium">
-            Mumbai Premier League
-          </Text>
+          <Text className="text-gray-700 font-medium">Mumbai Premier League</Text>
           <Text className="text-gray-900 font-semibold">Rs 80,000/-</Text>
         </View>
       </View>
@@ -232,24 +226,26 @@ const RevenueSummary: React.FC = () => {
 
 // Main Dashboard Component
 const CricketDashboard: React.FC = () => {
-  const { user } = useAuth(); // ✅ get logged in user
-  const name = user?.fullName || "Player"; // fallback if no user
+  const { user } = useAuth();
+  const name = user?.fullName || "Player";
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView
+      style={[
+        styles.container,
+        Platform.OS === "android" ? { paddingTop: StatusBar.currentHeight } : {},
+      ]}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+
       <Header
         type="welcome"
-        name={name} // ✅ dynamic name from context
-        avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(
-          0
-        )}`}
+        name={name}
+        avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(0)}`}
         onNotificationPress={() => console.log("Notifications clicked")}
-        onProfilePress={() => {
-          console.log("Profile button pressed");
-          router.push("/profile");
-        }}
+        onProfilePress={() => router.push("/profile")}
       />
+
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <StatsCards />
 
@@ -263,7 +259,6 @@ const CricketDashboard: React.FC = () => {
           bgColor="bg-purple-50"
           iconColor="bg-purple-600"
         />
-
         <TournamentCard
           title="Mumbai Premier League"
           subtitle="Premier cricket tournament"
@@ -275,32 +270,13 @@ const CricketDashboard: React.FC = () => {
         />
 
         <SectionHeader title="Recent Registrations" />
-        <RegistrationCard
-          title="Royal Challengers"
-          subtitle="Mumbai Premier League"
-        />
-        <RegistrationCard
-          title="Royal Challengers"
-          subtitle="Mumbai Premier League"
-        />
-        <RegistrationCard
-          title="Royal Challengers"
-          subtitle="Mumbai Premier League"
-        />
+        <RegistrationCard title="Royal Challengers" subtitle="Mumbai Premier League" />
+        <RegistrationCard title="Royal Challengers" subtitle="Mumbai Premier League" />
+        <RegistrationCard title="Royal Challengers" subtitle="Mumbai Premier League" />
 
         <SectionHeader title="Upcoming Matches" />
-        <MatchCard
-          team1="Mumbai Indians"
-          team2="Chennai Super"
-          team1Logo="MI"
-          team2Logo="CS"
-        />
-        <MatchCard
-          team1="Delhi Capitals"
-          team2="Royal Challengers"
-          team1Logo="DC"
-          team2Logo="RC"
-        />
+        <MatchCard team1="Mumbai Indians" team2="Chennai Super" team1Logo="MI" team2Logo="CS" />
+        <MatchCard team1="Delhi Capitals" team2="Royal Challengers" team1Logo="DC" team2Logo="RC" />
 
         <RevenueSummary />
 
@@ -311,5 +287,12 @@ const CricketDashboard: React.FC = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+});
 
 export default CricketDashboard;

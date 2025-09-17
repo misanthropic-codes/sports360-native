@@ -27,7 +27,7 @@ import { useAuth } from "../context/AuthContext";
 
 const ManageTournamentScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token, user } = useAuth();
+  const { user, token } = useAuth(); // grab token
 
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +38,11 @@ const ManageTournamentScreen = () => {
   const [teamsMessage, setTeamsMessage] = useState<string | null>(null);
   const [teamsData, setTeamsData] = useState<any[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
+
+  // 🔹 Log token on component mount
+  useEffect(() => {
+    console.log("Auth token on mount:", token);
+  }, [token]);
 
   // Fetch tournament details
   useEffect(() => {
@@ -54,7 +59,7 @@ const ManageTournamentScreen = () => {
       getTeamsByTournament(id)
         .then((res) => {
           setTeamsMessage(res?.message || "");
-          setTeamsData(res?.data || []); // ✅ store array
+          setTeamsData(res?.data || []);
         })
         .catch(() => {
           setTeamsMessage("Error fetching teams.");
@@ -81,13 +86,24 @@ const ManageTournamentScreen = () => {
           onPress: async () => {
             try {
               if (!id || !token) return;
-              await deleteTournament(id, token);
-              Alert.alert("Success", "Tournament deleted successfully");
+
+              // 🔹 Log the token right before sending the API request
+              console.log("Token being sent to deleteTournament:", token);
+
+              const res = await deleteTournament(id, token); // ✅ token passed here
+              console.log("Delete response:", res);
+
+              Alert.alert(
+                "Success",
+                res.message || "Tournament deleted successfully"
+              );
+
               router.push("/tournament/ViewTournament");
             } catch (error: any) {
+              console.log("Delete error:", error);
               Alert.alert(
                 "Error",
-                error.message || "Failed to delete tournament"
+                error.response?.data?.message || "Failed to delete tournament"
               );
             }
           },
@@ -116,11 +132,11 @@ const ManageTournamentScreen = () => {
           <TeamsTab
             teamsMessage={teamsMessage}
             teamsLoading={teamsLoading}
-            teamsData={teamsData} // ✅ pass actual array
+            teamsData={teamsData}
           />
         );
       case "matches":
-        return <MatchesTab />;
+        return <MatchesTab tournamentId={id}  />;
       case "results":
         return <ResultsTab />;
       case "leaderboard":

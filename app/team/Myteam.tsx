@@ -49,7 +49,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
       }
 
       console.log(`Fetching teams from: ${baseURL}/api/v1/team`);
-      const response = await axios.get(`${baseURL}/api/v1/team`, {
+      const response = await axios.get(`${baseURL}/api/v1/team/all`, {
         headers: {
           Authorization: `Bearer ${user.token}`, // ✅ token from context
         },
