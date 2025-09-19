@@ -44,21 +44,35 @@ interface MatchCardProps {
   status?: string;
 }
 
-// Stats Cards Component
+// Stats Cards Component with improved spacing
 const StatsCards: React.FC = () => {
   return (
-    <View className="flex-row px-4 py-3 space-x-3">
-      <View className="flex-1 bg-green-100 rounded-2xl p-4">
-        <Text className="text-green-800 text-2xl font-bold">12</Text>
-        <Text className="text-green-700 text-sm font-medium">Matches Won</Text>
-      </View>
-      <View className="flex-1 bg-blue-100 rounded-2xl p-4">
-        <Text className="text-blue-800 text-2xl font-bold">84</Text>
-        <Text className="text-blue-700 text-sm font-medium">Matches Played</Text>
-      </View>
-      <View className="flex-1 bg-red-100 rounded-2xl p-4">
-        <Text className="text-red-800 text-2xl font-bold">17</Text>
-        <Text className="text-red-700 text-sm font-medium">Matches Lost</Text>
+    <View className="px-4 py-4 mb-2">
+      <View className="flex-row space-x-3">
+        <View className="flex-1 bg-green-50 border border-green-200 rounded-2xl p-4 shadow-sm">
+          <View className="items-center">
+            <Text className="text-green-800 text-2xl font-bold mb-1">12</Text>
+            <Text className="text-green-700 text-sm font-medium text-center">
+              Matches Won
+            </Text>
+          </View>
+        </View>
+        <View className="flex-1 bg-blue-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
+          <View className="items-center">
+            <Text className="text-blue-800 text-2xl font-bold mb-1">84</Text>
+            <Text className="text-blue-700 text-sm font-medium text-center">
+              Matches Played
+            </Text>
+          </View>
+        </View>
+        <View className="flex-1 bg-red-50 border border-red-200 rounded-2xl p-4 shadow-sm">
+          <View className="items-center">
+            <Text className="text-red-800 text-2xl font-bold mb-1">17</Text>
+            <Text className="text-red-700 text-sm font-medium text-center">
+              Matches Lost
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -84,7 +98,9 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
             <MaterialCommunityIcons name="trophy" size={18} color="white" />
           </View>
           <View>
-            <Text className="text-gray-900 font-semibold text-base">{title}</Text>
+            <Text className="text-gray-900 font-semibold text-base">
+              {title}
+            </Text>
             <Text className="text-gray-600 text-sm">{subtitle}</Text>
           </View>
         </View>
@@ -192,34 +208,116 @@ const MatchCard: React.FC<MatchCardProps> = ({
   );
 };
 
-// Revenue Summary Component
+// Revenue Summary Component with improved design and spacing
 const RevenueSummary: React.FC = () => {
   return (
-    <View className="px-4 py-3">
-      <Text className="text-gray-900 font-semibold text-lg mb-4">
+    <View className="mx-4 mb-6 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+      <Text className="text-gray-900 font-semibold text-xl mb-5">
         Revenue Summary
       </Text>
-      <View className="flex-row space-x-3 mb-4">
-        <View className="flex-1 bg-blue-500 rounded-2xl p-4">
-          <Text className="text-white text-sm font-medium">This Month</Text>
-          <Text className="text-white text-2xl font-bold">Rs 2.5 L</Text>
+
+      <View className="flex-row space-x-4 mb-6">
+        <View className="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5">
+          <View className="flex-row items-center justify-between mb-2">
+            <MaterialCommunityIcons
+              name="trending-up"
+              size={20}
+              color="white"
+            />
+            <View className="bg-blue-400 bg-opacity-30 px-2 py-1 rounded-full">
+              <Text className="text-white text-xs font-medium">+12%</Text>
+            </View>
+          </View>
+          <Text className="text-blue-100 text-sm font-medium mb-1">
+            This Month
+          </Text>
+          <Text className="text-white text-2xl font-bold">₹2.5 L</Text>
         </View>
-        <View className="flex-1 bg-green-500 rounded-2xl p-4">
-          <Text className="text-white text-sm font-medium">Total Earned</Text>
-          <Text className="text-white text-2xl font-bold">Rs 8.5 L</Text>
+
+        <View className="flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-5">
+          <View className="flex-row items-center justify-between mb-2">
+            <MaterialCommunityIcons name="wallet" size={20} color="white" />
+            <View className="bg-green-400 bg-opacity-30 px-2 py-1 rounded-full">
+              <Text className="text-white text-xs font-medium">Total</Text>
+            </View>
+          </View>
+          <Text className="text-green-100 text-sm font-medium mb-1">
+            Total Earned
+          </Text>
+          <Text className="text-white text-2xl font-bold">₹8.5 L</Text>
         </View>
       </View>
 
-      <View className="space-y-3">
-        <View className="flex-row justify-between items-center">
-          <Text className="text-gray-700 font-medium">Mumbai Premier League</Text>
-          <Text className="text-gray-900 font-semibold">Rs 80,000/-</Text>
-        </View>
-        <View className="flex-row justify-between items-center">
-          <Text className="text-gray-700 font-medium">Mumbai Premier League</Text>
-          <Text className="text-gray-900 font-semibold">Rs 80,000/-</Text>
+      <View className="border-t border-gray-100 pt-4">
+        <Text className="text-gray-700 font-medium text-base mb-4">
+          Recent Tournaments
+        </Text>
+
+        <View className="space-y-4">
+          <View className="flex-row justify-between items-center p-3 bg-gray-50 rounded-xl">
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 bg-purple-100 rounded-lg items-center justify-center mr-3">
+                <MaterialCommunityIcons
+                  name="trophy"
+                  size={20}
+                  color="#7C3AED"
+                />
+              </View>
+              <View>
+                <Text className="text-gray-900 font-medium text-base">
+                  Mumbai Premier League
+                </Text>
+                <Text className="text-gray-500 text-sm">
+                  Completed • 16 Teams
+                </Text>
+              </View>
+            </View>
+            <View className="items-end">
+              <Text className="text-gray-900 font-semibold text-lg">
+                ₹80,000
+              </Text>
+              <Text className="text-green-600 text-xs font-medium">
+                +15% profit
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row justify-between items-center p-3 bg-gray-50 rounded-xl">
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 bg-blue-100 rounded-lg items-center justify-center mr-3">
+                <MaterialCommunityIcons
+                  name="trophy"
+                  size={20}
+                  color="#3B82F6"
+                />
+              </View>
+              <View>
+                <Text className="text-gray-900 font-medium text-base">
+                  Champions Cup
+                </Text>
+                <Text className="text-gray-500 text-sm">
+                  Completed • 12 Teams
+                </Text>
+              </View>
+            </View>
+            <View className="items-end">
+              <Text className="text-gray-900 font-semibold text-lg">
+                ₹65,000
+              </Text>
+              <Text className="text-green-600 text-xs font-medium">
+                +12% profit
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
+
+      <TouchableOpacity className="mt-5 bg-purple-600 rounded-xl py-3 px-4 flex-row items-center justify-center">
+        <MaterialCommunityIcons name="chart-line" size={20} color="white" />
+        <Text className="text-white font-medium ml-2">
+          View Detailed Analytics
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -233,7 +331,9 @@ const CricketDashboard: React.FC = () => {
     <SafeAreaView
       style={[
         styles.container,
-        Platform.OS === "android" ? { paddingTop: StatusBar.currentHeight } : {},
+        Platform.OS === "android"
+          ? { paddingTop: StatusBar.currentHeight }
+          : {},
       ]}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
@@ -270,17 +370,37 @@ const CricketDashboard: React.FC = () => {
         />
 
         <SectionHeader title="Recent Registrations" />
-        <RegistrationCard title="Royal Challengers" subtitle="Mumbai Premier League" />
-        <RegistrationCard title="Royal Challengers" subtitle="Mumbai Premier League" />
-        <RegistrationCard title="Royal Challengers" subtitle="Mumbai Premier League" />
+        <RegistrationCard
+          title="Royal Challengers"
+          subtitle="Mumbai Premier League"
+        />
+        <RegistrationCard
+          title="Royal Challengers"
+          subtitle="Mumbai Premier League"
+        />
+        <RegistrationCard
+          title="Royal Challengers"
+          subtitle="Mumbai Premier League"
+        />
 
         <SectionHeader title="Upcoming Matches" />
-        <MatchCard team1="Mumbai Indians" team2="Chennai Super" team1Logo="MI" team2Logo="CS" />
-        <MatchCard team1="Delhi Capitals" team2="Royal Challengers" team1Logo="DC" team2Logo="RC" />
+        <MatchCard
+          team1="Mumbai Indians"
+          team2="Chennai Super"
+          team1Logo="MI"
+          team2Logo="CS"
+        />
+        <MatchCard
+          team1="Delhi Capitals"
+          team2="Royal Challengers"
+          team1Logo="DC"
+          team2Logo="RC"
+        />
 
         <RevenueSummary />
 
-        <View className="h-6" />
+        {/* Bottom spacing for better scrolling experience */}
+        <View className="h-8" />
       </ScrollView>
 
       <BottomNavBar role="organizer" type="cricket" />

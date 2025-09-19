@@ -1,3 +1,4 @@
+import { getAllTournaments } from "@/api/tournamentApi";
 import BottomNavBar from "@/components/BottomNavBar";
 import CreateTournamentButton from "@/components/CreatTeamButton";
 import FilterTabs from "@/components/FilterTabs2";
@@ -5,7 +6,6 @@ import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -23,14 +23,13 @@ const MyTournamentsScreen = () => {
 
   const auth = useAuth();
   const token = auth.token;
+  const role = auth.user?.role?.toLowerCase() as "organizer" | "player";
+
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
 
-  const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
-
-  // Logos for inactive tabs
   const tabLogos = {
     All: "📋",
     Upcoming: "🔜",
@@ -38,15 +37,10 @@ const MyTournamentsScreen = () => {
     Completed: "✅",
   };
 
-  // Fetch tournaments from backend
   const fetchTournaments = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/api/v1/tournament/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = res.data?.data || [];
+      const data = await getAllTournaments(token);
       setTournaments(data);
       setFilteredTournaments(data);
     } catch (error) {
@@ -56,7 +50,6 @@ const MyTournamentsScreen = () => {
     }
   };
 
-  // Handle filter change
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === "All") {
@@ -68,10 +61,13 @@ const MyTournamentsScreen = () => {
     }
   };
 
-  // Handle Manage button click
+  // Direct route instead of modal
   const handleManagePress = (id: string) => {
-    console.log("Manage Tournament ID:", id);
-    router.push(`/tournament/ManageTournament?id=${id}`);
+    if (role === "organizer") {
+      router.push(`/tournament/ManageTournament?id=${id}`);
+    } else if (role === "player") {
+      router.push(`/tournament/JoinTournament?id=${id}`);
+    }
   };
 
   useEffect(() => {
@@ -98,16 +94,14 @@ const MyTournamentsScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <SearchBar placeholder="Search..." />
 
-        {/* Filter Tabs */}
         <FilterTabs
           tabs={tabs}
           onTabChange={handleTabChange}
           color={themeColor}
-          logos={tabLogos} // ✅ added logos for inactive tabs
+          logos={tabLogos}
         />
 
-        {/* Create Tournament Button (only for organizer) */}
-        {auth.user?.role?.toLowerCase() === "organizer" && (
+        {role === "organizer" && (
           <CreateTournamentButton
             title="Create Tournament"
             onPress={() => router.push("/tournament/createTournament")}
@@ -115,7 +109,6 @@ const MyTournamentsScreen = () => {
           />
         )}
 
-        {/* Tournament Cards */}
         <View className="mt-2">
           {loading ? (
             <ActivityIndicator size="large" color="#6D28D9" className="mt-4" />
@@ -130,8 +123,8 @@ const MyTournamentsScreen = () => {
                   tournament.status === "upcoming"
                     ? "Active"
                     : tournament.status === "draft"
-                    ? "Draft"
-                    : "Completed"
+                      ? "Draft"
+                      : "Completed"
                 }
                 teamCount={tournament.teamCount}
                 matchCount={0}
@@ -143,6 +136,7 @@ const MyTournamentsScreen = () => {
                 ).toLocaleDateString()}`}
                 onManagePress={handleManagePress}
                 color={themeColor}
+                role={role}
               />
             ))
           ) : (
@@ -155,7 +149,7 @@ const MyTournamentsScreen = () => {
         <View className="h-24" />
       </ScrollView>
 
-      <BottomNavBar role="player" type="cricket" />
+      <BottomNavBar role={role} type="cricket" />
     </SafeAreaView>
   );
 };

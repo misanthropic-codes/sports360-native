@@ -4,6 +4,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 
 type Status = "Active" | "Draft" | "Completed";
 type ThemeColor = "indigo" | "purple";
+type Role = "admin" | "player"; // ✅ New type
 
 interface TournamentCardProps {
   id: string;
@@ -15,6 +16,7 @@ interface TournamentCardProps {
   revenue: string;
   dateRange: string;
   color?: ThemeColor;
+  role?: Role; // ✅ New prop
   onManagePress?: (id: string) => void; // ✅ Pass ID to parent callback
 }
 
@@ -34,6 +36,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   revenue,
   dateRange,
   color = "indigo",
+  role = "admin", // default is admin
   onManagePress,
 }) => {
   const colors = statusColors[status];
@@ -90,13 +93,14 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
         </View>
         <TouchableOpacity
           onPress={() => {
-            if (onManagePress)
-              onManagePress(id); // ✅ Call parent callback
+            if (onManagePress) onManagePress(id);
             else console.log("Tournament ID:", id);
           }}
           className={`${themeButton} px-6 py-2 rounded-full`}
         >
-          <Text className="text-white font-semibold">Manage</Text>
+          <Text className="text-white font-semibold">
+            {role === "player" ? "Join" : "Manage"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

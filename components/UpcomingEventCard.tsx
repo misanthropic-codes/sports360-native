@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Calendar, MapPin, Users } from 'lucide-react-native';
+import { Calendar, MapPin, Users } from "lucide-react-native";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface UpcomingEventCardProps {
   title: string;
@@ -26,8 +26,20 @@ const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
       {/* Top Section: Title, Status, Price */}
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-2">
-          <Text className="text-base font-bold text-slate-800">{title}</Text>
-          <Text className="text-sm text-slate-500">{subtitle}</Text>
+          <Text
+            className="text-base font-bold text-slate-800"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
+          <Text
+            className="text-sm text-slate-500"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {subtitle}
+          </Text>
         </View>
         <View className="items-end">
           <View className="bg-green-100 px-3 py-1 rounded-full">
@@ -37,23 +49,40 @@ const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
         </View>
       </View>
 
-      {/* Bottom Section: Details and Join Button */}
+      {/* Bottom Section: Details + Button */}
       <View className="flex-row justify-between items-center mt-3">
-        <View className="flex-row items-center gap-3">
+        {/* Details */}
+        <View className="flex-1 flex-row flex-wrap items-center gap-x-3 gap-y-1 pr-2">
           <View className="flex-row items-center">
             <Calendar size={14} color="#94A3B8" />
-            <Text className="text-xs text-slate-500 ml-1">{date}</Text>
+            <Text
+              className="text-xs text-slate-500 ml-1"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {date}
+            </Text>
           </View>
           <View className="flex-row items-center">
             <MapPin size={14} color="#EF4444" />
-            <Text className="text-xs text-red-500 font-semibold ml-1">{location}</Text>
+            <Text
+              className="text-xs text-red-500 font-semibold ml-1"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {location}
+            </Text>
           </View>
           <View className="flex-row items-center">
             <Users size={14} color="#94A3B8" />
-            <Text className="text-xs text-slate-500 ml-1">{participants} joined</Text>
+            <Text className="text-xs text-slate-500 ml-1">
+              {participants} joined
+            </Text>
           </View>
         </View>
-        <TouchableOpacity className="bg-indigo-600 px-6 py-2 rounded-lg">
+
+        {/* Join Button (safe padding to avoid overflow) */}
+        <TouchableOpacity className="bg-indigo-600 px-4 py-2 rounded-lg min-w-[80px] items-center">
           <Text className="text-white font-bold text-sm">Join Now</Text>
         </TouchableOpacity>
       </View>

@@ -1,4 +1,3 @@
-// src/api/tournamentApi.ts
 import axios from "axios";
 
 const BASE_URL = "https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/tournament";
@@ -58,6 +57,14 @@ export interface Match {
   endTime?: string;
 }
 
+// 🔹 Get all tournaments
+export const getAllTournaments = async (token: string) => {
+  const res = await axios.get(`${BASE_URL}/all`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data?.data || [];
+};
+
 export const getTournamentById = async (id: string, token: string) => {
   const res = await axios.get(`${BASE_URL}/get/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -73,6 +80,17 @@ export const getTeamsByTournament = async (
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
+};
+
+// 🔹 New API: Get my teams (auth token only)
+export const getMyTeams = async (token: string): Promise<Team[]> => {
+  const res = await axios.get(
+    "https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/team/my-teams",
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  return res.data?.data || [];
 };
 
 export const getGrounds = async (token: string): Promise<Ground[]> => {
@@ -96,5 +114,25 @@ export const deleteTournament = async (id: string, token: string) => {
   const res = await axios.delete(`${BASE_URL}/delete/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  return res.data;
+};
+
+// 🔹 New API: Join a tournament
+export const joinTournament = async (
+  id: string,
+  teamId: string,
+  message: string,
+  token: string
+) => {
+  const res = await axios.post(
+    `${BASE_URL}/${id}/join`,
+    {
+      teamId,
+      message,
+    },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
   return res.data;
 };

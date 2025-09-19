@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from "expo-router";
 import { BarChart2, Home, Trophy, User, Users } from "lucide-react-native";
 import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { Animated, TouchableOpacity, View } from "react-native";
 
 interface NavItemProps {
   icon: React.ComponentType<{ color?: string; size?: number }>;
@@ -9,20 +9,49 @@ interface NavItemProps {
   onPress: () => void;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, active, onPress }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    className="flex-1 items-center justify-center p-2"
-  >
-    <View
-      className={`w-12 h-8 rounded-full items-center justify-center ${
-        active ? "bg-white" : ""
-      }`}
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, active, onPress }) => {
+  const scaleAnim = React.useRef(new Animated.Value(active ? 1 : 0)).current;
+  const opacityAnim = React.useRef(new Animated.Value(active ? 1 : 0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: active ? 1 : 0,
+        useNativeDriver: true,
+        tension: 150,
+        friction: 8,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: active ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [active]);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-1 items-center justify-center p-2"
+      activeOpacity={0.7}
     >
-      <Icon color={active ? "#3B82F6" : "#FFFFFF"} size={24} />
-    </View>
-  </TouchableOpacity>
-);
+      <View className="relative w-12 h-8 items-center justify-center">
+        {/* Background circle with smooth animation */}
+        <Animated.View
+          className="absolute inset-0 bg-white rounded-full"
+          style={{
+            transform: [{ scale: scaleAnim }],
+            opacity: opacityAnim,
+          }}
+        />
+        {/* Icon */}
+        <View className="items-center justify-center z-10">
+          <Icon color={active ? "#3B82F6" : "#FFFFFF"} size={24} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 interface BottomNavBarProps {
   role: string; // player, groundowner, organizer
@@ -31,13 +60,14 @@ interface BottomNavBarProps {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   const router = useRouter();
-  const pathname = usePathname(); // ✅ gives current route path
+  const pathname = usePathname();
 
+  // Move Home button to center in array
   const navItems = [
     { name: "Teams", icon: Users, path: `/team/Myteam` },
     { name: "Activity", icon: BarChart2, path: `/matches/MatchDetail` },
+    { name: "Home", icon: Home, path: `/feed/${type}` }, // center
     { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament` },
-    { name: "Home", icon: Home, path: `/feed/${type}` },
     { name: "Profile", icon: User, path: `/dashboard/${role}/${type}` },
   ];
 
@@ -46,9 +76,18 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   };
 
   return (
-    <View className="absolute bottom-4 left-4 right-4 h-16 bg-blue-500 rounded-full flex-row items-center justify-around shadow-lg">
+    <View
+      className="absolute bottom-4 left-4 right-4 h-16 bg-blue-500 rounded-full flex-row items-center justify-around"
+      style={{
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      }}
+    >
       {navItems.map((item) => {
-        const active = pathname.startsWith(item.path); // ✅ check active via path
+        const active = pathname.startsWith(item.path);
         return (
           <NavItem
             key={item.name}
