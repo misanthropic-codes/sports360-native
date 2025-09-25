@@ -175,7 +175,6 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ✅ Passing role + type dynamically */}
       <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );

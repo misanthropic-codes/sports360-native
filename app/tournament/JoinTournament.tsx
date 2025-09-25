@@ -2,7 +2,7 @@
 import {
   getMyTeams,
   getTournamentById,
-  joinTournament, // ✅ import new API
+  joinTournament,
   Team,
 } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +12,6 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -25,11 +24,10 @@ const JoinTournamentScreen = () => {
   const [loading, setLoading] = useState(true);
   const [tournament, setTournament] = useState<any>(null);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [showTermsModal, setShowTermsModal] = useState(false);
   const [joining, setJoining] = useState(false);
 
   const { token } = useAuth();
-  const { id } = useLocalSearchParams<{ id: string }>(); // 👈 get id from URL
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   // Fetch tournament + my teams
   useEffect(() => {
@@ -41,7 +39,6 @@ const JoinTournamentScreen = () => {
         const data = await getTournamentById(id, token);
         setTournament(data);
 
-        // 🔹 fetch user's teams
         const teamsData = await getMyTeams(token);
         setTeams(teamsData || []);
       } catch (error) {
@@ -56,22 +53,30 @@ const JoinTournamentScreen = () => {
 
   // Handle Join Tournament
   const handleJoinTournament = async () => {
-    if (!id || !selectedTeam || !token) return;
+    if (!id || !selectedTeam || !token) {
+      console.log("❌ Missing required params:", { id, selectedTeam, token });
+      return;
+    }
 
     try {
       setJoining(true);
 
-      await joinTournament(
+      console.log("📡 Sending join request API call...");
+      console.log("➡️ Tournament ID:", id);
+      console.log("➡️ Team ID:", selectedTeam);
+      console.log("➡️ Token:", token.substring(0, 15) + "...");
+
+      const response = await joinTournament(
         id,
         selectedTeam,
         "Our team is excited to join this tournament. We have been preparing for months!",
         token
       );
 
-      setShowTermsModal(false);
+      console.log("✅ API Response:", response);
       Alert.alert("Success", "Request sent successfully 🎉");
     } catch (error) {
-      console.error("Error joining tournament:", error);
+      console.error("❌ Error joining tournament:", error);
       Alert.alert("Error", "Failed to send join request");
     } finally {
       setJoining(false);
@@ -145,53 +150,17 @@ const JoinTournamentScreen = () => {
       {/* Join Button */}
       <View className="p-4 border-t border-gray-200 bg-white">
         <TouchableOpacity
-          disabled={!selectedTeam}
-          onPress={() => setShowTermsModal(true)} // ✅ show modal
+          disabled={!selectedTeam || joining}
+          onPress={handleJoinTournament}
           className={`p-4 rounded-2xl ${
-            selectedTeam ? "bg-blue-600" : "bg-gray-300"
+            selectedTeam && !joining ? "bg-blue-600" : "bg-gray-300"
           }`}
         >
           <Text className="text-center text-white font-bold text-lg">
-            Join Tournament
+            {joining ? "Joining..." : "Join Tournament"}
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Terms & Conditions Modal */}
-      <Modal visible={showTermsModal} transparent animationType="fade">
-        <View className="flex-1 bg-black/50 justify-center items-center">
-          <View className="bg-white w-11/12 p-6 rounded-2xl shadow-lg">
-            <Text className="text-lg font-bold text-blue-900 mb-3">
-              Terms & Conditions
-            </Text>
-            <Text className="text-gray-700 mb-4">
-              By joining this tournament, your team agrees to follow the
-              tournament rules and fair play policies.
-            </Text>
-
-            <View className="flex-row justify-end mt-4 space-x-3">
-              <TouchableOpacity
-                onPress={() => setShowTermsModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded-xl"
-              >
-                <Text className="text-gray-800 font-semibold">Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                disabled={joining}
-                onPress={handleJoinTournament}
-                className={`px-4 py-2 rounded-xl ${
-                  joining ? "bg-gray-400" : "bg-blue-600"
-                }`}
-              >
-                <Text className="text-white font-semibold">
-                  {joining ? "Joining..." : "Confirm"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };

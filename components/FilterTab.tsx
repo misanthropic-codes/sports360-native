@@ -13,19 +13,31 @@ const FilterTabs: React.FC<FilterTabsProps> = ({
   setActiveTab,
 }) => {
   return (
-    <View className="flex-row justify-around p-2 bg-slate-50">
-      {tabs.map((tab) => (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 8,
+      }}
+    >
+      {tabs.map((tab, index) => (
         <TouchableOpacity
           key={tab}
           onPress={() => setActiveTab(tab)}
-          className={`px-6 py-2 rounded-full ${
-            activeTab === tab ? "bg-indigo-600" : "bg-indigo-200"
-          }`}
+          style={{
+            backgroundColor: activeTab === tab ? "#4F46E5" : "#E5E7EB",
+            paddingVertical: 8,
+            paddingHorizontal: 20,
+            borderRadius: 999,
+            marginLeft: index === 0 ? 0 : 12, // spacing between tabs
+          }}
         >
           <Text
-            className={`font-semibold ${
-              activeTab === tab ? "text-white" : "text-indigo-600"
-            }`}
+            style={{
+              color: activeTab === tab ? "#fff" : "#374151",
+              fontWeight: "500",
+            }}
           >
             {tab}
           </Text>

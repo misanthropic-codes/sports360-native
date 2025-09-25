@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import BottomNavBar from "../../components/BottomNavBar";
 import Header from "../../components/Header";
 import InfoRow from "../../components/InfoRow";
@@ -10,21 +11,20 @@ import RegistrationCard from "../../components/RegistrationCard";
 import SectionTitle from "../../components/SectionTitile";
 import StatsBar from "../../components/StatsBar";
 import TournamentBanner from "../../components/TournamentBanner";
-
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAuth } from "../../context/AuthContext";
 
 type TournamentDetailsScreenProps = {
   navigation: NativeStackNavigationProp<any>;
 };
-
 const TournamentDetailsScreen = ({
   navigation,
 }: TournamentDetailsScreenProps) => {
   const [activeScreen, setActiveScreen] = useState("Home");
-
-  // Adjust role/type depending on the match type
-  const role = "player";
-  const type = "cricket";
+  const { user } = useAuth();
+  const role = user?.role || "player";
+  const type = Array.isArray(user?.domains)
+    ? user.domains.join(", ")
+    : user?.domains || "team";
 
   const stats = [
     { value: "Rs 50K", label: "Prize Pool" },

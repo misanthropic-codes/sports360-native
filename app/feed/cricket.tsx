@@ -19,10 +19,12 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
   const [featuredTournaments, setFeaturedTournaments] = useState<any[]>([]);
   const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const { user } = useAuth();
   const { token } = useAuth();
-  const role = "player";
-  const type = "cricket";
+  const role = user?.role || "player";
+  const type = Array.isArray(user?.domains)
+    ? user.domains.join(", ")
+    : user?.domains || "team";
   const filterTabs = ["All", "Upcoming", "Live", "Completed"];
 
   const categories = [

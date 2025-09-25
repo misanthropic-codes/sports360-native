@@ -15,21 +15,26 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
 }) => {
   return (
     <View className="flex-row items-center justify-between px-4 pt-4 pb-2 bg-white">
-      <View className="flex-1">
+      {/* Left section */}
+      <View className="flex-row items-center">
         {showBackButton && (
-          <TouchableOpacity onPress={onBackPress} className="p-1">
+          <TouchableOpacity onPress={onBackPress} className="p-2 mr-2">
             <ArrowLeft size={28} color="#334155" />
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Center section */}
       <View className="flex-1 items-center">
         <Text className="text-2xl font-bold text-slate-800">{title}</Text>
       </View>
-      <View className="flex-1 flex-row items-center justify-end gap-4">
-        <TouchableOpacity>
+
+      {/* Right section */}
+      <View className="flex-row items-center justify-end gap-4">
+        <TouchableOpacity className="p-2">
           <SlidersHorizontal size={26} color="#334155" />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity className="p-2">
           <Search size={26} color="#334155" />
         </TouchableOpacity>
       </View>

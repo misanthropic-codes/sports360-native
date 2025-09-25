@@ -117,6 +117,18 @@ export const deleteTournament = async (id: string, token: string) => {
   return res.data;
 };
 
+// 🔹 Get a match by ID
+export const getMatchById = async (
+  id: string,
+  token: string
+): Promise<Match | null> => {
+  const res = await axios.get(`${MATCHES_URL}/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data?.match || null;
+};
+
+// 🔹 New API: Join a tournament
 // 🔹 New API: Join a tournament
 export const joinTournament = async (
   id: string,
@@ -124,15 +136,27 @@ export const joinTournament = async (
   message: string,
   token: string
 ) => {
-  const res = await axios.post(
-    `${BASE_URL}/${id}/join`,
-    {
-      teamId,
-      message,
-    },
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
-  return res.data;
+  const url = `${BASE_URL}/${id}/join`;
+  const body = { teamId, message };
+  const headers = { Authorization: `Bearer ${token}` };
+
+  console.log("📡 [joinTournament] Sending request...");
+  console.log("➡️ URL:", url);
+  console.log("➡️ Body:", body);
+  console.log("➡️ Headers:", {
+    Authorization: `Bearer ${token.substring(0, 15)}...`,
+  }); // mask token
+
+  try {
+    const res = await axios.post(url, body, { headers });
+
+    console.log("✅ [joinTournament] Response:", res.data);
+    return res.data;
+  } catch (error: any) {
+    console.error(
+      "❌ [joinTournament] Error:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };
