@@ -1,9 +1,4 @@
-import axios from "axios";
-
-const BASE_URL = "https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/tournament";
-const GROUND_URL =
-  "https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/ground-owner";
-const MATCHES_URL = "https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/matches";
+import api from "./api";
 
 export interface Team {
   id: string;
@@ -57,100 +52,40 @@ export interface Match {
   endTime?: string;
 }
 
-// 🔹 Get all tournaments
-export const getAllTournaments = async (token: string) => {
-  const res = await axios.get(`${BASE_URL}/all`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// 🔹 Tournament APIs
+export const getAllTournaments = async () => {
+  const res = await api.get("/tournament/all");
   return res.data?.data || [];
 };
 
-export const getTournamentById = async (id: string, token: string) => {
-  const res = await axios.get(`${BASE_URL}/get/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export const getTournamentById = async (id: string) => {
+  const res = await api.get(`/tournament/get/${id}`);
   return res.data?.data?.[0] || null;
 };
 
-export const getTeamsByTournament = async (
-  id: string,
-  token: string
-): Promise<Team[]> => {
-  const res = await axios.get(`${BASE_URL}/get/${id}/teams`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export const getTeamsByTournament = async (id: string): Promise<Team[]> => {
+  const res = await api.get(`/tournament/get/${id}/teams`);
   return res.data;
 };
 
-// 🔹 New API: Get my teams (auth token only)
-export const getMyTeams = async (token: string): Promise<Team[]> => {
-  const res = await axios.get(
-    "https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/team/my-teams",
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+export const getMyTeams = async (): Promise<Team[]> => {
+  const res = await api.get("/team/my-teams");
   return res.data?.data || [];
 };
 
-export const getGrounds = async (token: string): Promise<Ground[]> => {
-  const res = await axios.get(`${GROUND_URL}/all-grounds`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data?.data || [];
-};
-
-export const generateFixtures = async (
-  payload: GenerateFixturePayload,
-  token: string
-): Promise<Match[]> => {
-  const res = await axios.post(`${MATCHES_URL}/generate-fixtures`, payload, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data?.fixtures || [];
-};
-
-export const deleteTournament = async (id: string, token: string) => {
-  const res = await axios.delete(`${BASE_URL}/delete/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export const deleteTournament = async (id: string) => {
+  const res = await api.delete(`/tournament/delete/${id}`);
   return res.data;
 };
 
-// 🔹 Get a match by ID
-export const getMatchById = async (
-  id: string,
-  token: string
-): Promise<Match | null> => {
-  const res = await axios.get(`${MATCHES_URL}/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data?.match || null;
-};
-
-// 🔹 New API: Join a tournament
-// 🔹 New API: Join a tournament
 export const joinTournament = async (
   id: string,
   teamId: string,
-  message: string,
-  token: string
+  message: string
 ) => {
-  const url = `${BASE_URL}/${id}/join`;
   const body = { teamId, message };
-  const headers = { Authorization: `Bearer ${token}` };
-
-  console.log("📡 [joinTournament] Sending request...");
-  console.log("➡️ URL:", url);
-  console.log("➡️ Body:", body);
-  console.log("➡️ Headers:", {
-    Authorization: `Bearer ${token.substring(0, 15)}...`,
-  }); // mask token
-
   try {
-    const res = await axios.post(url, body, { headers });
-
-    console.log("✅ [joinTournament] Response:", res.data);
+    const res = await api.post(`/tournament/${id}/join`, body);
     return res.data;
   } catch (error: any) {
     console.error(
@@ -159,4 +94,23 @@ export const joinTournament = async (
     );
     throw error;
   }
+};
+
+// 🔹 Ground API
+export const getGrounds = async (): Promise<Ground[]> => {
+  const res = await api.get("/ground-owner/all-grounds");
+  return res.data?.data || [];
+};
+
+// 🔹 Matches API
+export const generateFixtures = async (
+  payload: GenerateFixturePayload
+): Promise<Match[]> => {
+  const res = await api.post("/matches/generate-fixtures", payload);
+  return res.data?.fixtures || [];
+};
+
+export const getMatchById = async (id: string): Promise<Match | null> => {
+  const res = await api.get(`/matches/${id}`);
+  return res.data?.match || null;
 };

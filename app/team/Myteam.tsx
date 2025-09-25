@@ -1,18 +1,18 @@
 import axios from "axios";
+import { router } from "expo-router";
 import { PersonStanding, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Alert, ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { router } from "expo-router";
 import ActivityCard from "../../components/ActivityCard";
 import BottomNavBar from "../../components/BottomNavBar";
-import CreateTournamentButton from "../../components/CreatTeamButton";
+import CreateTeamButton from "../../components/CreatTeamButton";
 import Header from "../../components/Header";
 import SectionTitle from "../../components/SectiontitleM";
 import StatPillBar from "../../components/StatPillBar";
 import TeamCard from "../../components/TeamCard";
-import { useAuth } from "../../context/AuthContext"; // ✅ use your AuthContext
+import { useAuth } from "../../context/AuthContext";
 
 type MyTeamScreenProps = {
   navigation: any;
@@ -28,61 +28,91 @@ type Team = {
 };
 
 const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
-  const { user } = useAuth(); // ✅ Get user from context
-  const [teams, setTeams] = useState<Team[]>([]);
+  const { user } = useAuth();
+  const [myTeams, setMyTeams] = useState<Team[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
-  const auth = useAuth();
+
+  const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
+
   const fetchTeams = async () => {
     try {
-      setLoading(true);
-
-      const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
       if (!baseURL) {
-        console.error("Base URL not found in .env");
         Alert.alert("Error", "Base URL not configured.");
         return;
       }
-
-      if (!user || !user.token) {
+      if (!user?.token) {
         Alert.alert("Error", "You must be logged in to view teams.");
         return;
       }
 
-      console.log(`Fetching teams from: ${baseURL}/api/v1/team`);
-      const response = await axios.get(`${baseURL}/api/v1/team/all`, {
-        headers: {
-          Authorization: `Bearer ${user.token}`, // ✅ token from context
-        },
-      });
+      setLoading(true);
+      const headers = { Authorization: `Bearer ${user.token}` };
 
-      if (response.data?.success && Array.isArray(response.data.data)) {
-        setTeams(response.data.data);
-      } else {
-        console.error("Unexpected response format:", response.data);
-        Alert.alert("Error", "Failed to load teams.");
-      }
+      const [myRes, allRes] = await Promise.all([
+        axios.get(`${baseURL}/api/v1/team/my-teams`, { headers }),
+        axios.get(`${baseURL}/api/v1/team/all`, { headers }),
+      ]);
+
+      setMyTeams(myRes.data?.data || []);
+      setAllTeams(allRes.data?.data || []);
     } catch (error: any) {
-      console.error(
-        "❌ Error fetching teams:",
-        error.response?.data || error.message
-      );
+      console.error("❌ Error fetching teams:", error.response?.data || error);
       Alert.alert("Error", "Failed to fetch teams.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleJoinTeam = async (teamId: string, teamName: string) => {
+    if (!user?.token || !baseURL) return;
+
+    Alert.alert("Join Team", `Do you want to join ${teamName}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Join",
+        onPress: async () => {
+          try {
+            const headers = { Authorization: `Bearer ${user.token}` };
+            const res = await axios.post(
+              `${baseURL}/api/v1/team/${teamId}/request`, // ✅ updated URL
+              {},
+              { headers }
+            );
+
+            if (res.data?.success) {
+              Alert.alert(
+                "✅ Request Sent",
+                `You requested to join ${teamName}`
+              );
+              fetchTeams(); // refresh after joining
+            } else {
+              Alert.alert(
+                "Error",
+                res.data?.message || "Failed to send request."
+              );
+            }
+          } catch (err: any) {
+            console.error("❌ Error joining team:", err.response?.data || err);
+            Alert.alert("Error", "Could not send join request.");
+          }
+        },
+      },
+    ]);
+  };
+
   useEffect(() => {
     fetchTeams();
-  }, [user?.token]); // ✅ refetch when token changes
+  }, [user?.token]);
 
-  // ✅ Get role and domain (as type) dynamically from context
   const role = user?.role || "player";
   const type = Array.isArray(user?.domains)
     ? user.domains.join(", ")
     : user?.domains || "team";
 
-  console.log("🔑 AuthContext values:", { role, type });
+  const filteredAllTeams = allTeams.filter(
+    (team) => !myTeams.some((myTeam) => myTeam.id === team.id)
+  );
 
   const recentActivities = [
     {
@@ -121,8 +151,8 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {auth.user?.role?.toLowerCase() === "player" && (
-          <CreateTournamentButton
+        {role.toLowerCase() === "player" && (
+          <CreateTeamButton
             title="Create Team"
             onPress={() => router.push("/team/CreateTeam")}
           />
@@ -130,16 +160,17 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
 
         <StatPillBar />
 
-        <SectionTitle title="My Team" />
-
+        {/* My Teams */}
+        <SectionTitle title="My Teams" />
         {loading ? (
           <View className="p-4">
             <SectionTitle title="Loading teams..." />
           </View>
-        ) : teams.length > 0 ? (
-          teams.map((team) => (
+        ) : myTeams.length > 0 ? (
+          myTeams.map((team) => (
             <TeamCard
-              key={team.id}
+              key={`my-${team.id}`}
+              context="myTeam" // ✅ tells TeamCard to show "Manage"
               teamName={team.name}
               status={team.isActive ? "Active" : "Pending"}
               stats={[
@@ -147,7 +178,12 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
                 { value: "0", label: "matches" },
                 { value: "0%", label: "winning rate" },
               ]}
-              onManage={() => console.log(`Manage ${team.name}`)}
+              onManage={() =>
+                router.push({
+                  pathname: "/team/ManageTeam/ManageTeam",
+                  params: { teamId: team.id },
+                })
+              }
             />
           ))
         ) : (
@@ -156,12 +192,39 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
           </View>
         )}
 
+        {/* All Teams */}
+        <SectionTitle title="All Teams" />
+        {loading ? (
+          <View className="p-4">
+            <SectionTitle title="Loading teams..." />
+          </View>
+        ) : filteredAllTeams.length > 0 ? (
+          filteredAllTeams.map((team) => (
+            <TeamCard
+              key={`all-${team.id}`}
+              context="allTeam" // ✅ tells TeamCard to show "Join"
+              teamName={team.name}
+              status={team.isActive ? "Active" : "Pending"}
+              stats={[
+                { value: "11", label: "players" },
+                { value: "0", label: "matches" },
+                { value: "0%", label: "winning rate" },
+              ]}
+              onJoin={() => handleJoinTeam(team.id, team.name)}
+            />
+          ))
+        ) : (
+          <View className="p-4">
+            <SectionTitle title="No teams available" />
+          </View>
+        )}
+
+        {/* Recent Activity */}
         <SectionTitle
           title="Recent Activity"
           showViewAll
           onViewAllPress={() => console.log("View All Activity")}
         />
-
         {recentActivities.map((activity, index) => (
           <ActivityCard
             key={index}

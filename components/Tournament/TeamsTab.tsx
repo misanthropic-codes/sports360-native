@@ -1,6 +1,4 @@
-// components/Tournament/TeamsTab.tsx
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,28 +11,12 @@ import {
   View,
 } from "react-native";
 
-interface Team {
-  id: string;
-  name: string;
-  description: string;
-  location: string;
-  sport: string;
-  teamType: string;
-  teamSize: number;
-  code: string;
-  logoUrl: string;
-}
-
-interface JoinRequest {
-  teamId: string;
-  tournamentId: string;
-  status: string;
-  message: string;
-  requestedAt: string;
-  reviewedAt: string | null;
-  reviewedBy: string | null;
-  team: Team;
-}
+import {
+  JoinRequest,
+  Team,
+  fetchJoinRequests,
+  reviewJoinRequest,
+} from "@/api/teamsApi";
 
 const TeamsTab = ({
   teamsMessage,
@@ -52,22 +34,14 @@ const TeamsTab = ({
   const [loadingRequests, setLoadingRequests] = useState(false);
 
   useEffect(() => {
-    fetchJoinRequests();
+    fetchRequests();
   }, []);
 
-  const fetchJoinRequests = async () => {
+  const fetchRequests = async () => {
     try {
       setLoadingRequests(true);
-      const url = `https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/tournament/${id}/join-requests`;
-      console.log("📡 Fetching join requests from:", url);
-
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log("✅ Join requests response:", res.data);
-
-      // ✅ store only the array from res.data.data
-      setRequests(res.data.data || []);
+      const data = await fetchJoinRequests(id!);
+      setRequests(data);
     } catch (err) {
       console.error("❌ Error fetching join requests:", err);
     } finally {
@@ -80,18 +54,7 @@ const TeamsTab = ({
     action: "accept" | "reject"
   ) => {
     try {
-      const status = action === "accept" ? "approved" : "rejected";
-      const url = `https://bl90m45r-8080.inc1.devtunnels.ms/api/v1/tournament/${id}/join-requests/${teamId}/review`;
-      console.log(`📡 Sending ${action} request to:`, url);
-
-      const res = await axios.put(
-        url,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      console.log("✅ Request action response:", res.data); // <-- log response
-
+      await reviewJoinRequest(id!, teamId, action);
       Alert.alert("Success", `Request ${action}ed successfully.`);
       setRequests((prev) => prev.filter((req) => req.teamId !== teamId));
     } catch (err) {
