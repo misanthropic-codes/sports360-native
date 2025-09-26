@@ -65,7 +65,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   // Move Home button to center in array
   const navItems = [
     { name: "Teams", icon: Users, path: `/team/Myteam` },
-    { name: "Activity", icon: BarChart2, path: `/matches/MatchDetail` },
+    { name: "Activity", icon: BarChart2, path: `/booking/Cricket-booking` },
     { name: "Home", icon: Home, path: `/feed/${type}` }, // center
     { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament` },
     { name: "Profile", icon: User, path: `/dashboard/${role}/${type}` },

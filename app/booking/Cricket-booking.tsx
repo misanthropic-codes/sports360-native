@@ -1,60 +1,76 @@
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { useState } from "react";
-import { SafeAreaView, ScrollView, View } from "react-native";
+import axios from "axios";
+import { useRouter } from "expo-router"; // ✅
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  View,
+} from "react-native";
 import BottomNavBar from "../../components/BottomNavBar";
 import VenueCard from "../../components/Card";
 import FilterPills from "../../components/FilterPills";
 import Header from "../../components/Header";
 import SearchBar from "../../components/SearchBar";
+import { useAuth } from "../../context/AuthContext";
 
-type GroundBookingScreenProps = {
-  navigation: NativeStackNavigationProp<any>;
-};
+interface Ground {
+  id: string;
+  groundOwnerName: string;
+  ownerName: string;
+  groundType: string;
+  yearsOfOperation: string;
+  primaryLocation: string;
+  facilityAvailable: string;
+  bookingFrequency: string;
+  groundDescription: string;
+  imageUrls: string;
+  acceptOnlineBookings: boolean;
+  allowTournamentsBookings: boolean;
+  receiveGroundAvailabilityNotifications: boolean;
+  owner: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+}
 
-const [activeScreen, setActiveScreen] = useState("Home");
+const BASE_URL = "http://172.20.10.4:8080/api/v1";
 
-const venues = [
-  {
-    id: 1,
-    imageUrl: "https://placehold.co/600x400/5A9A78/ffffff?text=Stadium+1",
-    availabilityText: "Available",
-    initialIsFavorited: true,
-    rating: 4.8,
-    stadiumName: "Govind Stadium",
-    location: "Sector 6, Noida",
-    price: "Rs 1200/-",
-    features: ["Parking", "Floodlights"],
-  },
-  {
-    id: 2,
-    imageUrl: "https://placehold.co/600x400/6B8E23/ffffff?text=Stadium+2",
-    availabilityText: "Available",
-    initialIsFavorited: true,
-    rating: 4.8,
-    stadiumName: "Govind Stadium",
-    location: "Sector 6, Noida",
-    price: "Rs 1200/-",
-    features: ["Parking", "Floodlights"],
-  },
-  {
-    id: 3,
-    imageUrl: "https://placehold.co/600x400/2E8B57/ffffff?text=Stadium+3",
-    availabilityText: "Available",
-    initialIsFavorited: true,
-    rating: 4.8,
-    stadiumName: "Govind Stadium",
-    location: "Sector 6, Noida",
-    price: "Rs 1200/-",
-    features: ["Parking", "Floodlights"],
-  },
-];
+const GroundBookingScreen = () => {
+  const router = useRouter(); // ✅
+  const { user } = useAuth();
 
-const GroundBookingScreen = ({ navigation }: GroundBookingScreenProps) => {
-  const [activeScreen, setActiveScreen] = React.useState("Home");
+  const [grounds, setGrounds] = useState<Ground[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Example — you would replace with your auth state/context
-  const role = "player"; // or "groundowner", "organizer"
-  const type = "cricket"; // or "marathon"
+  const role = user?.role || "player";
+  const type = Array.isArray(user?.domains)
+    ? user.domains.join(", ")
+    : user?.domains || "team";
+
+  useEffect(() => {
+    const fetchGrounds = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/booking/grounds/all`);
+        setGrounds(res.data.data);
+      } catch (err) {
+        console.error("Error fetching grounds:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGrounds();
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" color="#0000ff" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -62,16 +78,30 @@ const GroundBookingScreen = ({ navigation }: GroundBookingScreenProps) => {
         name="GroundBooking"
         title="Ground Booking"
         showBackButton={true}
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => router.back()} // ✅
       />
       <SearchBar />
       <FilterPills />
       <ScrollView>
-        {venues.map((venue) => (
+        {grounds.map((ground) => (
           <VenueCard
-            key={venue.id}
-            {...venue}
-            onBookNowPress={() => console.log(`Booking ${venue.stadiumName}`)}
+            key={ground.id}
+            imageUrl={ground.imageUrls.split(",")[0]}
+            availabilityText={
+              ground.acceptOnlineBookings ? "Available" : "Unavailable"
+            }
+            initialIsFavorited={true}
+            rating={4.8}
+            stadiumName={ground.groundOwnerName}
+            location={ground.primaryLocation}
+            price={`Rs ${ground.bookingFrequency === "daily" ? "1200/-" : "N/A"}`}
+            features={ground.facilityAvailable.split(",")}
+            onBookNowPress={() =>
+              router.push({
+                pathname: "/booking/GroundDetails", // ✅
+                params: { ground: JSON.stringify(ground) }, // Pass object as string
+              })
+            }
           />
         ))}
         <View className="h-24" />
