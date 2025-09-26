@@ -1,5 +1,8 @@
-import React from "react";
-import { Text, View } from "react-native";
+import { useAuth } from "@/context/AuthContext";
+import axios from "axios";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Text, View } from "react-native";
 
 type Match = {
   vs: string;
@@ -7,12 +10,53 @@ type Match = {
   time: string;
 };
 
-const matches: Match[] = [
-  { vs: "Team Alpha", date: "2025-10-01", time: "5:00 PM" },
-  { vs: "Team Bravo", date: "2025-10-05", time: "3:00 PM" },
-];
-
 const Matches: React.FC = () => {
+  const { token } = useAuth(); // ✅ get auth token
+  const { teamId } = useLocalSearchParams(); // ✅ get teamId from local search params
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const BASE_URL = "http://172.20.10.4:8080/api/v1";
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      if (!teamId || !token) {
+        Alert.alert("Error", "Missing team ID or authentication token");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${BASE_URL}/team/${teamId}/matches`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setMatches(response.data.matches || []);
+      } catch (error) {
+        console.error("Error fetching matches:", error);
+        Alert.alert("Error", "Failed to fetch matches");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMatches();
+  }, [teamId, token]);
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#1D4ED8" />;
+  }
+
+  if (matches.length === 0) {
+    return (
+      <View className="p-4">
+        <Text className="text-center text-gray-500">No matches found.</Text>
+      </View>
+    );
+  }
+
   return (
     <View className="space-y-2">
       {matches.map((match, index) => (
