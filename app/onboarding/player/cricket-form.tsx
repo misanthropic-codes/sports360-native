@@ -20,9 +20,12 @@ import {
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
-const USER_ID = "7bd02eab-f348-4d08-9ca5-f7873c377b40"; // Replace with dynamic userId
+import { useAuth } from "@/context/AuthContext"; // ✅ import AuthContext
 
 const CompleteProfileScreen: FC = () => {
+  const { token, user } = useAuth(); // ✅ get token & user
+  const userId = user?.id; // ✅ get user id
+
   const [fullName, setFullName] = useState("");
   const [dob, setDob] = useState("");
   const [location, setLocation] = useState("");
@@ -52,13 +55,32 @@ const CompleteProfileScreen: FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not logged in");
+      return;
+    }
+
+    const bowlingStyleMap: Record<string, string> = {
+      Fast: "right_arm_fast",
+      "Medium Pace": "right_arm_medium",
+      Spin: "right_arm_spin",
+      "Left Fast": "left_arm_fast",
+      "Left Spin": "left_arm_spin",
+      "Left Medium": "left_arm_medium",
+    };
+
+    const battingStyleMap: Record<string, string> = {
+      "Left hand": "left_handed",
+      "Right hand": "right_handed",
+    };
+
     const payload = {
-      userId: USER_ID,
-      bowlerType: bowlingStyle,
-      batsmanType: battingStyle,
+      userId: userId,
+      bowlerType: bowlingStyle, // optional, can keep as original for your UI
+      batsmanType: battingStyle, // optional, can keep as original for your UI
       playingPosition: playingPosition?.toLowerCase(),
-      bowlingStyle: bowlingStyle?.toLowerCase().replace(/\s+/g, "_"),
-      battingStyle: battingStyle?.toLowerCase().replace(/\s+/g, "_"),
+      bowlingStyle: bowlingStyle ? bowlingStyleMap[bowlingStyle] : null,
+      battingStyle: battingStyle ? battingStyleMap[battingStyle] : null,
       experienceLevel: experience,
       location: location,
       bio: bio,
@@ -68,11 +90,17 @@ const CompleteProfileScreen: FC = () => {
     };
 
     try {
-      const response = await api.post("/user/cricket-profile", payload);
+      const response = await api.post("/user/cricket-profile", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (response.status >= 200 && response.status < 300) {
         Alert.alert("Success", "Profile submitted successfully!");
       }
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "Something went wrong while submitting profile");
     }
   };
@@ -98,8 +126,7 @@ const CompleteProfileScreen: FC = () => {
         <Text className="text-white text-xl font-bold absolute left-0 right-0 text-center">
           Complete Your Profile
         </Text>
-        <View style={{ width: 24 }} />{" "}
-        {/* Placeholder to balance back button */}
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Progress Bar */}

@@ -13,8 +13,8 @@ import SectionHeader from "../../../components/SectionHeader";
 import StatCard from "../../../components/StatCard";
 
 const CricketHomeScreen: React.FC = () => {
-  const { user } = useAuth(); // ✅ get logged in user
-  const name = user?.fullName || "Player"; // fallback if no user
+  const { user } = useAuth(); // ✅ get logged in user directly
+  const name = user?.fullName ?? "Player"; // fallback if name not available
 
   return (
     <AppScreen
@@ -24,7 +24,7 @@ const CricketHomeScreen: React.FC = () => {
     >
       <Header
         type="welcome"
-        name={name} // ✅ dynamic name from context
+        name={name} // ✅ use AuthContext username
         avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(
           0
         )}`}
@@ -39,14 +39,12 @@ const CricketHomeScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
       >
-        {/* Stats Section */}
         <View className="flex-row justify-between mt-2">
           <StatCard value="12" label="Matches" color="bg-blue-400" />
           <StatCard value="6" label="Wins" color="bg-green-400" />
           <StatCard value="159" label="Avg Score" color="bg-red-400" />
         </View>
 
-        {/* Upcoming Activity Section */}
         <SectionHeader title="Upcoming Activity" />
         <ActivityCard
           layoutType="detailed"
@@ -69,7 +67,6 @@ const CricketHomeScreen: React.FC = () => {
           location="Ground no.5"
         />
 
-        {/* Recent Activity Section */}
         <SectionHeader title="Recent Activity" />
         <ActivityCard
           layoutType="simple"
@@ -84,18 +81,17 @@ const CricketHomeScreen: React.FC = () => {
           timestamp="1 day ago"
         />
 
-        {/* Quick Actions Section */}
         <SectionHeader title="Quick Actions" />
         <View className="flex-row justify-between mb-4">
           <QuickActionCard
             icon={Trophy}
-            label="Join Tourament"
-            onPress={() => router.push("/matches/MatchDetail")} // 👈 navigate or perform any action
+            label="Join Tournament"
+            onPress={() => router.push("/matches/MatchDetail")}
           />
           <QuickActionCard
             icon={Shield}
             label="View Matches"
-            onPress={() => router.push("/tournament/ViewTournament")} // 👈 navigate or perform any action
+            onPress={() => router.push("/tournament/ViewTournament")}
           />
         </View>
         <View className="flex-row justify-between">
@@ -103,7 +99,7 @@ const CricketHomeScreen: React.FC = () => {
           <QuickActionCard
             icon={PlusCircle}
             label="Create / Join Team"
-            onPress={() => router.push("/team/CreateTeam")} // 👈 navigate or perform any action
+            onPress={() => router.push("/team/CreateTeam")}
           />
         </View>
       </ScrollView>
