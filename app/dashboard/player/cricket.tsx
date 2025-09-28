@@ -71,7 +71,7 @@ const CricketHomeScreen: React.FC = () => {
         <ActivityCard
           layoutType="simple"
           icon={<Trophy size={20} color="gold" />}
-          description="You won the match against Chennai Super Kings"
+          description="You won the match "
           timestamp="2 hours ago"
         />
         <ActivityCard
@@ -95,7 +95,11 @@ const CricketHomeScreen: React.FC = () => {
           />
         </View>
         <View className="flex-row justify-between">
-          <QuickActionCard icon={BookOpen} label="Book Grounds" />
+          <QuickActionCard
+            icon={BookOpen}
+            label="Book Grounds"
+            onPress={() => router.push("/booking/Cricket-booking")}
+          />
           <QuickActionCard
             icon={PlusCircle}
             label="Create / Join Team"
