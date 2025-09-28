@@ -13,6 +13,7 @@ import FilterPills from "../../components/FilterPills";
 import Header from "../../components/Header";
 import SearchBar from "../../components/SearchBar";
 import { useAuth } from "../../context/AuthContext";
+import { useGroundStore } from "../../store/groundStore";
 
 interface Ground {
   id: string;
@@ -40,6 +41,7 @@ const BASE_URL = "http://172.20.10.4:8080/api/v1";
 const GroundBookingScreen = () => {
   const router = useRouter();
   const { user } = useAuth();
+  const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
 
   const [grounds, setGrounds] = useState<Ground[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,9 +98,10 @@ const GroundBookingScreen = () => {
             location={ground.primaryLocation}
             price={`Rs ${ground.bookingFrequency === "daily" ? "1200/-" : "N/A"}`}
             features={ground.facilityAvailable.split(",")}
-            onBookNowPress={() =>
-              router.push(`/booking/GroundDetails?groundId=${ground.id}`)
-            }
+            onBookNowPress={() => {
+              setSelectedGround(ground); // Store ground in Zustand
+              router.push(`/booking/GroundDetails?groundId=${ground.id}`);
+            }}
           />
         ))}
         <View className="h-24" />

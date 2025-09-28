@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useGroundStore } from "../../store/groundStore";
 
 type Ground = {
   id: string;
@@ -43,7 +44,10 @@ const BASE_URL = "http://172.20.10.4:8080/api/v1";
 const GroundDetailsScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { token } = useAuth(); // ✅ Get token from AuthContext
+  const { token } = useAuth();
+
+  const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
+  const selectedGround = useGroundStore((state) => state.selectedGround);
 
   const [loading, setLoading] = useState(false);
   const [startDateTime, setStartDateTime] = useState(new Date());
@@ -65,30 +69,32 @@ const GroundDetailsScreen: React.FC = () => {
   });
 
   const finalGroundId = (params.groundId as string) || "";
-  const [ground, setGround] = useState<Ground | null>(null);
 
-  // Fetch ground details using groundId
+  const [ground, setGround] = useState<Ground | null>(selectedGround);
+
+  // If no ground in Zustand, fetch from API
   useEffect(() => {
     const fetchGroundDetails = async () => {
-      if (!finalGroundId || !token) return;
+      if (!finalGroundId || ground) return;
 
       try {
         const res = await axios.get(
           `${BASE_URL}/booking/grounds/${finalGroundId}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`, // ✅ Attach token
+              Authorization: `Bearer ${token}`,
             },
           }
         );
-        setGround(res.data.data); // Adjust based on your API response structure
+        setGround(res.data.data);
+        setSelectedGround(res.data.data); // Store in Zustand for reuse
       } catch (error) {
         console.error("Error fetching ground details:", error);
       }
     };
 
     fetchGroundDetails();
-  }, [finalGroundId, token]);
+  }, [finalGroundId, token, ground, setSelectedGround]);
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -142,13 +148,6 @@ const GroundDetailsScreen: React.FC = () => {
     });
 
   const handleBookNow = async () => {
-    console.log({
-      purpose,
-      message,
-      selectedTournamentId,
-      finalGroundId,
-    });
-
     if (
       !purpose.trim() ||
       !message.trim() ||
@@ -179,12 +178,11 @@ const GroundDetailsScreen: React.FC = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // ✅ Attach token
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      console.log("Booking successful:", response.data);
       alert("Booking request sent successfully!");
       router.push("/booking/ViewAllBookings");
     } catch (error: any) {
@@ -215,10 +213,10 @@ const GroundDetailsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  if (!ground && !finalGroundId) {
+  if (!ground) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <Text className="text-lg text-red-500">Ground data not found</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
       </SafeAreaView>
     );
   }
@@ -226,35 +224,25 @@ const GroundDetailsScreen: React.FC = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 p-4">
-        {ground && (
-          <>
-            <Image
-              source={{ uri: ground.imageUrls.split(",")[0] }}
-              className="w-full h-60 rounded-xl"
-            />
-            <Text className="text-2xl font-bold mt-4">
-              {ground.groundOwnerName}
+        <Image
+          source={{ uri: ground.imageUrls.split(",")[0] }}
+          className="w-full h-60 rounded-xl"
+        />
+        <Text className="text-2xl font-bold mt-4">
+          {ground.groundOwnerName}
+        </Text>
+        <Text className="text-gray-600">{ground.primaryLocation}</Text>
+        <Text className="mt-2 text-base">{ground.groundDescription}</Text>
+        <View className="mt-4">
+          <Text className="font-semibold">Facilities:</Text>
+          {ground.facilityAvailable.split(",").map((f, idx) => (
+            <Text key={idx} className="text-gray-700">
+              • {f.trim()}
             </Text>
-            <Text className="text-gray-600">{ground.primaryLocation}</Text>
-            <Text className="mt-2 text-base">{ground.groundDescription}</Text>
-            <View className="mt-4">
-              <Text className="font-semibold">Facilities:</Text>
-              {ground.facilityAvailable.split(",").map((f, idx) => (
-                <Text key={idx} className="text-gray-700">
-                  • {f.trim()}
-                </Text>
-              ))}
-            </View>
-          </>
-        )}
+          ))}
+        </View>
 
-        {!ground && finalGroundId && (
-          <View className="mb-4">
-            <Text className="text-xl font-bold">Book Ground</Text>
-            <Text className="text-gray-600">Ground ID: {finalGroundId}</Text>
-          </View>
-        )}
-
+        {/* Booking Form */}
         <View className="mt-6">
           <Text className="font-semibold text-lg mb-4">Book This Ground</Text>
 
@@ -331,6 +319,7 @@ const GroundDetailsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* DateTime Picker */}
       {Platform.OS === "ios" && pickerState.show && (
         <Modal transparent animationType="slide" visible={pickerState.show}>
           <View className="flex-1 justify-end bg-black/50">
@@ -376,4 +365,3 @@ const GroundDetailsScreen: React.FC = () => {
 };
 
 export default GroundDetailsScreen;
-  
