@@ -34,16 +34,19 @@ const TeamsTab = ({
   const [loadingRequests, setLoadingRequests] = useState(false);
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    if (token && id) {
+      fetchRequests();
+    }
+  }, [token, id]);
 
   const fetchRequests = async () => {
     try {
       setLoadingRequests(true);
-      const data = await fetchJoinRequests(id!);
+      const data = await fetchJoinRequests(id!, token); // pass token
       setRequests(data);
     } catch (err) {
       console.error("❌ Error fetching join requests:", err);
+      Alert.alert("Error", "Failed to fetch join requests.");
     } finally {
       setLoadingRequests(false);
     }
@@ -54,7 +57,7 @@ const TeamsTab = ({
     action: "accept" | "reject"
   ) => {
     try {
-      await reviewJoinRequest(id!, teamId, action);
+      await reviewJoinRequest(id!, teamId, action, token); // pass token
       Alert.alert("Success", `Request ${action}ed successfully.`);
       setRequests((prev) => prev.filter((req) => req.teamId !== teamId));
     } catch (err) {

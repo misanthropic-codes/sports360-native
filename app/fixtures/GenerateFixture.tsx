@@ -1,4 +1,13 @@
 // src/screens/GenerateFixtureScreen.tsx
+import { GenerateFixturePayload, generateFixtures } from "@/api/tournamentApi";
+import { useFetchGrounds } from "@/app/hooks/useFetchGrounds";
+import { useFetchTeams } from "@/app/hooks/useFetchTeams";
+import CustomDateTimePicker from "@/components/Tournament/dateTimePicker";
+import Input from "@/components/Tournament/Input";
+import MultiSelect from "@/components/Tournament/MultiSelect";
+import Select from "@/components/Tournament/Select";
+import Toggle from "@/components/Tournament/Toggle";
+import { useAuth } from "@/context/AuthContext"; // ✅ import AuthContext
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -8,18 +17,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CustomDateTimePicker from "@/components/Tournament/dateTimePicker";
-import Input from "@/components/Tournament/Input";
-import MultiSelect from "@/components/Tournament/MultiSelect";
-import Select from "@/components/Tournament/Select";
-import Toggle from "@/components/Tournament/Toggle";
-import { useFetchGrounds } from "@/app/hooks/useFetchGrounds";
-import { useFetchTeams } from "@/app/hooks/useFetchTeams";
-import { useGenerateFixtures } from "@/app/hooks/useGenerateFixtures";
-import { GenerateFixturePayload } from "@/api/tournamentApi";
 
 export default function GenerateFixtureScreen({ navigation, route }: any) {
   const { tournamentId } = route.params;
+  const { token } = useAuth(); // ✅ get auth token
 
   // State for form fields
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -34,11 +35,18 @@ export default function GenerateFixtureScreen({ navigation, route }: any) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Hooks
-  const { teams, loading: teamsLoading, error: teamsError } =
-    useFetchTeams(tournamentId);
-  const { grounds, loading: groundsLoading, error: groundsError } =
-    useFetchGrounds();
-  const { loading: generating, generate } = useGenerateFixtures();
+  const {
+    teams,
+    loading: teamsLoading,
+    error: teamsError,
+  } = useFetchTeams(tournamentId);
+  const {
+    grounds,
+    loading: groundsLoading,
+    error: groundsError,
+  } = useFetchGrounds();
+
+  const [generating, setGenerating] = useState(false);
 
   // Options
   const teamOptions = teams.map((team) => ({
@@ -72,6 +80,13 @@ export default function GenerateFixtureScreen({ navigation, route }: any) {
 
   const handleGenerate = async () => {
     if (!validateForm()) return;
+    if (!token) {
+      Alert.alert(
+        "Authentication Error",
+        "You must be logged in to generate fixtures."
+      );
+      return;
+    }
 
     const payload: GenerateFixturePayload = {
       tournamentId,
@@ -85,10 +100,14 @@ export default function GenerateFixtureScreen({ navigation, route }: any) {
     };
 
     try {
-      const matches = await generate(payload, teams, grounds);
+      setGenerating(true);
+      const matches = await generateFixtures(payload, token); // ✅ pass token here
       navigation.navigate("FixturePreview", { matches, payload });
     } catch (error) {
+      console.error("❌ generateFixtures error:", error);
       Alert.alert("Error", "Failed to generate fixtures. Please try again.");
+    } finally {
+      setGenerating(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import api from "./api"; // Axios instance with token interceptor
+import api from "./api"; // Axios instance
 
 export interface Team {
   id: string;
@@ -24,8 +24,13 @@ export interface JoinRequest {
 }
 
 // 🔹 Fetch join requests for a tournament
-export const fetchJoinRequests = async (tournamentId: string) => {
-  const res = await api.get(`/tournament/${tournamentId}/join-requests`);
+export const fetchJoinRequests = async (
+  tournamentId: string,
+  token: string
+) => {
+  const res = await api.get(`/tournament/${tournamentId}/join-requests`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return res.data?.data || [];
 };
 
@@ -33,12 +38,14 @@ export const fetchJoinRequests = async (tournamentId: string) => {
 export const reviewJoinRequest = async (
   tournamentId: string,
   teamId: string,
-  action: "accept" | "reject"
+  action: "accept" | "reject",
+  token: string
 ) => {
   const status = action === "accept" ? "approved" : "rejected";
   const res = await api.put(
     `/tournament/${tournamentId}/join-requests/${teamId}/review`,
-    { status }
+    { status },
+    { headers: { Authorization: `Bearer ${token}` } }
   );
   return res.data;
 };

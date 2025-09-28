@@ -52,40 +52,61 @@ export interface Match {
   endTime?: string;
 }
 
+// Helper to add token to headers
+const withAuthHeaders = (token: string) => ({
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+
 // 🔹 Tournament APIs
-export const getAllTournaments = async () => {
-  const res = await api.get("/tournament/all");
+export const getAllTournaments = async (token: string) => {
+  const res = await api.get("/tournament/all", withAuthHeaders(token));
   return res.data?.data || [];
 };
 
-export const getTournamentById = async (id: string) => {
-  const res = await api.get(`/tournament/get/${id}`);
+export const getTournamentById = async (id: string, token: string) => {
+  const res = await api.get(`/tournament/get/${id}`, withAuthHeaders(token));
   return res.data?.data?.[0] || null;
 };
 
-export const getTeamsByTournament = async (id: string): Promise<Team[]> => {
-  const res = await api.get(`/tournament/get/${id}/teams`);
+export const getTeamsByTournament = async (
+  id: string,
+  token: string
+): Promise<Team[]> => {
+  const res = await api.get(
+    `/tournament/get/${id}/teams`,
+    withAuthHeaders(token)
+  );
   return res.data;
 };
 
-export const getMyTeams = async (): Promise<Team[]> => {
-  const res = await api.get("/team/my-teams");
+export const getMyTeams = async (token: string): Promise<Team[]> => {
+  const res = await api.get("/team/my-teams", withAuthHeaders(token));
   return res.data?.data || [];
 };
 
-export const deleteTournament = async (id: string) => {
-  const res = await api.delete(`/tournament/delete/${id}`);
+export const deleteTournament = async (id: string, token: string) => {
+  const res = await api.delete(
+    `/tournament/delete/${id}`,
+    withAuthHeaders(token)
+  );
   return res.data;
 };
 
 export const joinTournament = async (
   id: string,
   teamId: string,
-  message: string
+  message: string,
+  token: string
 ) => {
   const body = { teamId, message };
   try {
-    const res = await api.post(`/tournament/${id}/join`, body);
+    const res = await api.post(
+      `/tournament/${id}/join`,
+      body,
+      withAuthHeaders(token)
+    );
     return res.data;
   } catch (error: any) {
     console.error(
@@ -97,20 +118,31 @@ export const joinTournament = async (
 };
 
 // 🔹 Ground API
-export const getGrounds = async (): Promise<Ground[]> => {
-  const res = await api.get("/ground-owner/all-grounds");
+export const getGrounds = async (token: string): Promise<Ground[]> => {
+  const res = await api.get(
+    "/ground-owner/all-grounds",
+    withAuthHeaders(token)
+  );
   return res.data?.data || [];
 };
 
 // 🔹 Matches API
 export const generateFixtures = async (
-  payload: GenerateFixturePayload
+  payload: GenerateFixturePayload,
+  token: string
 ): Promise<Match[]> => {
-  const res = await api.post("/matches/generate-fixtures", payload);
+  const res = await api.post(
+    "/matches/generate-fixtures",
+    payload,
+    withAuthHeaders(token)
+  );
   return res.data?.fixtures || [];
 };
 
-export const getMatchById = async (id: string): Promise<Match | null> => {
-  const res = await api.get(`/matches/${id}`);
+export const getMatchById = async (
+  id: string,
+  token: string
+): Promise<Match | null> => {
+  const res = await api.get(`/matches/${id}`, withAuthHeaders(token));
   return res.data?.match || null;
 };

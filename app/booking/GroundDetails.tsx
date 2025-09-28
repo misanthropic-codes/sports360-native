@@ -1,12 +1,14 @@
-import { getAllTournaments } from "@/api/tournamentApi"; // import your API helper
+import { getAllTournaments } from "@/api/tournamentApi";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Picker } from "@react-native-picker/picker"; // ✅ fixed import
+import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   Text,
@@ -21,12 +23,17 @@ type Ground = {
   groundDescription: string;
   facilityAvailable: string;
   imageUrls: string;
-  groundId: string;
 };
 
 type Tournament = {
   id: string;
   name: string;
+};
+
+type DateTimePickerState = {
+  show: boolean;
+  mode: "date" | "time";
+  type: "start" | "end";
 };
 
 const BASE_URL = "http://172.20.10.4:8080";
@@ -36,29 +43,37 @@ const GroundDetailsScreen: React.FC = () => {
   const params = useLocalSearchParams();
 
   const [loading, setLoading] = useState(false);
-
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [startDateTime, setStartDateTime] = useState(new Date());
+  const [endDateTime, setEndDateTime] = useState(() => {
+    const end = new Date();
+    end.setHours(end.getHours() + 2);
+    return end;
+  });
 
   const [purpose, setPurpose] = useState("");
   const [message, setMessage] = useState("");
-
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+
+  const [pickerState, setPickerState] = useState<DateTimePickerState>({
+    show: false,
+    mode: "date",
+    type: "start",
+  });
+
+  const finalGroundId = (params.groundId as string) || "";
+  console.log("Final Ground ID used:", finalGroundId);
 
   const ground: Ground | null = params.ground
     ? JSON.parse(params.ground as string)
     : null;
 
-  // Fetch tournaments on mount
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
         const data = await getAllTournaments();
         setTournaments(data);
-        if (data.length > 0) setSelectedTournamentId(data[0].id); // default
+        if (data.length > 0) setSelectedTournamentId(data[0].id);
       } catch (error) {
         console.error("Error fetching tournaments:", error);
       }
@@ -66,7 +81,7 @@ const GroundDetailsScreen: React.FC = () => {
     fetchTournaments();
   }, []);
 
-  if (!ground) {
+  if (!ground && !finalGroundId) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <Text className="text-lg text-red-500">Ground data not found</Text>
@@ -74,25 +89,51 @@ const GroundDetailsScreen: React.FC = () => {
     );
   }
 
-  const handleStartChange = (event: any, selectedDate?: Date) => {
-    setShowStartPicker(false);
-    if (selectedDate) setStartDate(selectedDate);
+  const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") => {
+    setPickerState({ show: true, mode, type });
   };
 
-  const handleEndChange = (event: any, selectedDate?: Date) => {
-    setShowEndPicker(false);
-    if (selectedDate) setEndDate(selectedDate);
+  const onDateTimeChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setPickerState((prev) => ({ ...prev, show: false }));
+    }
+    if (selectedDate) {
+      if (pickerState.type === "start") {
+        setStartDateTime(selectedDate);
+      } else {
+        setEndDateTime(selectedDate);
+      }
+    }
   };
+
+  const hideDateTimePicker = () => {
+    setPickerState((prev) => ({ ...prev, show: false }));
+  };
+
+  const formatDate = (date: Date): string =>
+    date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+  const formatTime = (date: Date): string =>
+    date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
   const handleBookNow = async () => {
-    if (
-      !startDate ||
-      !endDate ||
-      !purpose ||
-      !message ||
-      !selectedTournamentId
-    ) {
+    console.log("Booking request with groundId:", finalGroundId);
+
+    if (!purpose || !message || !selectedTournamentId || !finalGroundId) {
       alert("Please fill in all fields");
+      return;
+    }
+
+    if (endDateTime <= startDateTime) {
+      alert("End time must be after start time");
       return;
     }
 
@@ -100,9 +141,9 @@ const GroundDetailsScreen: React.FC = () => {
 
     try {
       const response = await axios.post(`${BASE_URL}/booking/request`, {
-        groundId: ground.groundId,
-        startTime: startDate.toISOString(),
-        endTime: endDate.toISOString(),
+        groundId: finalGroundId,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
         purpose,
         tournamentId: selectedTournamentId,
         message,
@@ -111,105 +152,127 @@ const GroundDetailsScreen: React.FC = () => {
       console.log("Booking successful:", response.data);
       alert("Booking request sent successfully!");
       router.push("/booking/ViewAllBookings");
-    } catch (error) {
-      console.error("Booking failed:", error);
+    } catch (error: any) {
+      console.error("Booking failed:", error.response?.data || error);
       alert("Booking failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const DateTimeButton = ({
+    label,
+    date,
+    onPress,
+  }: {
+    label: string;
+    date: Date;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      className="border border-gray-300 p-3 rounded-lg my-2 bg-gray-50"
+    >
+      <Text className="text-gray-700 font-medium">{label}</Text>
+      <Text className="text-lg text-black">
+        {formatDate(date)} at {formatTime(date)}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 p-4">
-        <Image
-          source={{ uri: ground.imageUrls.split(",")[0] }}
-          className="w-full h-60 rounded-xl"
-        />
-
-        <Text className="text-2xl font-bold mt-4">
-          {ground.groundOwnerName}
-        </Text>
-        <Text className="text-gray-600">{ground.primaryLocation}</Text>
-
-        <Text className="mt-2 text-base">{ground.groundDescription}</Text>
-
-        <View className="mt-4">
-          <Text className="font-semibold">Facilities:</Text>
-          {ground.facilityAvailable.split(",").map((f, idx) => (
-            <Text key={idx} className="text-gray-700">
-              • {f}
+        {ground && (
+          <>
+            <Image
+              source={{ uri: ground.imageUrls.split(",")[0] }}
+              className="w-full h-60 rounded-xl"
+            />
+            <Text className="text-2xl font-bold mt-4">
+              {ground.groundOwnerName}
             </Text>
-          ))}
-        </View>
+            <Text className="text-gray-600">{ground.primaryLocation}</Text>
+            <Text className="mt-2 text-base">{ground.groundDescription}</Text>
+            <View className="mt-4">
+              <Text className="font-semibold">Facilities:</Text>
+              {ground.facilityAvailable.split(",").map((f, idx) => (
+                <Text key={idx} className="text-gray-700">
+                  • {f.trim()}
+                </Text>
+              ))}
+            </View>
+          </>
+        )}
 
-        {/* Booking Form */}
+        {!ground && finalGroundId && (
+          <View className="mb-4">
+            <Text className="text-xl font-bold">Book Ground</Text>
+            <Text className="text-gray-600">Ground ID: {finalGroundId}</Text>
+          </View>
+        )}
+
         <View className="mt-6">
-          <Text className="font-semibold text-lg">Book This Ground</Text>
+          <Text className="font-semibold text-lg mb-4">Book This Ground</Text>
 
-          {/* Tournament Selector */}
           <Text className="mt-2 font-semibold">Select Tournament:</Text>
-          <Picker
-            selectedValue={selectedTournamentId}
-            onValueChange={(itemValue: string) =>
-              setSelectedTournamentId(itemValue)
-            }
-            className="border p-2 rounded my-2"
-          >
-            {tournaments.map((t) => (
-              <Picker.Item key={t.id} label={t.name} value={t.id} />
-            ))}
-          </Picker>
+          <View className="border border-gray-300 rounded-lg my-2">
+            <Picker
+              selectedValue={selectedTournamentId}
+              onValueChange={(itemValue) => setSelectedTournamentId(itemValue)}
+            >
+              {tournaments.map((t) => (
+                <Picker.Item key={t.id} label={t.name} value={t.id} />
+              ))}
+            </Picker>
+          </View>
 
-          {/* Date & Time Pickers */}
-          <TouchableOpacity
-            className="border p-2 rounded my-2"
-            onPress={() => setShowStartPicker(true)}
-          >
-            <Text>Start Time: {startDate.toLocaleString()}</Text>
-          </TouchableOpacity>
-          {showStartPicker && (
-            <DateTimePicker
-              value={startDate}
-              mode="datetime"
-              display="default"
-              onChange={handleStartChange}
-            />
-          )}
+          <Text className="mt-4 font-semibold mb-2">Start Date & Time:</Text>
+          <DateTimeButton
+            label="Select Start Date"
+            date={startDateTime}
+            onPress={() => showDateTimePicker("date", "start")}
+          />
+          <DateTimeButton
+            label="Select Start Time"
+            date={startDateTime}
+            onPress={() => showDateTimePicker("time", "start")}
+          />
 
-          <TouchableOpacity
-            className="border p-2 rounded my-2"
-            onPress={() => setShowEndPicker(true)}
-          >
-            <Text>End Time: {endDate.toLocaleString()}</Text>
-          </TouchableOpacity>
-          {showEndPicker && (
-            <DateTimePicker
-              value={endDate}
-              mode="datetime"
-              display="default"
-              onChange={handleEndChange}
-            />
-          )}
+          <Text className="mt-4 font-semibold mb-2">End Date & Time:</Text>
+          <DateTimeButton
+            label="Select End Date"
+            date={endDateTime}
+            onPress={() => showDateTimePicker("date", "end")}
+          />
+          <DateTimeButton
+            label="Select End Time"
+            date={endDateTime}
+            onPress={() => showDateTimePicker("time", "end")}
+          />
 
+          <Text className="mt-4 font-semibold">Purpose:</Text>
           <TextInput
-            placeholder="Purpose"
+            placeholder="Enter purpose of booking"
             value={purpose}
             onChangeText={setPurpose}
-            className="border p-2 rounded my-2"
+            className="border border-gray-300 p-3 rounded-lg my-2 bg-gray-50"
           />
+
+          <Text className="mt-2 font-semibold">Message:</Text>
           <TextInput
-            placeholder="Message"
+            placeholder="Any additional message"
             value={message}
             onChangeText={setMessage}
-            className="border p-2 rounded my-2"
+            className="border border-gray-300 p-3 rounded-lg my-2 bg-gray-50"
             multiline
+            numberOfLines={4}
+            textAlignVertical="top"
           />
         </View>
       </ScrollView>
 
-      {/* Sticky Book Now Button */}
-      <View className="p-4 border-t border-gray-200">
+      <View className="p-4 border-t border-gray-200 bg-white">
         <TouchableOpacity
           className="bg-blue-600 p-4 rounded-xl"
           onPress={handleBookNow}
@@ -224,6 +287,47 @@ const GroundDetailsScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
+
+      {Platform.OS === "ios" && pickerState.show && (
+        <Modal transparent animationType="slide" visible={pickerState.show}>
+          <View className="flex-1 justify-end bg-black/50">
+            <View className="bg-white p-4">
+              <View className="flex-row justify-between items-center mb-4">
+                <TouchableOpacity onPress={hideDateTimePicker}>
+                  <Text className="text-blue-600 text-lg">Cancel</Text>
+                </TouchableOpacity>
+                <Text className="text-lg font-semibold">
+                  Select {pickerState.mode === "date" ? "Date" : "Time"}
+                </Text>
+                <TouchableOpacity onPress={hideDateTimePicker}>
+                  <Text className="text-blue-600 text-lg font-semibold">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={
+                  pickerState.type === "start" ? startDateTime : endDateTime
+                }
+                mode={pickerState.mode}
+                is24Hour
+                display="spinner"
+                onChange={onDateTimeChange}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {Platform.OS === "android" && pickerState.show && (
+        <DateTimePicker
+          value={pickerState.type === "start" ? startDateTime : endDateTime}
+          mode={pickerState.mode}
+          is24Hour
+          display="default"
+          onChange={onDateTimeChange}
+        />
+      )}
     </SafeAreaView>
   );
 };

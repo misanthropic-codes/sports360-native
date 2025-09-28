@@ -18,7 +18,7 @@ import {
 } from "react-native";
 
 const ResultsTab = () => {
-  const { token } = useAuth();
+  const { token } = useAuth(); // ✅ Get token from AuthContext
 
   const [match, setMatch] = useState<Match | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -28,7 +28,8 @@ const ResultsTab = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!token) return;
+      if (!token) return; // ❌ Stop if no token
+
       try {
         setLoading(true);
 
@@ -42,8 +43,7 @@ const ResultsTab = () => {
             matchData.tournamentId,
             token
           );
-          const teamsArray = teamsData?.data || teamsData || [];
-          setTeams(Array.isArray(teamsArray) ? teamsArray : []);
+          setTeams(Array.isArray(teamsData) ? teamsData : []);
         }
       } catch (err) {
         console.error("Error fetching results:", err);
@@ -62,7 +62,6 @@ const ResultsTab = () => {
   };
 
   const handleUpdateScore = () => {
-    console.log("Score updated");
     Alert.alert("Update Score", "Score update functionality coming soon!", [
       { text: "OK", style: "default" },
     ]);
@@ -97,7 +96,7 @@ const ResultsTab = () => {
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
-        <View className="bg-white rounded-3xl shadow-lg">
+        <View className="bg-white rounded-3xl shadow-lg p-6">
           <ActivityIndicator size="large" color="#7C3AED" />
           <Text className="text-purple-700 font-bold mt-4 text-center">
             Loading results...
