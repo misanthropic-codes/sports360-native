@@ -1,13 +1,13 @@
 // src/screens/GenerateFixtureScreen.tsx
 import { GenerateFixturePayload, generateFixtures } from "@/api/tournamentApi";
-import { useFetchGrounds } from "@/app/hooks/useFetchGrounds";
-import { useFetchTeams } from "@/app/hooks/useFetchTeams";
 import CustomDateTimePicker from "@/components/Tournament/dateTimePicker";
 import Input from "@/components/Tournament/Input";
 import MultiSelect from "@/components/Tournament/MultiSelect";
 import Select from "@/components/Tournament/Select";
 import Toggle from "@/components/Tournament/Toggle";
 import { useAuth } from "@/context/AuthContext"; // ✅ import AuthContext
+import { useFetchGrounds } from "@/hooks/useFetchGrounds";
+import { useFetchTeams } from "@/hooks/useFetchTeams";
 import React, { useState } from "react";
 import {
   ActivityIndicator,

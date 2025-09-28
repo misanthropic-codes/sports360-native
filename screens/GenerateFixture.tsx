@@ -16,9 +16,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFetchGrounds } from "../app/hooks/useFetchGrounds";
-import { useFetchTeams } from "../app/hooks/useFetchTeams";
-import { useGenerateFixtures } from "../app/hooks/useGenerateFixtures";
+import { useFetchGrounds } from "../hooks/useFetchGrounds";
+import { useFetchTeams } from "../hooks/useFetchTeams";
+import { useGenerateFixtures } from "../hooks/useGenerateFixtures";
 type RootStackParamList = {
   GenerateFixture: { tournamentId: string };
   FixturePreview: { matches: any[]; payload: GenerateFixturePayload };
