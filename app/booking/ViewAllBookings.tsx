@@ -1,3 +1,4 @@
+import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,11 +7,10 @@ import {
   Text,
   View,
 } from "react-native";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext"; // your existing context
 
 // ---------------------- API Call ----------------------
-const BASE_URL = "http://172.20.10.4:8080";
+const BASE_URL = "http://172.20.10.4:8080/api/v1";
 
 const getMyBookings = async (token: string) => {
   const res = await axios.get(`${BASE_URL}/booking/my-bookings`, {

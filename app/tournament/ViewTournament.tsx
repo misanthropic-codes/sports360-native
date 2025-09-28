@@ -7,7 +7,9 @@ import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
+import { Calendar, CheckCircle, Edit } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   ScrollView,
@@ -31,10 +33,10 @@ const MyTournamentsScreen = () => {
   const [activeTab, setActiveTab] = useState("All");
 
   const tabLogos = {
-    All: "📋",
-    Upcoming: "🔜",
-    Draft: "📝",
-    Completed: "✅",
+    All: <Calendar />,
+    Upcoming: <Calendar />,
+    Draft: <Edit />,
+    Completed: <CheckCircle />,
   };
 
   const fetchTournaments = async () => {

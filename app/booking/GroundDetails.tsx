@@ -1,4 +1,5 @@
 import { getAllTournaments } from "@/api/tournamentApi";
+import { useAuth } from "@/context/AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
@@ -18,6 +19,7 @@ import {
 } from "react-native";
 
 type Ground = {
+  id: string;
   groundOwnerName: string;
   primaryLocation: string;
   groundDescription: string;
@@ -36,11 +38,12 @@ type DateTimePickerState = {
   type: "start" | "end";
 };
 
-const BASE_URL = "http://172.20.10.4:8080";
+const BASE_URL = "http://172.20.10.4:8080/api/v1";
 
 const GroundDetailsScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { token } = useAuth(); // ✅ Get token from AuthContext
 
   const [loading, setLoading] = useState(false);
   const [startDateTime, setStartDateTime] = useState(new Date());
@@ -62,32 +65,46 @@ const GroundDetailsScreen: React.FC = () => {
   });
 
   const finalGroundId = (params.groundId as string) || "";
-  console.log("Final Ground ID used:", finalGroundId);
+  const [ground, setGround] = useState<Ground | null>(null);
 
-  const ground: Ground | null = params.ground
-    ? JSON.parse(params.ground as string)
-    : null;
+  // Fetch ground details using groundId
+  useEffect(() => {
+    const fetchGroundDetails = async () => {
+      if (!finalGroundId || !token) return;
+
+      try {
+        const res = await axios.get(
+          `${BASE_URL}/booking/grounds/${finalGroundId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // ✅ Attach token
+            },
+          }
+        );
+        setGround(res.data.data); // Adjust based on your API response structure
+      } catch (error) {
+        console.error("Error fetching ground details:", error);
+      }
+    };
+
+    fetchGroundDetails();
+  }, [finalGroundId, token]);
 
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
         const data = await getAllTournaments();
         setTournaments(data);
-        if (data.length > 0) setSelectedTournamentId(data[0].id);
+        if (data.length > 0) {
+          setSelectedTournamentId(data[0].id);
+        }
       } catch (error) {
         console.error("Error fetching tournaments:", error);
       }
     };
+
     fetchTournaments();
   }, []);
-
-  if (!ground && !finalGroundId) {
-    return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <Text className="text-lg text-red-500">Ground data not found</Text>
-      </SafeAreaView>
-    );
-  }
 
   const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") => {
     setPickerState({ show: true, mode, type });
@@ -125,9 +142,19 @@ const GroundDetailsScreen: React.FC = () => {
     });
 
   const handleBookNow = async () => {
-    console.log("Booking request with groundId:", finalGroundId);
+    console.log({
+      purpose,
+      message,
+      selectedTournamentId,
+      finalGroundId,
+    });
 
-    if (!purpose || !message || !selectedTournamentId || !finalGroundId) {
+    if (
+      !purpose.trim() ||
+      !message.trim() ||
+      !selectedTournamentId ||
+      !finalGroundId
+    ) {
       alert("Please fill in all fields");
       return;
     }
@@ -140,14 +167,22 @@ const GroundDetailsScreen: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${BASE_URL}/booking/request`, {
-        groundId: finalGroundId,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        purpose,
-        tournamentId: selectedTournamentId,
-        message,
-      });
+      const response = await axios.post(
+        `${BASE_URL}/booking/request`,
+        {
+          groundId: finalGroundId,
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
+          purpose: purpose.trim(),
+          tournamentId: selectedTournamentId,
+          message: message.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // ✅ Attach token
+          },
+        }
+      );
 
       console.log("Booking successful:", response.data);
       alert("Booking request sent successfully!");
@@ -179,6 +214,14 @@ const GroundDetailsScreen: React.FC = () => {
       </Text>
     </TouchableOpacity>
   );
+
+  if (!ground && !finalGroundId) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-white">
+        <Text className="text-lg text-red-500">Ground data not found</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -333,3 +376,4 @@ const GroundDetailsScreen: React.FC = () => {
 };
 
 export default GroundDetailsScreen;
+  

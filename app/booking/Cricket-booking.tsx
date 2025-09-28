@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useRouter } from "expo-router"; // ✅
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -38,7 +38,7 @@ interface Ground {
 const BASE_URL = "http://172.20.10.4:8080/api/v1";
 
 const GroundBookingScreen = () => {
-  const router = useRouter(); // ✅
+  const router = useRouter();
   const { user } = useAuth();
 
   const [grounds, setGrounds] = useState<Ground[]>([]);
@@ -78,7 +78,7 @@ const GroundBookingScreen = () => {
         name="GroundBooking"
         title="Ground Booking"
         showBackButton={true}
-        onBackPress={() => router.back()} // ✅
+        onBackPress={() => router.back()}
       />
       <SearchBar />
       <FilterPills />
@@ -97,10 +97,7 @@ const GroundBookingScreen = () => {
             price={`Rs ${ground.bookingFrequency === "daily" ? "1200/-" : "N/A"}`}
             features={ground.facilityAvailable.split(",")}
             onBookNowPress={() =>
-              router.push({
-                pathname: "/booking/GroundDetails", // ✅
-                params: { ground: JSON.stringify(ground) }, // Pass object as string
-              })
+              router.push(`/booking/GroundDetails?groundId=${ground.id}`)
             }
           />
         ))}
