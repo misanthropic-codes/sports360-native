@@ -5,14 +5,22 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 
 type Match = {
-  vs: string;
-  date: string;
-  time: string;
+  id: string;
+  tournamentName: string;
+  matchType: string;
+  teamAName?: string;
+  teamBName?: string;
+  opponentTeamName?: string;
+  matchTime: string;
+  status: string;
+  scoreA?: string;
+  scoreB?: string;
 };
 
 const Matches: React.FC = () => {
-  const { token } = useAuth(); // ✅ get auth token
-  const { teamId } = useLocalSearchParams(); // ✅ get teamId from local search params
+  const { token } = useAuth();
+  const { teamId } = useLocalSearchParams();
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,10 +29,13 @@ const Matches: React.FC = () => {
   useEffect(() => {
     const fetchMatches = async () => {
       if (!teamId || !token) {
+        console.log("[Matches] Missing teamId or token");
         Alert.alert("Error", "Missing team ID or authentication token");
         setLoading(false);
         return;
       }
+
+      console.log("[Matches] Fetching matches for teamId:", teamId);
 
       try {
         const response = await axios.get(`${BASE_URL}/team/${teamId}/matches`, {
@@ -33,9 +44,17 @@ const Matches: React.FC = () => {
           },
         });
 
-        setMatches(response.data.matches || []);
-      } catch (error) {
-        console.error("Error fetching matches:", error);
+        console.log("[Matches] Response data:", response.data);
+
+        const matchesData = response.data?.data?.matches || [];
+        console.log("[Matches] Parsed matches:", matchesData);
+
+        setMatches(matchesData);
+      } catch (error: any) {
+        console.error(
+          "[Matches] Error fetching matches:",
+          error.response || error
+        );
         Alert.alert("Error", "Failed to fetch matches");
       } finally {
         setLoading(false);
@@ -46,7 +65,12 @@ const Matches: React.FC = () => {
   }, [teamId, token]);
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#1D4ED8" />;
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#1D4ED8" />
+        <Text>Loading matches...</Text>
+      </View>
+    );
   }
 
   if (matches.length === 0) {
@@ -58,16 +82,25 @@ const Matches: React.FC = () => {
   }
 
   return (
-    <View className="space-y-2">
-      {matches.map((match, index) => (
-        <View
-          key={index}
-          className="flex-row justify-between p-4 bg-white rounded shadow"
-        >
-          <Text className="text-lg">VS {match.vs}</Text>
-          <Text className="text-gray-500">
-            {match.date} — {match.time}
+    <View className="space-y-2 p-4">
+      {matches.map((match) => (
+        <View key={match.id} className="p-4 bg-white rounded shadow">
+          <Text className="text-lg font-bold">{match.tournamentName}</Text>
+          <Text className="text-md">
+            {match.teamAName || ""} VS{" "}
+            {match.teamBName || match.opponentTeamName || ""}
           </Text>
+          <Text className="text-gray-500">
+            {new Date(match.matchTime).toLocaleDateString()} —{" "}
+            {new Date(match.matchTime).toLocaleTimeString()}
+          </Text>
+          <Text>Status: {match.status}</Text>
+          {match.scoreA && match.scoreB && (
+            <Text>
+              Score: {match.scoreA} - {match.scoreB}
+            </Text>
+          )}
+          <Text>Match Type: {match.matchType}</Text>
         </View>
       ))}
     </View>
