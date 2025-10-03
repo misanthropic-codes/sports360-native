@@ -56,7 +56,6 @@ const InitialLayout = () => {
       <Stack.Screen name="team/Myteam" />
       <Stack.Screen name="team/CreateTeam" />
       <Stack.Screen name="ground_owner/Booking" />
-      <Stack.Screen name="+not-found" />
     </Stack>
   );
 };

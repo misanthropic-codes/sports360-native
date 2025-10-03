@@ -100,51 +100,51 @@ const MyTournamentsScreen = () => {
           tabs={tabs}
           onTabChange={handleTabChange}
           color={themeColor}
-          logos={tabLogos}
+          logos={tabLogos as Record<string, any>}
         />
 
         {role === "organizer" && (
           <CreateTournamentButton
-            title="Create Tournament"
-            onPress={() => router.push("/tournament/createTournament")}
-            color={themeColor}
+        title="Create Tournament"
+        onPress={() => router.push("/tournament/createTournament")}
+        color={themeColor}
           />
         )}
 
         <View className="mt-2">
           {loading ? (
-            <ActivityIndicator size="large" color="#6D28D9" className="mt-4" />
+        <ActivityIndicator size="large" color="#6D28D9" className="mt-4" />
           ) : filteredTournaments.length > 0 ? (
-            filteredTournaments.map((tournament) => (
-              <TournamentCard
-                key={tournament.id}
-                id={tournament.id}
-                name={tournament.name}
-                format={`Team Size: ${tournament.teamSize}`}
-                status={
-                  tournament.status === "upcoming"
-                    ? "Active"
-                    : tournament.status === "draft"
-                      ? "Draft"
-                      : "Completed"
-                }
-                teamCount={tournament.teamCount}
-                matchCount={0}
-                revenue={`₹ ${tournament.prizePool}`}
-                dateRange={`${new Date(
-                  tournament.startDate
-                ).toLocaleDateString()} - ${new Date(
-                  tournament.endDate
-                ).toLocaleDateString()}`}
-                onManagePress={handleManagePress}
-                color={themeColor}
-                role={role}
-              />
-            ))
+        filteredTournaments.map((tournament) => (
+          <TournamentCard
+            key={tournament.id}
+            id={tournament.id}
+            name={tournament.name}
+            format={`Team Size: ${tournament.teamSize}`}
+            status={
+          tournament.status === "upcoming"
+            ? "Active"
+            : tournament.status === "draft"
+              ? "Draft"
+              : "Completed"
+            }
+            teamCount={tournament.teamCount}
+            matchCount={0}
+            revenue={`₹ ${tournament.prizePool}`}
+            dateRange={`${new Date(
+          tournament.startDate
+            ).toLocaleDateString()} - ${new Date(
+          tournament.endDate
+            ).toLocaleDateString()}`}
+            onManagePress={handleManagePress}
+            color={themeColor}
+            role={role}
+          />
+        ))
           ) : (
-            <Text className="text-center text-gray-500 mt-4">
-              No tournaments found
-            </Text>
+        <Text className="text-center text-gray-500 mt-4">
+          No tournaments found
+        </Text>
           )}
         </View>
 

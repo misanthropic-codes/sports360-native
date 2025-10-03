@@ -2,11 +2,19 @@
 
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext"; // adjust path
+import { useRouter } from "expo-router";
 import React from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const GroundOwnerDashboard = () => {
   const { user, role, token, logout } = useAuth();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -25,6 +33,13 @@ const GroundOwnerDashboard = () => {
               <Text style={styles.text}>DOB: {user.dateOfBirth}</Text>
             )}
             <Text style={styles.text}>Token: {token}</Text>
+            {/* Profile Button */}
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => router.push("/profile")}
+            >
+              <Text style={styles.profileButtonText}>Go to Profile</Text>
+            </TouchableOpacity>
           </>
         ) : (
           <Text style={styles.text}>No user data found. Please login.</Text>
@@ -59,6 +74,19 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     marginVertical: 5,
+  },
+  profileButton: {
+    marginTop: 20,
+    backgroundColor: "#2196F3",
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  profileButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
 

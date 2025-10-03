@@ -80,7 +80,7 @@ const BottomNavBar: React.FC = () => {
   ];
 
   const handleNavigation = (path: string) => {
-    router.push(path);
+    router.push(path as any);
   };
 
   return (
