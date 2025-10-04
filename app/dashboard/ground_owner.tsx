@@ -150,7 +150,15 @@ const GroundOwnerDashboard: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Ground Owner Dashboard</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.title}>Ground Owner Dashboard</Text>
+          <Text
+            style={styles.profileButton}
+            onPress={() => router.push("/profile")}
+          >
+            Profile
+          </Text>
+        </View>
         <Text style={styles.subtitle}>Welcome, {user?.fullName}</Text>
         <Text style={styles.subtitle}>Email: {user?.email}</Text>
       </View>
@@ -244,9 +252,22 @@ export default GroundOwnerDashboard;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { padding: 20, backgroundColor: "#4CAF50", alignItems: "center" },
+  header: { padding: 20, backgroundColor: "#4CAF50" },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   title: { fontSize: 22, fontWeight: "bold", color: "white" },
   subtitle: { fontSize: 16, color: "white", marginTop: 5 },
+  profileButton: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+    padding: 6,
+    backgroundColor: "#388E3C",
+    borderRadius: 6,
+  },
   summaryContainer: {
     flexDirection: "row",
     justifyContent: "space-around",

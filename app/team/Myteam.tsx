@@ -1,8 +1,15 @@
+// MyTeamScreen.tsx
 import axios from "axios";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { PersonStanding, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Alert, ScrollView, StatusBar, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ActivityCard from "../../components/ActivityCard";
@@ -14,10 +21,6 @@ import StatPillBar from "../../components/StatPillBar";
 import TeamCard from "../../components/TeamCard";
 import { useAuth } from "../../context/AuthContext";
 
-type MyTeamScreenProps = {
-  navigation: any;
-};
-
 type Team = {
   id: string;
   name: string;
@@ -27,25 +30,27 @@ type Team = {
   isActive: boolean;
 };
 
-const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
+const MyTeamScreen: React.FC = () => {
   const { user } = useAuth();
+  const router = useRouter();
+
   const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
 
   const fetchTeams = async () => {
-    try {
-      if (!baseURL) {
-        Alert.alert("Error", "Base URL not configured.");
-        return;
-      }
-      if (!user?.token) {
-        Alert.alert("Error", "You must be logged in to view teams.");
-        return;
-      }
+    if (!baseURL) {
+      Alert.alert("Error", "Base URL not configured.");
+      return;
+    }
+    if (!user?.token) {
+      Alert.alert("Error", "You must be logged in to view teams.");
+      return;
+    }
 
+    try {
       setLoading(true);
       const headers = { Authorization: `Bearer ${user.token}` };
 
@@ -75,7 +80,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
           try {
             const headers = { Authorization: `Bearer ${user.token}` };
             const res = await axios.post(
-              `${baseURL}/api/v1/team/${teamId}/request`, // ✅ updated URL
+              `${baseURL}/api/v1/team/${teamId}/request`,
               {},
               { headers }
             );
@@ -85,7 +90,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
                 "✅ Request Sent",
                 `You requested to join ${teamName}`
               );
-              fetchTeams(); // refresh after joining
+              fetchTeams();
             } else {
               Alert.alert(
                 "Error",
@@ -105,7 +110,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
     fetchTeams();
   }, [user?.token]);
 
-  const role = user?.role || "player";
+  const role = user?.role?.toLowerCase() || "player";
   const type = Array.isArray(user?.domains)
     ? user.domains.join(", ")
     : user?.domains || "team";
@@ -147,11 +152,11 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
         type="title"
         title="My Team"
         showBackButton
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => router.back()}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {role.toLowerCase() === "player" && (
+        {role === "player" && (
           <CreateTeamButton
             title="Create Team"
             onPress={() => router.push("/team/CreateTeam")}
@@ -161,48 +166,52 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
         <StatPillBar />
 
         {/* My Teams */}
-        <SectionTitle title="My Teams" />
-        {loading ? (
-          <View className="p-4">
-            <SectionTitle title="Loading teams..." />
-          </View>
-        ) : myTeams.length > 0 ? (
-          myTeams.map((team) => (
-            <TeamCard
-              key={`my-${team.id}`}
-              context="myTeam" // ✅ tells TeamCard to show "Manage"
-              teamName={team.name}
-              status={team.isActive ? "Active" : "Pending"}
-              stats={[
-                { value: "11", label: "players" },
-                { value: "0", label: "matches" },
-                { value: "0%", label: "winning rate" },
-              ]}
-              onManage={() =>
-                router.push({
-                  pathname: "/team/ManageTeam/ManageTeam",
-                  params: { teamId: team.id },
-                })
-              }
-            />
-          ))
-        ) : (
-          <View className="p-4">
-            <SectionTitle title="No teams found" />
-          </View>
+        {role === "player" && (
+          <>
+            <SectionTitle title="My Teams" />
+            {loading ? (
+              <View className="p-4 flex justify-center items-center">
+                <ActivityIndicator size="large" color="#4CAF50" />
+              </View>
+            ) : myTeams.length > 0 ? (
+              myTeams.map((team) => (
+                <TeamCard
+                  key={`my-${team.id}`}
+                  context="myTeam"
+                  teamName={team.name}
+                  status={team.isActive ? "Active" : "Pending"}
+                  stats={[
+                    { value: "11", label: "players" },
+                    { value: "0", label: "matches" },
+                    { value: "0%", label: "winning rate" },
+                  ]}
+                  onManage={() =>
+                    router.push({
+                      pathname: "/team/ManageTeam/ManageTeam",
+                      params: { teamId: team.id },
+                    })
+                  }
+                />
+              ))
+            ) : (
+              <View className="p-4">
+                <SectionTitle title="No teams found" />
+              </View>
+            )}
+          </>
         )}
 
         {/* All Teams */}
         <SectionTitle title="All Teams" />
         {loading ? (
-          <View className="p-4">
-            <SectionTitle title="Loading teams..." />
+          <View className="p-4 flex justify-center items-center">
+            <ActivityIndicator size="large" color="#4CAF50" />
           </View>
         ) : filteredAllTeams.length > 0 ? (
           filteredAllTeams.map((team) => (
             <TeamCard
               key={`all-${team.id}`}
-              context="allTeam" // ✅ tells TeamCard to show "Join"
+              context={role === "organiser" ? "viewTeam" : "allTeam"}
               teamName={team.name}
               status={team.isActive ? "Active" : "Pending"}
               stats={[
@@ -210,7 +219,15 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ navigation }) => {
                 { value: "0", label: "matches" },
                 { value: "0%", label: "winning rate" },
               ]}
-              onJoin={() => handleJoinTeam(team.id, team.name)}
+              {...(role === "player"
+                ? { onJoin: () => handleJoinTeam(team.id, team.name) }
+                : {
+                    onView: () =>
+                      router.push({
+                        pathname: "/team/ViewTeam/ViewTeam",
+                        params: { teamId: team.id },
+                      }),
+                  })}
             />
           ))
         ) : (
