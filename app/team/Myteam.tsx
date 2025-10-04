@@ -1,4 +1,3 @@
-// MyTeamScreen.tsx
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { PersonStanding, Trophy } from "lucide-react-native";
@@ -39,6 +38,13 @@ const MyTeamScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
+
+  // 🧠 Debug info
+  useEffect(() => {
+    console.log("👤 User from AuthContext:", user);
+    console.log("🧠 Role detected:", user?.role);
+    console.log("📦 Domains:", user?.domains);
+  }, [user]);
 
   const fetchTeams = async () => {
     if (!baseURL) {
@@ -94,7 +100,7 @@ const MyTeamScreen: React.FC = () => {
             } else {
               Alert.alert(
                 "Error",
-                res.data?.message || "Failed to send request."
+                res.data?.message || "Failed to send join request."
               );
             }
           } catch (err: any) {
@@ -115,9 +121,15 @@ const MyTeamScreen: React.FC = () => {
     ? user.domains.join(", ")
     : user?.domains || "team";
 
-  const filteredAllTeams = allTeams.filter(
-    (team) => !myTeams.some((myTeam) => myTeam.id === team.id)
-  );
+  console.log("🎯 Current Role:", role);
+
+  // Filter teams (players shouldn't see teams they've joined)
+  const filteredAllTeams =
+    role === "player"
+      ? allTeams.filter(
+          (team) => !myTeams.some((myTeam) => myTeam.id === team.id)
+        )
+      : allTeams;
 
   const recentActivities = [
     {
@@ -147,7 +159,6 @@ const MyTeamScreen: React.FC = () => {
         translucent
         backgroundColor="transparent"
       />
-
       <Header
         type="title"
         title="My Team"
@@ -156,6 +167,7 @@ const MyTeamScreen: React.FC = () => {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Create Team Button (Player only) */}
         {role === "player" && (
           <CreateTeamButton
             title="Create Team"
@@ -165,7 +177,7 @@ const MyTeamScreen: React.FC = () => {
 
         <StatPillBar />
 
-        {/* My Teams */}
+        {/* My Teams (Player only) */}
         {role === "player" && (
           <>
             <SectionTitle title="My Teams" />
@@ -201,35 +213,51 @@ const MyTeamScreen: React.FC = () => {
           </>
         )}
 
-        {/* All Teams */}
+        {/* All Teams (Organizer or Player) */}
         <SectionTitle title="All Teams" />
         {loading ? (
           <View className="p-4 flex justify-center items-center">
             <ActivityIndicator size="large" color="#4CAF50" />
           </View>
         ) : filteredAllTeams.length > 0 ? (
-          filteredAllTeams.map((team) => (
-            <TeamCard
-              key={`all-${team.id}`}
-              context={role === "organiser" ? "viewTeam" : "allTeam"}
-              teamName={team.name}
-              status={team.isActive ? "Active" : "Pending"}
-              stats={[
-                { value: "11", label: "players" },
-                { value: "0", label: "matches" },
-                { value: "0%", label: "winning rate" },
-              ]}
-              {...(role === "player"
-                ? { onJoin: () => handleJoinTeam(team.id, team.name) }
-                : {
-                    onView: () =>
-                      router.push({
-                        pathname: "/team/ViewTeam/ViewTeam",
-                        params: { teamId: team.id },
-                      }),
-                  })}
-            />
-          ))
+          filteredAllTeams.map((team) => {
+            // ✅ FIXED: support both 'organiser' and 'organizer'
+            const contextValue =
+              role === "organiser" || role === "organizer"
+                ? "viewTeam"
+                : "allTeam";
+
+            console.log("🧩 Rendering TeamCard:", {
+              context: contextValue,
+              role,
+              team: team.name,
+            });
+
+            return (
+              <TeamCard
+                key={`all-${team.id}`}
+                context={contextValue}
+                teamName={team.name}
+                status={team.isActive ? "Active" : "Pending"}
+                stats={[
+                  { value: "11", label: "players" },
+                  { value: "0", label: "matches" },
+                  { value: "0%", label: "winning rate" },
+                ]}
+                onView={() =>
+                  router.push({
+                    pathname: "/team/ViewTeam/ViewTeam",
+                    params: { teamId: team.id },
+                  })
+                }
+                onJoin={
+                  role === "player"
+                    ? () => handleJoinTeam(team.id, team.name)
+                    : undefined
+                }
+              />
+            );
+          })
         ) : (
           <View className="p-4">
             <SectionTitle title="No teams available" />
