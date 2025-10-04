@@ -20,10 +20,15 @@ const InitialLayout = () => {
       const role = user.role;
       const domain = user.domains?.[0]; // first domain or selected domain
 
-      if (role && domain) {
-        router.replace(`/dashboard/${role}/${domain}` as any);
-      } else {
-        router.replace("/onboarding/choose-domain");
+      if (role) {
+        if (role === "ground_owner") {
+          // Ground owner goes to dashboard even without a domain
+          router.replace(`/dashboard/${role}`);
+        } else if (domain) {
+          router.replace(`/dashboard/${role}/${domain}` as any);
+        } else {
+          router.replace("/onboarding/choose-domain");
+        }
       }
     } else if (!user && !inAuthGroup) {
       router.replace("/(root)/login");
@@ -50,7 +55,7 @@ const InitialLayout = () => {
       <Stack.Screen name="matches/MatchDetail" />
       <Stack.Screen name="team/Myteam" />
       <Stack.Screen name="team/CreateTeam" />
-      <Stack.Screen name="+not-found" />
+      <Stack.Screen name="ground_owner/Booking" />
     </Stack>
   );
 };

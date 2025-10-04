@@ -12,9 +12,10 @@ interface TeamCardProps {
   status: "Active" | "Pending";
   invitationFrom?: string;
   stats?: TeamStat[];
-  context?: "myTeam" | "allTeam" | "invitation"; // ✅ context tells card how to behave
+  context?: "myTeam" | "allTeam" | "invitation" | "viewTeam"; // added viewTeam
   onManage?: () => void;
   onJoin?: () => void;
+  onView?: () => void;
   onAccept?: () => void;
   onDecline?: () => void;
 }
@@ -24,9 +25,10 @@ const TeamCard: React.FC<TeamCardProps> = ({
   status,
   invitationFrom,
   stats,
-  context = "allTeam", // default = all teams
+  context = "allTeam",
   onManage,
   onJoin,
+  onView,
   onAccept,
   onDecline,
 }) => {
@@ -80,8 +82,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
 
       {/* Actions */}
       <View className="mt-4">
-        {context === "invitation" ? (
-          // ✅ Invitations → Accept/Decline
+        {context === "invitation" && (
           <View className="flex-row gap-3">
             <TouchableOpacity
               onPress={onAccept}
@@ -96,21 +97,32 @@ const TeamCard: React.FC<TeamCardProps> = ({
               <Text className="text-white font-bold">Decline</Text>
             </TouchableOpacity>
           </View>
-        ) : context === "myTeam" ? (
-          // ✅ My Teams → Manage
+        )}
+
+        {context === "myTeam" && onManage && (
           <TouchableOpacity
             onPress={onManage}
             className="bg-blue-500 w-full py-3 rounded-lg items-center"
           >
             <Text className="text-white font-bold">Manage Team</Text>
           </TouchableOpacity>
-        ) : (
-          // ✅ All Teams → Join
+        )}
+
+        {context === "allTeam" && onJoin && (
           <TouchableOpacity
             onPress={onJoin}
             className="bg-indigo-500 w-full py-3 rounded-lg items-center"
           >
             <Text className="text-white font-bold">Join Team</Text>
+          </TouchableOpacity>
+        )}
+
+        {context === "viewTeam" && onView && (
+          <TouchableOpacity
+            onPress={onView}
+            className="bg-gray-500 w-full py-3 rounded-lg items-center"
+          >
+            <Text className="text-white font-bold">View Team</Text>
           </TouchableOpacity>
         )}
       </View>

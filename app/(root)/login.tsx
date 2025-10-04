@@ -80,25 +80,26 @@ const LoginScreen = () => {
           token: userData.token,
         });
 
-        // Store role and domain (if present) in AsyncStorage
+        // Store role in AsyncStorage
         await AsyncStorage.setItem("userRole", userData.role);
-        if (userData.domains && userData.domains.length > 0) {
-          await AsyncStorage.setItem("userDomain", userData.domains[0]);
-        }
-
-        Alert.alert("Success", "Logged in successfully!");
 
         const role = userData.role;
         const domain = userData.domains?.[0];
 
         console.log("Login successful, user role:", role);
 
-        if (role && !domain) {
+        if (role === "ground_owner") {
+          // Ground owners don’t need a domain
+          console.log("Ground owner logged in, redirecting to dashboard");
+          router.replace(`/dashboard/ground_owner` as any);
+        } else if (role && !domain) {
           console.log(
             "Role present but no domain, redirecting to choose-domain"
           );
           router.replace("/onboarding/choose-domain");
         } else if (role && domain) {
+          // Save first domain to AsyncStorage
+          await AsyncStorage.setItem("userDomain", domain);
           console.log(
             "Role and domain present, redirecting to dashboard:",
             role,
@@ -109,6 +110,8 @@ const LoginScreen = () => {
           console.log("Fallback redirect to feed/cricket-feed");
           router.replace("/feed/cricket");
         }
+
+        Alert.alert("Success", "Logged in successfully!");
       } else {
         throw new Error(response.data.message || "An unknown error occurred");
       }

@@ -99,7 +99,7 @@ const GroundDetailsScreen: React.FC = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const data = await getAllTournaments();
+        const data = await getAllTournaments(token);
         setTournaments(data);
         if (data.length > 0) {
           setSelectedTournamentId(data[0].id);
