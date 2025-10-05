@@ -3,7 +3,6 @@ import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
 import { useGroundStore } from "@/store/groundTStore";
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -59,9 +58,9 @@ export default function DateTimePickerScreen(): JSX.Element {
 
   // Duration-based states
   const [selectedDuration, setSelectedDuration] = useState<number>(60); // minutes
-  const [startTime, setStartTime] = useState<Date>(new Date());
-  const [showStartTimePicker, setShowStartTimePicker] =
-    useState<boolean>(false);
+  const [selectedStartHour, setSelectedStartHour] = useState<number>(9); // 9 AM default
+  const [selectedStartMinute, setSelectedStartMinute] = useState<number>(0); // 0 or 30
+  const [showTimeDropdown, setShowTimeDropdown] = useState<boolean>(false);
 
   const { token } = useAuth();
   const setAvailableGrounds = useGroundStore(
@@ -77,14 +76,29 @@ export default function DateTimePickerScreen(): JSX.Element {
   };
 
   const durationOptions: DurationOption[] = [
-    { label: "15 min", minutes: 15 },
     { label: "30 min", minutes: 30 },
-    { label: "45 min", minutes: 45 },
     { label: "1 hour", minutes: 60 },
     { label: "1.5 hours", minutes: 90 },
     { label: "2 hours", minutes: 120 },
+    { label: "2.5 hours", minutes: 150 },
     { label: "3 hours", minutes: 180 },
   ];
+
+  // Generate time slots in 30-minute intervals from 6 AM to 11:30 PM
+  const generateTimeSlots = (): string[] => {
+    const slots: string[] = [];
+    for (let hour = 6; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const period = hour >= 12 ? "PM" : "AM";
+        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+        const displayMinute = minute.toString().padStart(2, "0");
+        slots.push(`${displayHour}:${displayMinute} ${period}`);
+      }
+    }
+    return slots;
+  };
+
+  const timeSlots30Min = generateTimeSlots();
 
   // Round time UP to next slot based on duration
   const roundToNextSlot = (date: Date, durationMinutes: number): Date => {
@@ -101,6 +115,41 @@ export default function DateTimePickerScreen(): JSX.Element {
     rounded.setMilliseconds(0);
 
     return rounded;
+  };
+
+  const getStartTime = (): Date => {
+    const time = new Date();
+    time.setHours(selectedStartHour, selectedStartMinute, 0, 0);
+    return time;
+  };
+
+  const getSelectedTimeString = (): string => {
+    const period = selectedStartHour >= 12 ? "PM" : "AM";
+    const displayHour =
+      selectedStartHour > 12
+        ? selectedStartHour - 12
+        : selectedStartHour === 0
+          ? 12
+          : selectedStartHour;
+    const displayMinute = selectedStartMinute.toString().padStart(2, "0");
+    return `${displayHour}:${displayMinute} ${period}`;
+  };
+
+  const parseTimeString = (
+    timeStr: string
+  ): { hour: number; minute: number } => {
+    const [time, period] = timeStr.split(" ");
+    const [hourStr, minuteStr] = time.split(":");
+    let hour = parseInt(hourStr);
+    const minute = parseInt(minuteStr);
+
+    if (period === "PM" && hour !== 12) {
+      hour += 12;
+    } else if (period === "AM" && hour === 12) {
+      hour = 0;
+    }
+
+    return { hour, minute };
   };
 
   const getStartOfMonth = (date: Date): Date => {
@@ -133,16 +182,8 @@ export default function DateTimePickerScreen(): JSX.Element {
     });
   };
 
-  const onStartTimeChange = (event: any, selectedTime?: Date): void => {
-    setShowStartTimePicker(false);
-    if (selectedTime) {
-      // Round UP to next slot based on selected duration
-      const roundedTime = roundToNextSlot(selectedTime, selectedDuration);
-      setStartTime(roundedTime);
-    }
-  };
-
   const calculateEndTime = (): Date => {
+    const startTime = getStartTime();
     const endTime = new Date(startTime);
     endTime.setMinutes(endTime.getMinutes() + selectedDuration);
     return endTime;
@@ -275,12 +316,7 @@ export default function DateTimePickerScreen(): JSX.Element {
       if (selectedTimeSlot === "duration") {
         // Use duration-based timing
         bookingStartTime = new Date(selectedDate);
-        bookingStartTime.setHours(
-          startTime.getHours(),
-          startTime.getMinutes(),
-          0,
-          0
-        );
+        bookingStartTime.setHours(selectedStartHour, selectedStartMinute, 0, 0);
 
         bookingEndTime = calculateEndTime();
         bookingEndTime.setFullYear(selectedDate.getFullYear());
@@ -423,50 +459,51 @@ export default function DateTimePickerScreen(): JSX.Element {
 
             {/* Duration Options */}
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-600 mb-2">
+              <Text className="text-sm font-semibold text-gray-600 mb-3">
                 How long do you need?
               </Text>
-              <View className="flex-row flex-wrap gap-2">
+              <View className="flex-row flex-wrap -mx-1">
                 {durationOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.minutes}
-                    onPress={() => setSelectedDuration(option.minutes)}
-                    className={`px-4 py-2 rounded-full border-2 ${
-                      selectedDuration === option.minutes
-                        ? "bg-green-600 border-green-600"
-                        : "bg-white border-green-600"
-                    }`}
-                  >
-                    <Text
-                      className={`font-semibold ${
+                  <View key={option.minutes} className="w-1/3 px-1 mb-2">
+                    <TouchableOpacity
+                      onPress={() => setSelectedDuration(option.minutes)}
+                      className={`py-3 rounded-xl border-2 ${
                         selectedDuration === option.minutes
-                          ? "text-white"
-                          : "text-green-700"
+                          ? "bg-green-600 border-green-600"
+                          : "bg-white border-green-600"
                       }`}
                     >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        className={`text-center font-bold ${
+                          selectedDuration === option.minutes
+                            ? "text-white"
+                            : "text-green-700"
+                        }`}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             </View>
 
-            {/* Start Time */}
+            {/* Start Time Dropdown */}
             <View className="mb-2">
               <Text className="text-sm font-semibold text-gray-600 mb-2">
-                Pick Approximate Start Time
+                Select Start Time
               </Text>
               <TouchableOpacity
-                onPress={() => setShowStartTimePicker(true)}
+                onPress={() => setShowTimeDropdown(true)}
                 className="bg-green-50 border-2 border-green-600 rounded-full py-3 px-4 flex-row items-center justify-between"
               >
                 <Text className="text-green-700 font-semibold text-base">
-                  {formatTime(startTime)}
+                  {getSelectedTimeString()}
                 </Text>
                 <Ionicons name="chevron-down" size={20} color="#15803d" />
               </TouchableOpacity>
               <Text className="text-xs text-gray-500 mt-1 ml-2">
-                Will be rounded to next {selectedDuration} min slot
+                Times are in 30-minute intervals
               </Text>
             </View>
 
@@ -482,34 +519,48 @@ export default function DateTimePickerScreen(): JSX.Element {
           </View>
         )}
 
-        {/* Time Picker Modal */}
-        {showStartTimePicker && (
+        {/* Time Dropdown Modal */}
+        {showTimeDropdown && (
           <Modal transparent animationType="fade">
             <View className="flex-1 bg-black/50 justify-center items-center">
-              <View className="bg-white rounded-3xl p-6 mx-5 w-[90%] shadow-xl">
-                <Text className="text-xl font-bold text-gray-800 mb-2 text-center">
+              <View className="bg-white rounded-3xl p-6 mx-5 w-[90%] shadow-xl max-h-[70%]">
+                <Text className="text-xl font-bold text-gray-800 mb-4 text-center">
                   Select Start Time
                 </Text>
-                <Text className="text-sm text-gray-500 mb-4 text-center">
-                  Will round to next {selectedDuration} min slot
-                </Text>
-                <View className="bg-gray-50 rounded-2xl p-4 mb-4">
-                  <DateTimePicker
-                    value={startTime}
-                    mode="time"
-                    is24Hour={false}
-                    display="spinner"
-                    onChange={onStartTimeChange}
-                    textColor="#000000"
-                    minuteInterval={1}
-                  />
-                </View>
+                <ScrollView className="mb-4">
+                  {timeSlots30Min.map((time) => (
+                    <TouchableOpacity
+                      key={time}
+                      onPress={() => {
+                        const { hour, minute } = parseTimeString(time);
+                        setSelectedStartHour(hour);
+                        setSelectedStartMinute(minute);
+                        setShowTimeDropdown(false);
+                      }}
+                      className={`py-4 px-4 mb-2 rounded-xl border-2 ${
+                        time === getSelectedTimeString()
+                          ? "bg-green-600 border-green-600"
+                          : "bg-white border-gray-200"
+                      }`}
+                    >
+                      <Text
+                        className={`text-center text-base font-semibold ${
+                          time === getSelectedTimeString()
+                            ? "text-white"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {time}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
                 <TouchableOpacity
-                  onPress={() => setShowStartTimePicker(false)}
-                  className="bg-green-600 py-4 rounded-full"
+                  onPress={() => setShowTimeDropdown(false)}
+                  className="bg-gray-200 py-4 rounded-full"
                 >
-                  <Text className="text-white font-bold text-center text-lg">
-                    Done
+                  <Text className="text-gray-700 font-bold text-center text-lg">
+                    Cancel
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -525,7 +576,7 @@ export default function DateTimePickerScreen(): JSX.Element {
           <Text className="text-base text-gray-700">
             {formatSelectedDate()} |{" "}
             {selectedTimeSlot === "duration"
-              ? `${formatTime(startTime)} - ${formatTime(calculateEndTime())} (${selectedDuration} min)`
+              ? `${getSelectedTimeString()} - ${formatTime(calculateEndTime())} (${selectedDuration} min)`
               : selectedTimeSlot.charAt(0).toUpperCase() +
                 selectedTimeSlot.slice(1)}
           </Text>
