@@ -2,6 +2,7 @@
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
 import { useGroundStore } from "@/store/groundTStore";
+import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -9,7 +10,7 @@ import {
   ActivityIndicator,
   Modal,
   SafeAreaView,
-  StyleSheet,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -42,11 +43,21 @@ interface Ground {
   };
 }
 
+type TimeSlotType = "morning" | "afternoon" | "evening" | "custom";
+
 export default function DateTimePickerScreen(): JSX.Element {
-  const [startTime, setStartTime] = useState<Date>(new Date());
-  const [endTime, setEndTime] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTimeSlot, setSelectedTimeSlot] =
+    useState<TimeSlotType>("afternoon");
   const [loading, setLoading] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string>("");
+
+  // Custom time states
+  const [customStartTime, setCustomStartTime] = useState<Date>(new Date());
+  const [customEndTime, setCustomEndTime] = useState<Date>(new Date());
+  const [showStartTimePicker, setShowStartTimePicker] =
+    useState<boolean>(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState<boolean>(false);
 
   const { token } = useAuth();
   const setAvailableGrounds = useGroundStore(
@@ -55,19 +66,216 @@ export default function DateTimePickerScreen(): JSX.Element {
   const setTimeSlot = useGroundStore((state) => state.setTimeSlot);
   const router = useRouter();
 
-  const fetchAvailableGrounds = async (): Promise<void> => {
-    if (endTime <= startTime) {
-      setFeedback("⚠ End time must be after start time");
-      return;
+  const timeSlots = {
+    morning: { start: 9, end: 12, label: "Morning (9:00 AM - 12:00 PM)" },
+    afternoon: { start: 12, end: 17, label: "Afternoon (12:00 PM - 5:00 PM)" },
+    evening: { start: 17, end: 21, label: "Evening (5:00 PM - 9:00 PM)" },
+  };
+
+  const getStartOfMonth = (date: Date): Date => {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+  };
+
+  const getDaysInMonth = (date: Date): number => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date): number => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const changeMonth = (direction: number): void => {
+    setSelectedDate(
+      new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth() + direction,
+        1
+      )
+    );
+  };
+
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const onStartTimeChange = (event: any, selectedTime?: Date): void => {
+    setShowStartTimePicker(false);
+    if (selectedTime) {
+      setCustomStartTime(selectedTime);
+    }
+  };
+
+  const onEndTimeChange = (event: any, selectedTime?: Date): void => {
+    setShowEndTimePicker(false);
+    if (selectedTime) {
+      setCustomEndTime(selectedTime);
+    }
+  };
+
+  const renderCalendar = (): JSX.Element => {
+    const daysInMonth = getDaysInMonth(selectedDate);
+    const firstDay = getFirstDayOfMonth(selectedDate);
+    const today = new Date();
+    const days: (number | null)[] = [];
+
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
     }
 
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    const isToday = (day: number): boolean => {
+      return (
+        day === today.getDate() &&
+        selectedDate.getMonth() === today.getMonth() &&
+        selectedDate.getFullYear() === today.getFullYear()
+      );
+    };
+
+    const isSelectedDay = (day: number): boolean => {
+      return (
+        day === selectedDate.getDate() &&
+        selectedDate.getMonth() === selectedDate.getMonth()
+      );
+    };
+
+    return (
+      <View className="bg-white rounded-3xl p-5 mb-5 shadow-sm">
+        {/* Month Header */}
+        <View className="flex-row justify-between items-center mb-4">
+          <TouchableOpacity
+            onPress={() => changeMonth(-1)}
+            className="w-12 h-12 bg-green-50 rounded-full justify-center items-center"
+          >
+            <Ionicons name="chevron-back" size={24} color="#15803d" />
+          </TouchableOpacity>
+          <Text className="text-2xl font-bold text-gray-800">
+            {selectedDate.toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            })}
+          </Text>
+          <TouchableOpacity
+            onPress={() => changeMonth(1)}
+            className="w-12 h-12 bg-green-50 rounded-full justify-center items-center"
+          >
+            <Ionicons name="chevron-forward" size={24} color="#15803d" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Weekday Headers */}
+        <View className="flex-row justify-between mb-3">
+          {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day, idx) => (
+            <Text
+              key={day}
+              className={`text-xs font-semibold w-10 text-center ${
+                idx === 6 ? "text-green-600" : "text-gray-500"
+              }`}
+            >
+              {day}
+            </Text>
+          ))}
+        </View>
+
+        {/* Calendar Grid */}
+        <View className="flex-row flex-wrap">
+          {days.map((day, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => {
+                if (day) {
+                  setSelectedDate(
+                    new Date(
+                      selectedDate.getFullYear(),
+                      selectedDate.getMonth(),
+                      day
+                    )
+                  );
+                }
+              }}
+              disabled={!day}
+              className="w-[14.28%] aspect-square justify-center items-center"
+            >
+              {day ? (
+                <View
+                  className={`w-10 h-10 rounded-full justify-center items-center ${
+                    isSelectedDay(day)
+                      ? "bg-green-600"
+                      : isToday(day)
+                        ? "border-2 border-green-600"
+                        : ""
+                  }`}
+                >
+                  <Text
+                    className={`text-base font-semibold ${
+                      isSelectedDay(day)
+                        ? "text-white"
+                        : index % 7 === 6
+                          ? "text-green-600"
+                          : "text-gray-700"
+                    }`}
+                  >
+                    {day}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const fetchAvailableGrounds = async (): Promise<void> => {
     setLoading(true);
     setFeedback("Fetching available grounds...");
+
     try {
+      let startTime: Date;
+      let endTime: Date;
+
+      if (selectedTimeSlot === "custom") {
+        // Use custom times
+        startTime = new Date(selectedDate);
+        startTime.setHours(
+          customStartTime.getHours(),
+          customStartTime.getMinutes(),
+          0,
+          0
+        );
+
+        endTime = new Date(selectedDate);
+        endTime.setHours(
+          customEndTime.getHours(),
+          customEndTime.getMinutes(),
+          0,
+          0
+        );
+
+        // Validate that end time is after start time
+        if (endTime <= startTime) {
+          setFeedback("❌ End time must be after start time");
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Use preset time slots
+        const slot = timeSlots[selectedTimeSlot];
+        startTime = new Date(selectedDate);
+        startTime.setHours(slot.start, 0, 0, 0);
+
+        endTime = new Date(selectedDate);
+        endTime.setHours(slot.end, 0, 0, 0);
+      }
+
       const startISO = startTime.toISOString();
       const endISO = endTime.toISOString();
-
-      console.log("Fetching grounds for:", startISO, endISO);
 
       const res = await fetch(
         `http://172.20.10.4:8080/api/v1/booking/grounds/available?startTime=${startISO}&endTime=${endISO}`,
@@ -76,8 +284,6 @@ export default function DateTimePickerScreen(): JSX.Element {
         }
       );
 
-      console.log("API Response status:", res.status);
-
       if (!res.ok) {
         throw new Error(`API error: ${res.status}`);
       }
@@ -85,57 +291,246 @@ export default function DateTimePickerScreen(): JSX.Element {
       const data: { message: string; timeSlot: TimeSlot; data: Ground[] } =
         await res.json();
 
-      console.log("API Response data:", data);
-
       if (data.data && data.data.length > 0) {
         setAvailableGrounds(data.data);
         setTimeSlot(data.timeSlot);
-        setFeedback("Grounds found ✅");
+        setFeedback("✅ Grounds found");
         router.push("/ground_owner/ViewAllGrounds");
       } else {
-        setFeedback("No grounds found for this time slot ❌");
-        console.warn("No grounds found:", data);
+        setFeedback("❌ No grounds found for this time slot");
       }
     } catch (error) {
-      console.error("Fetch error:", error);
-      setFeedback("Error fetching grounds ❌");
+      setFeedback("❌ Error fetching grounds");
     } finally {
       setLoading(false);
     }
   };
 
+  const formatSelectedDate = (): string => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    return `${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Select Date & Time</Text>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <ScrollView className="flex-1 px-5 py-6">
+        {/* Header */}
+        <View className="flex-row justify-between items-center mb-6">
+          <Text className="text-3xl font-bold text-gray-800">GroundFinder</Text>
+          <TouchableOpacity className="w-14 h-14 bg-green-100 rounded-full justify-center items-center">
+            <Ionicons name="person" size={28} color="#15803d" />
+          </TouchableOpacity>
+        </View>
 
-      <Text style={styles.label}>Start Time</Text>
-      <DateTimePicker
-        value={startTime}
-        mode="datetime"
-        display="default"
-        onChange={(e: any, date: any) => setStartTime(date || startTime)}
-      />
+        {/* Calendar */}
+        {renderCalendar()}
 
-      <Text style={styles.label}>End Time</Text>
-      <DateTimePicker
-        value={endTime}
-        mode="datetime"
-        display="default"
-        minimumDate={startTime} // ⏳ Prevents selecting end time before start time
-        onChange={(e: any, date: any) => setEndTime(date || endTime)}
-      />
+        {/* Time Slots */}
+        <View className="mb-5">
+          {(Object.keys(timeSlots) as (keyof typeof timeSlots)[]).map(
+            (slot) => (
+              <TouchableOpacity
+                key={slot}
+                onPress={() => setSelectedTimeSlot(slot)}
+                className={`rounded-full py-4 px-6 mb-3 border-2 ${
+                  selectedTimeSlot === slot
+                    ? "bg-green-600 border-green-600"
+                    : "bg-white border-green-600"
+                }`}
+              >
+                <Text
+                  className={`text-center text-lg font-semibold ${
+                    selectedTimeSlot === slot ? "text-white" : "text-green-700"
+                  }`}
+                >
+                  {timeSlots[slot].label}
+                </Text>
+              </TouchableOpacity>
+            )
+          )}
 
-      <TouchableOpacity style={styles.button} onPress={fetchAvailableGrounds}>
-        <Text style={styles.buttonText}>Find Ground</Text>
-      </TouchableOpacity>
+          {/* Custom Time Slot Button */}
+          <TouchableOpacity
+            onPress={() => setSelectedTimeSlot("custom")}
+            className={`rounded-full py-4 px-6 mb-3 border-2 ${
+              selectedTimeSlot === "custom"
+                ? "bg-green-600 border-green-600"
+                : "bg-white border-green-600"
+            }`}
+          >
+            <View className="flex-row items-center justify-center">
+              <Ionicons
+                name="time-outline"
+                size={20}
+                color={selectedTimeSlot === "custom" ? "#ffffff" : "#15803d"}
+              />
+              <Text
+                className={`text-lg font-semibold ml-2 ${
+                  selectedTimeSlot === "custom"
+                    ? "text-white"
+                    : "text-green-700"
+                }`}
+              >
+                Custom Time
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-      {feedback ? <Text style={styles.feedback}>{feedback}</Text> : null}
+        {/* Custom Time Pickers */}
+        {selectedTimeSlot === "custom" && (
+          <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
+            <Text className="text-lg font-bold text-gray-800 mb-4">
+              Select Custom Time
+            </Text>
 
-      {/* ✅ Loading Overlay */}
+            {/* Start Time */}
+            <View className="mb-4">
+              <Text className="text-sm font-semibold text-gray-600 mb-2">
+                Start Time
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowStartTimePicker(true)}
+                className="bg-green-50 border-2 border-green-600 rounded-full py-3 px-4 flex-row items-center justify-between"
+              >
+                <Text className="text-green-700 font-semibold text-base">
+                  {formatTime(customStartTime)}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#15803d" />
+              </TouchableOpacity>
+            </View>
+
+            {/* End Time */}
+            <View>
+              <Text className="text-sm font-semibold text-gray-600 mb-2">
+                End Time
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowEndTimePicker(true)}
+                className="bg-green-50 border-2 border-green-600 rounded-full py-3 px-4 flex-row items-center justify-between"
+              >
+                <Text className="text-green-700 font-semibold text-base">
+                  {formatTime(customEndTime)}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#15803d" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Time Pickers with Modal */}
+        {showStartTimePicker && (
+          <Modal transparent animationType="fade">
+            <View className="flex-1 bg-black/50 justify-center items-center">
+              <View className="bg-white rounded-3xl p-6 mx-5 w-[90%] shadow-xl">
+                <Text className="text-xl font-bold text-gray-800 mb-4 text-center">
+                  Select Start Time
+                </Text>
+                <View className="bg-gray-50 rounded-2xl p-4 mb-4">
+                  <DateTimePicker
+                    value={customStartTime}
+                    mode="time"
+                    is24Hour={false}
+                    display="spinner"
+                    onChange={onStartTimeChange}
+                    textColor="#000000"
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowStartTimePicker(false)}
+                  className="bg-green-600 py-4 rounded-full"
+                >
+                  <Text className="text-white font-bold text-center text-lg">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {showEndTimePicker && (
+          <Modal transparent animationType="fade">
+            <View className="flex-1 bg-black/50 justify-center items-center">
+              <View className="bg-white rounded-3xl p-6 mx-5 w-[90%] shadow-xl">
+                <Text className="text-xl font-bold text-gray-800 mb-4 text-center">
+                  Select End Time
+                </Text>
+                <View className="bg-gray-50 rounded-2xl p-4 mb-4">
+                  <DateTimePicker
+                    value={customEndTime}
+                    mode="time"
+                    is24Hour={false}
+                    display="spinner"
+                    onChange={onEndTimeChange}
+                    textColor="#000000"
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowEndTimePicker(false)}
+                  className="bg-green-600 py-4 rounded-full"
+                >
+                  <Text className="text-white font-bold text-center text-lg">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Selected Info */}
+        <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
+          <Text className="text-lg font-bold text-gray-800 mb-2">
+            Selected:
+          </Text>
+          <Text className="text-base text-gray-700">
+            {formatSelectedDate()} |{" "}
+            {selectedTimeSlot === "custom"
+              ? `${formatTime(customStartTime)} - ${formatTime(customEndTime)}`
+              : selectedTimeSlot.charAt(0).toUpperCase() +
+                selectedTimeSlot.slice(1)}
+          </Text>
+        </View>
+
+        {/* Find Button */}
+        <TouchableOpacity
+          onPress={fetchAvailableGrounds}
+          className="bg-green-600 py-5 rounded-full shadow-lg mb-6"
+        >
+          <Text className="text-white font-bold text-lg text-center">
+            Find Available Grounds
+          </Text>
+        </TouchableOpacity>
+
+        {/* Feedback */}
+        {feedback ? (
+          <Text className="text-center font-semibold text-green-600 mb-4">
+            {feedback}
+          </Text>
+        ) : null}
+      </ScrollView>
+
+      {/* Loading Overlay */}
       <Modal visible={loading} transparent animationType="fade">
-        <View style={styles.loadingOverlay}>
+        <View className="flex-1 bg-black/40 justify-center items-center">
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text className="mt-3 text-white text-lg font-bold">Loading...</Text>
         </View>
       </Modal>
 
@@ -143,41 +538,3 @@ export default function DateTimePickerScreen(): JSX.Element {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#15803d",
-    marginBottom: 20,
-  },
-  label: { fontSize: 16, color: "#15803d", marginTop: 20 },
-  button: {
-    backgroundColor: "#15803d",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 30,
-  },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  feedback: {
-    marginTop: 15,
-    fontSize: 16,
-    color: "#2563eb",
-    fontWeight: "bold",
-    alignSelf: "center",
-  },
-  loadingOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-});

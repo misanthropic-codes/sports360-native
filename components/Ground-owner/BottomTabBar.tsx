@@ -65,7 +65,7 @@ const BottomNavBar: React.FC = () => {
 
   const navItems = [
     { name: "Home", icon: Home, path: `/dashboard/ground_owner` },
-    { name: "Grounds", icon: MapPin, path: `/ground_owner/ViewAllGrounds` },
+    { name: "Grounds", icon: MapPin, path: `/ground_owner/myGrounds` },
     {
       name: "Bookings",
       icon: ClipboardList,
