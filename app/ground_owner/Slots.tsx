@@ -43,12 +43,12 @@ interface Ground {
   };
 }
 
-type TimeSlotType = "morning" | "afternoon" | "evening" | "custom";
+type TimeSlotType = "15min" | "30min" | "45min" | "1hr" | "custom";
 
 export default function DateTimePickerScreen(): JSX.Element {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] =
-    useState<TimeSlotType>("afternoon");
+    useState<TimeSlotType>("30min");
   const [loading, setLoading] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string>("");
 
@@ -66,10 +66,11 @@ export default function DateTimePickerScreen(): JSX.Element {
   const setTimeSlot = useGroundStore((state) => state.setTimeSlot);
   const router = useRouter();
 
-  const timeSlots = {
-    morning: { start: 9, end: 12, label: "Morning (9:00 AM - 12:00 PM)" },
-    afternoon: { start: 12, end: 17, label: "Afternoon (12:00 PM - 5:00 PM)" },
-    evening: { start: 17, end: 21, label: "Evening (5:00 PM - 9:00 PM)" },
+  const durationSlots = {
+    "15min": { duration: 15, label: "15 Minutes" },
+    "30min": { duration: 30, label: "30 Minutes" },
+    "45min": { duration: 45, label: "45 Minutes" },
+    "1hr": { duration: 60, label: "1 Hour" },
   };
 
   const getStartOfMonth = (date: Date): Date => {
@@ -265,13 +266,13 @@ export default function DateTimePickerScreen(): JSX.Element {
           return;
         }
       } else {
-        // Use preset time slots
-        const slot = timeSlots[selectedTimeSlot];
+        // Use duration-based slots from current time
+        const now = new Date();
         startTime = new Date(selectedDate);
-        startTime.setHours(slot.start, 0, 0, 0);
+        startTime.setHours(now.getHours(), now.getMinutes(), 0, 0);
 
-        endTime = new Date(selectedDate);
-        endTime.setHours(slot.end, 0, 0, 0);
+        const duration = durationSlots[selectedTimeSlot].duration;
+        endTime = new Date(startTime.getTime() + duration * 60000);
       }
 
       const startISO = startTime.toISOString();
@@ -326,6 +327,17 @@ export default function DateTimePickerScreen(): JSX.Element {
     return `${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
   };
 
+  const getTimeSlotPreview = (): string => {
+    if (selectedTimeSlot === "custom") {
+      return `${formatTime(customStartTime)} - ${formatTime(customEndTime)}`;
+    } else {
+      const now = new Date();
+      const duration = durationSlots[selectedTimeSlot].duration;
+      const endTime = new Date(now.getTime() + duration * 60000);
+      return `${formatTime(now)} - ${formatTime(endTime)}`;
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-5 py-6">
@@ -340,9 +352,13 @@ export default function DateTimePickerScreen(): JSX.Element {
         {/* Calendar */}
         {renderCalendar()}
 
-        {/* Time Slots */}
+        {/* Duration-based Time Slots */}
         <View className="mb-5">
-          {(Object.keys(timeSlots) as (keyof typeof timeSlots)[]).map(
+          <Text className="text-xl font-bold text-gray-800 mb-3">
+            Select Duration
+          </Text>
+
+          {(Object.keys(durationSlots) as (keyof typeof durationSlots)[]).map(
             (slot) => (
               <TouchableOpacity
                 key={slot}
@@ -358,7 +374,7 @@ export default function DateTimePickerScreen(): JSX.Element {
                     selectedTimeSlot === slot ? "text-white" : "text-green-700"
                   }`}
                 >
-                  {timeSlots[slot].label}
+                  {durationSlots[slot].label}
                 </Text>
               </TouchableOpacity>
             )
@@ -496,16 +512,21 @@ export default function DateTimePickerScreen(): JSX.Element {
 
         {/* Selected Info */}
         <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
-          <Text className="text-lg font-bold text-gray-800 mb-2">
+          <Text className="text-lg font-bold text-gray-800 mb-4">
             Selected:
           </Text>
-          <Text className="text-base text-gray-700">
-            {formatSelectedDate()} |{" "}
-            {selectedTimeSlot === "custom"
-              ? `${formatTime(customStartTime)} - ${formatTime(customEndTime)}`
-              : selectedTimeSlot.charAt(0).toUpperCase() +
-                selectedTimeSlot.slice(1)}
-          </Text>
+          <View className="flex-row items-center mb-3">
+            <Ionicons name="calendar" size={20} color="#15803d" />
+            <Text className="text-base text-gray-700 ml-2">
+              {formatSelectedDate()}
+            </Text>
+          </View>
+          <View className="flex-row items-center">
+            <Ionicons name="time" size={20} color="#15803d" />
+            <Text className="text-base text-gray-700 ml-2">
+              {getTimeSlotPreview()}
+            </Text>
+          </View>
         </View>
 
         {/* Find Button */}
@@ -520,9 +541,24 @@ export default function DateTimePickerScreen(): JSX.Element {
 
         {/* Feedback */}
         {feedback ? (
-          <Text className="text-center font-semibold text-green-600 mb-4">
-            {feedback}
-          </Text>
+          <View className="flex-row items-center justify-center mb-4">
+            {feedback.includes("✅") ? (
+              <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+            ) : feedback.includes("❌") ? (
+              <Ionicons name="close-circle" size={20} color="#dc2626" />
+            ) : null}
+            <Text
+              className={`text-center font-semibold ml-2 ${
+                feedback.includes("✅")
+                  ? "text-green-600"
+                  : feedback.includes("❌")
+                    ? "text-red-600"
+                    : "text-green-600"
+              }`}
+            >
+              {feedback.replace("✅", "").replace("❌", "").trim()}
+            </Text>
+          </View>
         ) : null}
       </ScrollView>
 
