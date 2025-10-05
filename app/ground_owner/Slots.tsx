@@ -43,21 +43,25 @@ interface Ground {
   };
 }
 
-type TimeSlotType = "15min" | "30min" | "45min" | "1hr" | "custom";
+type TimeSlotType = "morning" | "afternoon" | "evening" | "duration";
+
+interface DurationOption {
+  label: string;
+  minutes: number;
+}
 
 export default function DateTimePickerScreen(): JSX.Element {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] =
-    useState<TimeSlotType>("30min");
+    useState<TimeSlotType>("afternoon");
   const [loading, setLoading] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string>("");
 
-  // Custom time states
-  const [customStartTime, setCustomStartTime] = useState<Date>(new Date());
-  const [customEndTime, setCustomEndTime] = useState<Date>(new Date());
+  // Duration-based states
+  const [selectedDuration, setSelectedDuration] = useState<number>(60); // minutes
+  const [startTime, setStartTime] = useState<Date>(new Date());
   const [showStartTimePicker, setShowStartTimePicker] =
     useState<boolean>(false);
-  const [showEndTimePicker, setShowEndTimePicker] = useState<boolean>(false);
 
   const { token } = useAuth();
   const setAvailableGrounds = useGroundStore(
@@ -66,11 +70,37 @@ export default function DateTimePickerScreen(): JSX.Element {
   const setTimeSlot = useGroundStore((state) => state.setTimeSlot);
   const router = useRouter();
 
-  const durationSlots = {
-    "15min": { duration: 15, label: "15 Minutes" },
-    "30min": { duration: 30, label: "30 Minutes" },
-    "45min": { duration: 45, label: "45 Minutes" },
-    "1hr": { duration: 60, label: "1 Hour" },
+  const timeSlots = {
+    morning: { start: 9, end: 12, label: "Morning (9:00 AM - 12:00 PM)" },
+    afternoon: { start: 12, end: 17, label: "Afternoon (12:00 PM - 5:00 PM)" },
+    evening: { start: 17, end: 21, label: "Evening (5:00 PM - 9:00 PM)" },
+  };
+
+  const durationOptions: DurationOption[] = [
+    { label: "15 min", minutes: 15 },
+    { label: "30 min", minutes: 30 },
+    { label: "45 min", minutes: 45 },
+    { label: "1 hour", minutes: 60 },
+    { label: "1.5 hours", minutes: 90 },
+    { label: "2 hours", minutes: 120 },
+    { label: "3 hours", minutes: 180 },
+  ];
+
+  // Round time UP to next slot based on duration
+  const roundToNextSlot = (date: Date, durationMinutes: number): Date => {
+    const rounded = new Date(date);
+    const currentMinutes = rounded.getHours() * 60 + rounded.getMinutes();
+
+    // Round UP to next slot interval
+    const roundedMinutes =
+      Math.ceil(currentMinutes / durationMinutes) * durationMinutes;
+
+    rounded.setHours(Math.floor(roundedMinutes / 60));
+    rounded.setMinutes(roundedMinutes % 60);
+    rounded.setSeconds(0);
+    rounded.setMilliseconds(0);
+
+    return rounded;
   };
 
   const getStartOfMonth = (date: Date): Date => {
@@ -106,15 +136,16 @@ export default function DateTimePickerScreen(): JSX.Element {
   const onStartTimeChange = (event: any, selectedTime?: Date): void => {
     setShowStartTimePicker(false);
     if (selectedTime) {
-      setCustomStartTime(selectedTime);
+      // Round UP to next slot based on selected duration
+      const roundedTime = roundToNextSlot(selectedTime, selectedDuration);
+      setStartTime(roundedTime);
     }
   };
 
-  const onEndTimeChange = (event: any, selectedTime?: Date): void => {
-    setShowEndTimePicker(false);
-    if (selectedTime) {
-      setCustomEndTime(selectedTime);
-    }
+  const calculateEndTime = (): Date => {
+    const endTime = new Date(startTime);
+    endTime.setMinutes(endTime.getMinutes() + selectedDuration);
+    return endTime;
   };
 
   const renderCalendar = (): JSX.Element => {
@@ -238,45 +269,35 @@ export default function DateTimePickerScreen(): JSX.Element {
     setFeedback("Fetching available grounds...");
 
     try {
-      let startTime: Date;
-      let endTime: Date;
+      let bookingStartTime: Date;
+      let bookingEndTime: Date;
 
-      if (selectedTimeSlot === "custom") {
-        // Use custom times
-        startTime = new Date(selectedDate);
-        startTime.setHours(
-          customStartTime.getHours(),
-          customStartTime.getMinutes(),
+      if (selectedTimeSlot === "duration") {
+        // Use duration-based timing
+        bookingStartTime = new Date(selectedDate);
+        bookingStartTime.setHours(
+          startTime.getHours(),
+          startTime.getMinutes(),
           0,
           0
         );
 
-        endTime = new Date(selectedDate);
-        endTime.setHours(
-          customEndTime.getHours(),
-          customEndTime.getMinutes(),
-          0,
-          0
-        );
-
-        // Validate that end time is after start time
-        if (endTime <= startTime) {
-          setFeedback("❌ End time must be after start time");
-          setLoading(false);
-          return;
-        }
+        bookingEndTime = calculateEndTime();
+        bookingEndTime.setFullYear(selectedDate.getFullYear());
+        bookingEndTime.setMonth(selectedDate.getMonth());
+        bookingEndTime.setDate(selectedDate.getDate());
       } else {
-        // Use duration-based slots from current time
-        const now = new Date();
-        startTime = new Date(selectedDate);
-        startTime.setHours(now.getHours(), now.getMinutes(), 0, 0);
+        // Use preset time slots
+        const slot = timeSlots[selectedTimeSlot];
+        bookingStartTime = new Date(selectedDate);
+        bookingStartTime.setHours(slot.start, 0, 0, 0);
 
-        const duration = durationSlots[selectedTimeSlot].duration;
-        endTime = new Date(startTime.getTime() + duration * 60000);
+        bookingEndTime = new Date(selectedDate);
+        bookingEndTime.setHours(slot.end, 0, 0, 0);
       }
 
-      const startISO = startTime.toISOString();
-      const endISO = endTime.toISOString();
+      const startISO = bookingStartTime.toISOString();
+      const endISO = bookingEndTime.toISOString();
 
       const res = await fetch(
         `http://172.20.10.4:8080/api/v1/booking/grounds/available?startTime=${startISO}&endTime=${endISO}`,
@@ -327,17 +348,6 @@ export default function DateTimePickerScreen(): JSX.Element {
     return `${days[selectedDate.getDay()]}, ${months[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
   };
 
-  const getTimeSlotPreview = (): string => {
-    if (selectedTimeSlot === "custom") {
-      return `${formatTime(customStartTime)} - ${formatTime(customEndTime)}`;
-    } else {
-      const now = new Date();
-      const duration = durationSlots[selectedTimeSlot].duration;
-      const endTime = new Date(now.getTime() + duration * 60000);
-      return `${formatTime(now)} - ${formatTime(endTime)}`;
-    }
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-5 py-6">
@@ -352,13 +362,9 @@ export default function DateTimePickerScreen(): JSX.Element {
         {/* Calendar */}
         {renderCalendar()}
 
-        {/* Duration-based Time Slots */}
+        {/* Time Slots */}
         <View className="mb-5">
-          <Text className="text-xl font-bold text-gray-800 mb-3">
-            Select Duration
-          </Text>
-
-          {(Object.keys(durationSlots) as (keyof typeof durationSlots)[]).map(
+          {(Object.keys(timeSlots) as (keyof typeof timeSlots)[]).map(
             (slot) => (
               <TouchableOpacity
                 key={slot}
@@ -374,17 +380,17 @@ export default function DateTimePickerScreen(): JSX.Element {
                     selectedTimeSlot === slot ? "text-white" : "text-green-700"
                   }`}
                 >
-                  {durationSlots[slot].label}
+                  {timeSlots[slot].label}
                 </Text>
               </TouchableOpacity>
             )
           )}
 
-          {/* Custom Time Slot Button */}
+          {/* Duration-Based Time Slot Button */}
           <TouchableOpacity
-            onPress={() => setSelectedTimeSlot("custom")}
+            onPress={() => setSelectedTimeSlot("duration")}
             className={`rounded-full py-4 px-6 mb-3 border-2 ${
-              selectedTimeSlot === "custom"
+              selectedTimeSlot === "duration"
                 ? "bg-green-600 border-green-600"
                 : "bg-white border-green-600"
             }`}
@@ -393,78 +399,109 @@ export default function DateTimePickerScreen(): JSX.Element {
               <Ionicons
                 name="time-outline"
                 size={20}
-                color={selectedTimeSlot === "custom" ? "#ffffff" : "#15803d"}
+                color={selectedTimeSlot === "duration" ? "#ffffff" : "#15803d"}
               />
               <Text
                 className={`text-lg font-semibold ml-2 ${
-                  selectedTimeSlot === "custom"
+                  selectedTimeSlot === "duration"
                     ? "text-white"
                     : "text-green-700"
                 }`}
               >
-                Custom Time
+                Choose Duration
               </Text>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Custom Time Pickers */}
-        {selectedTimeSlot === "custom" && (
+        {/* Duration-Based Selection */}
+        {selectedTimeSlot === "duration" && (
           <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
             <Text className="text-lg font-bold text-gray-800 mb-4">
-              Select Custom Time
+              Select Duration
             </Text>
 
-            {/* Start Time */}
+            {/* Duration Options */}
             <View className="mb-4">
               <Text className="text-sm font-semibold text-gray-600 mb-2">
-                Start Time
+                How long do you need?
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {durationOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.minutes}
+                    onPress={() => setSelectedDuration(option.minutes)}
+                    className={`px-4 py-2 rounded-full border-2 ${
+                      selectedDuration === option.minutes
+                        ? "bg-green-600 border-green-600"
+                        : "bg-white border-green-600"
+                    }`}
+                  >
+                    <Text
+                      className={`font-semibold ${
+                        selectedDuration === option.minutes
+                          ? "text-white"
+                          : "text-green-700"
+                      }`}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Start Time */}
+            <View className="mb-2">
+              <Text className="text-sm font-semibold text-gray-600 mb-2">
+                Pick Approximate Start Time
               </Text>
               <TouchableOpacity
                 onPress={() => setShowStartTimePicker(true)}
                 className="bg-green-50 border-2 border-green-600 rounded-full py-3 px-4 flex-row items-center justify-between"
               >
                 <Text className="text-green-700 font-semibold text-base">
-                  {formatTime(customStartTime)}
+                  {formatTime(startTime)}
                 </Text>
                 <Ionicons name="chevron-down" size={20} color="#15803d" />
               </TouchableOpacity>
+              <Text className="text-xs text-gray-500 mt-1 ml-2">
+                Will be rounded to next {selectedDuration} min slot
+              </Text>
             </View>
 
-            {/* End Time */}
-            <View>
-              <Text className="text-sm font-semibold text-gray-600 mb-2">
-                End Time
+            {/* Calculated End Time Display */}
+            <View className="bg-green-50 rounded-2xl p-4 mt-2">
+              <Text className="text-sm font-semibold text-gray-600 mb-1">
+                End Time (Auto-calculated)
               </Text>
-              <TouchableOpacity
-                onPress={() => setShowEndTimePicker(true)}
-                className="bg-green-50 border-2 border-green-600 rounded-full py-3 px-4 flex-row items-center justify-between"
-              >
-                <Text className="text-green-700 font-semibold text-base">
-                  {formatTime(customEndTime)}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color="#15803d" />
-              </TouchableOpacity>
+              <Text className="text-green-700 font-bold text-lg">
+                {formatTime(calculateEndTime())}
+              </Text>
             </View>
           </View>
         )}
 
-        {/* Time Pickers with Modal */}
+        {/* Time Picker Modal */}
         {showStartTimePicker && (
           <Modal transparent animationType="fade">
             <View className="flex-1 bg-black/50 justify-center items-center">
               <View className="bg-white rounded-3xl p-6 mx-5 w-[90%] shadow-xl">
-                <Text className="text-xl font-bold text-gray-800 mb-4 text-center">
+                <Text className="text-xl font-bold text-gray-800 mb-2 text-center">
                   Select Start Time
+                </Text>
+                <Text className="text-sm text-gray-500 mb-4 text-center">
+                  Will round to next {selectedDuration} min slot
                 </Text>
                 <View className="bg-gray-50 rounded-2xl p-4 mb-4">
                   <DateTimePicker
-                    value={customStartTime}
+                    value={startTime}
                     mode="time"
                     is24Hour={false}
                     display="spinner"
                     onChange={onStartTimeChange}
                     textColor="#000000"
+                    minuteInterval={1}
                   />
                 </View>
                 <TouchableOpacity
@@ -480,53 +517,18 @@ export default function DateTimePickerScreen(): JSX.Element {
           </Modal>
         )}
 
-        {showEndTimePicker && (
-          <Modal transparent animationType="fade">
-            <View className="flex-1 bg-black/50 justify-center items-center">
-              <View className="bg-white rounded-3xl p-6 mx-5 w-[90%] shadow-xl">
-                <Text className="text-xl font-bold text-gray-800 mb-4 text-center">
-                  Select End Time
-                </Text>
-                <View className="bg-gray-50 rounded-2xl p-4 mb-4">
-                  <DateTimePicker
-                    value={customEndTime}
-                    mode="time"
-                    is24Hour={false}
-                    display="spinner"
-                    onChange={onEndTimeChange}
-                    textColor="#000000"
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={() => setShowEndTimePicker(false)}
-                  className="bg-green-600 py-4 rounded-full"
-                >
-                  <Text className="text-white font-bold text-center text-lg">
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-        )}
-
         {/* Selected Info */}
         <View className="bg-white rounded-2xl p-5 mb-5 shadow-sm">
-          <Text className="text-lg font-bold text-gray-800 mb-4">
+          <Text className="text-lg font-bold text-gray-800 mb-2">
             Selected:
           </Text>
-          <View className="flex-row items-center mb-3">
-            <Ionicons name="calendar" size={20} color="#15803d" />
-            <Text className="text-base text-gray-700 ml-2">
-              {formatSelectedDate()}
-            </Text>
-          </View>
-          <View className="flex-row items-center">
-            <Ionicons name="time" size={20} color="#15803d" />
-            <Text className="text-base text-gray-700 ml-2">
-              {getTimeSlotPreview()}
-            </Text>
-          </View>
+          <Text className="text-base text-gray-700">
+            {formatSelectedDate()} |{" "}
+            {selectedTimeSlot === "duration"
+              ? `${formatTime(startTime)} - ${formatTime(calculateEndTime())} (${selectedDuration} min)`
+              : selectedTimeSlot.charAt(0).toUpperCase() +
+                selectedTimeSlot.slice(1)}
+          </Text>
         </View>
 
         {/* Find Button */}
@@ -541,24 +543,9 @@ export default function DateTimePickerScreen(): JSX.Element {
 
         {/* Feedback */}
         {feedback ? (
-          <View className="flex-row items-center justify-center mb-4">
-            {feedback.includes("✅") ? (
-              <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
-            ) : feedback.includes("❌") ? (
-              <Ionicons name="close-circle" size={20} color="#dc2626" />
-            ) : null}
-            <Text
-              className={`text-center font-semibold ml-2 ${
-                feedback.includes("✅")
-                  ? "text-green-600"
-                  : feedback.includes("❌")
-                    ? "text-red-600"
-                    : "text-green-600"
-              }`}
-            >
-              {feedback.replace("✅", "").replace("❌", "").trim()}
-            </Text>
-          </View>
+          <Text className="text-center font-semibold text-green-600 mb-4">
+            {feedback}
+          </Text>
         ) : null}
       </ScrollView>
 
