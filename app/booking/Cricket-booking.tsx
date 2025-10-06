@@ -14,35 +14,16 @@ import FilterPills from "../../components/FilterPills";
 import Header from "../../components/Header";
 import SearchBar from "../../components/SearchBar";
 import { useAuth } from "../../context/AuthContext";
-import { useGroundStore } from "../../store/groundStore";
-
-interface Ground {
-  id: string;
-  groundOwnerName: string;
-  ownerName: string;
-  groundType: string;
-  yearsOfOperation: string;
-  primaryLocation: string;
-  facilityAvailable: string;
-  bookingFrequency: string;
-  groundDescription: string;
-  imageUrls: string;
-  acceptOnlineBookings: boolean;
-  allowTournamentsBookings: boolean;
-  receiveGroundAvailabilityNotifications: boolean;
-  owner?: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
-}
+import { Ground, useGroundStore } from "../../store/groundStore";
 
 const BASE_URL = "http://172.20.10.4:8080/api/v1";
 
 const GroundBookingScreen = () => {
   const router = useRouter();
   const { user } = useAuth();
+
   const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
+  const setGroundReviews = useGroundStore((state) => state.setGroundReviews);
 
   const [grounds, setGrounds] = useState<Ground[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,11 +37,50 @@ const GroundBookingScreen = () => {
     const fetchGrounds = async () => {
       try {
         const res = await axios.get(`${BASE_URL}/booking/grounds/all`);
-        // ✅ Correctly access nested array in response
-        const groundsArray = res.data?.data?.data || [];
+        const groundsArray = res.data?.data || [];
+
+        console.log("✅ Grounds fetched:", groundsArray);
+
         setGrounds(groundsArray);
+
+        // Fetch reviews for each ground
+        await Promise.all(
+          groundsArray.map(async (ground: Ground) => {
+            try {
+              const reviewRes = await axios.get(
+                `${BASE_URL}/review/ground/${ground.id}`
+              );
+
+              console.log(
+                `📄 Reviews for ground ${ground.id}:`,
+                JSON.stringify(reviewRes.data, null, 2)
+              );
+
+              const reviewData = reviewRes.data || {};
+              setGroundReviews(ground.id, {
+                reviews: reviewData.reviews || [],
+                averageRating: reviewData.averageRating || 0,
+                totalReviews: reviewData.totalReviews || 0,
+                page: reviewData.page || 0,
+                limit: reviewData.limit || 0,
+              });
+            } catch (error) {
+              console.warn(
+                `⚠️ Error fetching reviews for ground ${ground.id}:`,
+                error
+              );
+              setGroundReviews(ground.id, {
+                reviews: [],
+                averageRating: 0,
+                totalReviews: 0,
+                page: 0,
+                limit: 0,
+              });
+            }
+          })
+        );
       } catch (err) {
-        console.error("Error fetching grounds:", err);
+        console.error("❌ Error fetching grounds:", err);
         setGrounds([]);
       } finally {
         setLoading(false);
@@ -94,21 +114,20 @@ const GroundBookingScreen = () => {
           grounds.map((ground) => (
             <VenueCard
               key={ground.id}
+              groundId={ground.id} // ✅ Pass groundId for rating fetch
               imageUrl={ground.imageUrls.split(",")[0]}
               availabilityText={
                 ground.acceptOnlineBookings ? "Available" : "Unavailable"
               }
               initialIsFavorited={true}
-              rating={4.8}
               stadiumName={ground.groundOwnerName}
               location={ground.primaryLocation}
-              // 💰 Use rupees
               price={`₹ ${
                 ground.bookingFrequency === "daily" ? "1200/-" : "N/A"
               }`}
               features={ground.facilityAvailable.split(",")}
               onBookNowPress={() => {
-                setSelectedGround(ground); // Store ground in Zustand
+                setSelectedGround(ground);
                 router.push(`/booking/GroundDetails?groundId=${ground.id}`);
               }}
             />

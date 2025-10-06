@@ -6,9 +6,11 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -23,6 +25,8 @@ const GroundListScreen: React.FC = () => {
   const router = useRouter();
 
   const BASE_URL = "http://172.20.10.4:8080/api/v1";
+  const FIXED_IMAGE =
+    "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2505&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
   useEffect(() => {
     fetchData();
@@ -35,7 +39,7 @@ const GroundListScreen: React.FC = () => {
       });
       const json = await res.json();
 
-      const grouped = json.data.reduce((acc: any, request: any) => {
+      const grouped = json.data?.reduce((acc: any, request: any) => {
         const groundId = request.ground.id;
         if (!acc[groundId])
           acc[groundId] = { ground: request.ground, bookings: [] };
@@ -43,11 +47,11 @@ const GroundListScreen: React.FC = () => {
         return acc;
       }, {});
 
-      const groupedArray = Object.values(grouped);
+      const groupedArray = Object.values(grouped || {});
       setGrounds(groupedArray);
       setGroundsData(groupedArray);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching grounds:", err);
     } finally {
       setLoading(false);
     }
@@ -55,58 +59,203 @@ const GroundListScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#16a34a" />
-        <Text className="mt-2 text-gray-600 font-semibold">Loading...</Text>
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar
+          backgroundColor="#4CAF50"
+          barStyle="light-content"
+          translucent={false}
+        />
+        <ActivityIndicator size="large" color="#4CAF50" />
+        <Text style={styles.loadingText}>Loading grounds...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar backgroundColor="#15803d" barStyle="light-content" />
-      <View className="p-4 bg-green-600">
-        <Text className="text-xl text-white font-bold">
-          Ground Booking Requests
-        </Text>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar
+        backgroundColor="#4CAF50"
+        barStyle="light-content"
+        translucent={false}
+      />
 
-      <ScrollView className="p-4">
-        {groundsData.length === 0 ? (
-          <Text className="text-center text-gray-500 mt-10 font-medium">
-            No booking requests found
-          </Text>
-        ) : (
-          groundsData.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              className="bg-white border-l-4 border-green-600 p-4 rounded-lg shadow mb-4"
-              onPress={() => {
-                setSelectedGround(item);
-                router.push("/ground_owner/BookingRequest"); // navigate to booking request screen
-              }}
-            >
-              <Image
-                source={{ uri: item.ground.imageUrls.split(",")[0] }}
-                className="w-full h-36 rounded mb-3"
-                resizeMode="cover"
-              />
-              <Text className="text-lg font-bold text-gray-800">
-                {item.ground.groundOwnerName}
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Ground Booking Requests</Text>
+        </View>
+
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          {groundsData.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No booking requests found</Text>
+              <Text style={styles.emptySubtext}>
+                New booking requests will appear here
               </Text>
-              <Text className="text-gray-600">
-                {item.ground.primaryLocation}
-              </Text>
-              <Text className="text-gray-500 mt-1">
-                {item.bookings.length} booking request(s)
-              </Text>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
-      <BottomNavBar />
+            </View>
+          ) : (
+            groundsData.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.groundCard}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setSelectedGround(item);
+                  router.push("/ground_owner/BookingRequest");
+                }}
+              >
+                {/* Always use the fixed Unsplash image */}
+                <Image
+                  source={{ uri: FIXED_IMAGE }}
+                  style={styles.groundImage}
+                  resizeMode="cover"
+                />
+
+                <View style={styles.cardContent}>
+                  <Text style={styles.groundName}>
+                    {item.ground.groundOwnerName}
+                  </Text>
+                  <Text style={styles.groundLocation}>
+                    {item.ground.primaryLocation}
+                  </Text>
+                  <Text style={styles.bookingCount}>
+                    {item.bookings.length} booking request
+                    {item.bookings.length > 1 ? "s" : ""}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+
+        {/* Bottom Nav flush to bottom */}
+        <View style={styles.bottomNavWrapper}>
+          <BottomNavBar />
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
 
 export default GroundListScreen;
+
+// ---------------------- STYLES ----------------------
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  scrollView: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
+
+  header: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "white",
+  },
+
+  groundCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+    overflow: "hidden",
+  },
+  groundImage: {
+    width: "100%",
+    height: 160,
+    backgroundColor: "#EAEAEA",
+  },
+  cardContent: {
+    padding: 16,
+  },
+  groundName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1A1A1A",
+  },
+  groundLocation: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+  },
+  bookingCount: {
+    fontSize: 13,
+    color: "#4CAF50",
+    marginTop: 6,
+    fontWeight: "600",
+  },
+
+  emptyState: {
+    backgroundColor: "white",
+    padding: 40,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 60,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#666",
+  },
+
+  bottomNavWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "white",
+    elevation: 0, // Android
+    shadowOpacity: 0, // iOS
+  },
+});

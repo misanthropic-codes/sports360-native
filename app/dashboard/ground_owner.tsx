@@ -18,8 +18,10 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -74,8 +76,8 @@ interface BookingRequest {
   status: string;
   message: string;
   requestedAt: string;
-  reviewedAt: string;
-  reviewedBy: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   rejectionReason: string | null;
   ground: Ground;
   user: User;
@@ -97,6 +99,7 @@ const GroundOwnerDashboard: React.FC = () => {
   const router = useRouter();
 
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [groundInfo, setGroundInfo] = useState<Ground | null>(null);
@@ -104,6 +107,12 @@ const GroundOwnerDashboard: React.FC = () => {
   useEffect(() => {
     const fetchBookingStatus = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
+        console.log("Fetching booking status...");
+        console.log("Token:", token ? "Present" : "Missing");
+
         const response = await fetch(
           "http://172.20.10.4:8080/api/v1/booking/status",
           {
@@ -115,23 +124,62 @@ const GroundOwnerDashboard: React.FC = () => {
           }
         );
 
-        const data: BookingStatusResponse = await response.json();
+        console.log("Response status:", response.status);
 
-        if (data?.summary) setSummary(data.summary);
-        if (data?.data?.groundBookingRequests)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: BookingStatusResponse = await response.json();
+        console.log("Full API Response:", JSON.stringify(data, null, 2));
+
+        // Set summary
+        if (data?.summary) {
+          console.log("Setting summary:", data.summary);
+          setSummary(data.summary);
+        }
+
+        // Set bookings - FIXED: Check for groundBookingRequests properly
+        if (
+          data?.data?.groundBookingRequests &&
+          Array.isArray(data.data.groundBookingRequests)
+        ) {
+          console.log(
+            "Number of bookings:",
+            data.data.groundBookingRequests.length
+          );
           setBookings(data.data.groundBookingRequests);
 
-        if (data?.data?.groundBookingRequests?.length > 0) {
-          setGroundInfo(data.data.groundBookingRequests[0].ground);
+          // Set ground info from first booking
+          if (
+            data.data.groundBookingRequests.length > 0 &&
+            data.data.groundBookingRequests[0]?.ground
+          ) {
+            console.log(
+              "Setting ground info:",
+              data.data.groundBookingRequests[0].ground.groundOwnerName
+            );
+            setGroundInfo(data.data.groundBookingRequests[0].ground);
+          }
+        } else {
+          console.log("No ground booking requests found or invalid format");
+          setBookings([]);
         }
       } catch (error) {
         console.error("Error fetching booking status:", error);
+        setError(error instanceof Error ? error.message : "An error occurred");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBookingStatus();
+    if (token) {
+      fetchBookingStatus();
+    } else {
+      console.log("No token available");
+      setLoading(false);
+      setError("Authentication token missing");
+    }
   }, [token]);
 
   const getStatusColor = (status: string) => {
@@ -161,20 +209,28 @@ const GroundOwnerDashboard: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return dateString;
+    }
   };
 
   const renderBookingItem = ({ item }: { item: BookingRequest }) => (
@@ -245,14 +301,31 @@ const GroundOwnerDashboard: React.FC = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
         <ActivityIndicator size="large" color="#4CAF50" />
         <Text style={styles.loadingText}>Loading dashboard...</Text>
       </SafeAreaView>
     );
   }
 
+  if (error) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => window.location.reload()}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#4CAF50" />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -260,14 +333,15 @@ const GroundOwnerDashboard: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <View>
+            <View style={styles.headerTextContainer}>
               <Text style={styles.greeting}>Welcome back,</Text>
-              <Text style={styles.userName}>{user?.fullName}</Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
+              <Text style={styles.userName}>{user?.fullName || "User"}</Text>
+              <Text style={styles.userEmail}>{user?.email || ""}</Text>
             </View>
             <TouchableOpacity
               style={styles.profileButton}
               onPress={() => router.push("/profile")}
+              activeOpacity={0.7}
             >
               <Text style={styles.profileButtonText}>Profile</Text>
             </TouchableOpacity>
@@ -370,7 +444,12 @@ const GroundOwnerDashboard: React.FC = () => {
                 showsHorizontalScrollIndicator={false}
                 style={styles.imageScroll}
               >
-                {groundInfo.imageUrls.split(",").map((url, idx) => (
+                {[
+                  "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=400&h=300&fit=crop",
+                  "https://images.unsplash.com/photo-1551958219-acbc608c6377?w=400&h=300&fit=crop",
+                  "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&h=300&fit=crop",
+                  "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=400&h=300&fit=crop",
+                ].map((url, idx) => (
                   <Image
                     key={idx}
                     source={{ uri: url }}
@@ -419,10 +498,11 @@ export default GroundOwnerDashboard;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#4CAF50",
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "#F8F9FA",
   },
   loadingContainer: {
     flex: 1,
@@ -435,11 +515,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
+  errorText: {
+    fontSize: 16,
+    color: "#F44336",
+    textAlign: "center",
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
+  },
 
   // Header
   header: {
     backgroundColor: "#4CAF50",
-    paddingTop: 20,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
     paddingBottom: 30,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -454,6 +552,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingHorizontal: 20,
+  },
+  headerTextContainer: {
+    flex: 1,
+    marginRight: 12,
   },
   greeting: {
     fontSize: 16,
@@ -477,6 +579,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
+    minHeight: 36,
+    justifyContent: "center",
   },
   profileButtonText: {
     color: "white",

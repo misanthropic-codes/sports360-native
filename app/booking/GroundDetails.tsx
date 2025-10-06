@@ -4,6 +4,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Star } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,16 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useGroundStore } from "../../store/groundStore";
-
-type Ground = {
-  id: string;
-  groundOwnerName: string;
-  primaryLocation: string;
-  groundDescription: string;
-  facilityAvailable: string;
-  imageUrls: string;
-};
+import { Ground, useGroundStore } from "../../store/groundStore";
 
 type Tournament = {
   id: string;
@@ -48,6 +40,9 @@ const GroundDetailsScreen: React.FC = () => {
 
   const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
   const selectedGround = useGroundStore((state) => state.selectedGround);
+  const groundReviews = useGroundStore((state) =>
+    selectedGround ? state.groundReviews[selectedGround.id] : null
+  );
 
   const [loading, setLoading] = useState(false);
   const [startDateTime, setStartDateTime] = useState(new Date());
@@ -72,7 +67,7 @@ const GroundDetailsScreen: React.FC = () => {
 
   const [ground, setGround] = useState<Ground | null>(selectedGround);
 
-  // If no ground in Zustand, fetch from API
+  // Fetch ground details if not in Zustand
   useEffect(() => {
     const fetchGroundDetails = async () => {
       if (!finalGroundId || ground) return;
@@ -81,13 +76,11 @@ const GroundDetailsScreen: React.FC = () => {
         const res = await axios.get(
           `${BASE_URL}/booking/grounds/${finalGroundId}`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         setGround(res.data.data);
-        setSelectedGround(res.data.data); // Store in Zustand for reuse
+        setSelectedGround(res.data.data);
       } catch (error) {
         console.error("Error fetching ground details:", error);
       }
@@ -96,19 +89,17 @@ const GroundDetailsScreen: React.FC = () => {
     fetchGroundDetails();
   }, [finalGroundId, token, ground, setSelectedGround]);
 
+  // Fetch tournaments
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
         const data = await getAllTournaments(token);
         setTournaments(data);
-        if (data.length > 0) {
-          setSelectedTournamentId(data[0].id);
-        }
+        if (data.length > 0) setSelectedTournamentId(data[0].id);
       } catch (error) {
         console.error("Error fetching tournaments:", error);
       }
     };
-
     fetchTournaments();
   }, []);
 
@@ -121,11 +112,8 @@ const GroundDetailsScreen: React.FC = () => {
       setPickerState((prev) => ({ ...prev, show: false }));
     }
     if (selectedDate) {
-      if (pickerState.type === "start") {
-        setStartDateTime(selectedDate);
-      } else {
-        setEndDateTime(selectedDate);
-      }
+      if (pickerState.type === "start") setStartDateTime(selectedDate);
+      else setEndDateTime(selectedDate);
     }
   };
 
@@ -157,16 +145,13 @@ const GroundDetailsScreen: React.FC = () => {
       alert("Please fill in all fields");
       return;
     }
-
     if (endDateTime <= startDateTime) {
       alert("End time must be after start time");
       return;
     }
-
     setLoading(true);
-
     try {
-      const response = await axios.post(
+      await axios.post(
         `${BASE_URL}/booking/request`,
         {
           groundId: finalGroundId,
@@ -176,13 +161,8 @@ const GroundDetailsScreen: React.FC = () => {
           tournamentId: selectedTournamentId,
           message: message.trim(),
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       alert("Booking request sent successfully!");
       router.push("/booking/ViewAllBookings");
     } catch (error: any) {
@@ -233,6 +213,20 @@ const GroundDetailsScreen: React.FC = () => {
         </Text>
         <Text className="text-gray-600">{ground.primaryLocation}</Text>
         <Text className="mt-2 text-base">{ground.groundDescription}</Text>
+
+        {/* Ratings Section */}
+        {groundReviews && (
+          <View className="flex-row items-center mt-3">
+            <Star size={20} color="#FBBF24" fill="#FBBF24" />
+            <Text className="ml-2 font-bold text-lg">
+              {groundReviews.averageRating.toFixed(1)}
+            </Text>
+            <Text className="ml-2 text-gray-500">
+              ({groundReviews.totalReviews} reviews)
+            </Text>
+          </View>
+        )}
+
         <View className="mt-4">
           <Text className="font-semibold">Facilities:</Text>
           {ground.facilityAvailable.split(",").map((f, idx) => (

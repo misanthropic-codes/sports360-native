@@ -1,12 +1,13 @@
 import { Heart, MapPin, Star } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
+import { useGroundStore } from "../store/groundStore"; // ✅ Zustand store
 
 interface VenueCardProps {
+  groundId: string;
   imageUrl: string;
   availabilityText: string;
   initialIsFavorited?: boolean;
-  rating: number;
   stadiumName: string;
   location: string;
   price: string;
@@ -15,10 +16,10 @@ interface VenueCardProps {
 }
 
 const VenueCard: React.FC<VenueCardProps> = ({
+  groundId,
   imageUrl,
   availabilityText,
   initialIsFavorited = false,
-  rating,
   stadiumName,
   location,
   price,
@@ -26,6 +27,37 @@ const VenueCard: React.FC<VenueCardProps> = ({
   onBookNowPress,
 }) => {
   const [isFavorited, setIsFavorited] = useState<boolean>(initialIsFavorited);
+
+  // ✅ Get review data from Zustand store
+  const reviewsData = useGroundStore((state) => state.groundReviews[groundId]);
+  const [averageRating, setAverageRating] = useState<number>(0);
+
+  useEffect(() => {
+    if (reviewsData && typeof reviewsData.averageRating === "number") {
+      setAverageRating(reviewsData.averageRating);
+    }
+  }, [reviewsData]);
+
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating - fullStars >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+    return (
+      <View className="flex-row items-center">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star key={`full-${i}`} size={16} color="#FBBF24" fill="#FBBF24" />
+        ))}
+        {halfStar && <Star key="half" size={16} color="#FBBF24" fill="none" />}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Star key={`empty-${i}`} size={16} color="#CBD5E1" fill="none" />
+        ))}
+        <Text className="ml-1 text-slate-800 font-bold">
+          {rating.toFixed(1)}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <View className="bg-white rounded-2xl shadow-lg m-4 border border-slate-100">
@@ -55,13 +87,12 @@ const VenueCard: React.FC<VenueCardProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Rating */}
-          <View className="self-end bg-white/90 rounded-full px-3 py-2 flex-row items-center shadow-md">
-            <Text className="text-slate-800 font-bold mr-1">
-              {rating.toFixed(1)}
-            </Text>
-            <Star size={16} color="#FBBF24" fill="#FBBF24" />
-          </View>
+          {/* Rating Section */}
+          {averageRating > 0 && (
+            <View className="self-end bg-white/90 rounded-full px-3 py-2 flex-row items-center shadow-md">
+              {renderStars(averageRating)}
+            </View>
+          )}
         </View>
       </ImageBackground>
 
@@ -82,7 +113,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
 
         {/* Features & Button */}
         <View className="flex-row justify-between items-center mt-4">
-          <View className="flex-row gap-2 flex-wrap">
+          <View className="flex-row gap-2 flex-wrap flex-1">
             {features.map((feature: string, index: number) => (
               <View
                 key={`${feature}-${index}`}
@@ -102,7 +133,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
           </View>
           <TouchableOpacity
             onPress={onBookNowPress}
-            className="bg-blue-500 rounded-lg px-6 py-3 shadow"
+            className="bg-blue-500 rounded-lg px-6 py-3 shadow ml-2"
           >
             <Text className="text-white font-bold">Book Now</Text>
           </TouchableOpacity>
