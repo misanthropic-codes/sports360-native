@@ -1,11 +1,10 @@
 import { getAllTournaments } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Star } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import { Calendar, ChevronDown, Clock, Star } from "lucide-react-native";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -13,6 +12,7 @@ import {
   Platform,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
@@ -36,7 +36,19 @@ const BASE_URL = "http://172.20.10.4:8080/api/v1";
 const GroundDetailsScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { token } = useAuth();
+  const { token, role } = useAuth();
+
+  // Theme colors based on role
+  const theme = useMemo(() => {
+    const isOrganizer = role?.toLowerCase() === "organizer";
+    return {
+      primary: isOrganizer ? "#9333ea" : "#2563eb",
+      primaryDark: isOrganizer ? "#7e22ce" : "#1d4ed8",
+      primaryLight: isOrganizer ? "#c084fc" : "#60a5fa",
+      primaryBg: isOrganizer ? "#faf5ff" : "#eff6ff",
+      primaryBorder: isOrganizer ? "#e9d5ff" : "#dbeafe",
+    };
+  }, [role]);
 
   const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
   const selectedGround = useGroundStore((state) => state.selectedGround);
@@ -56,6 +68,7 @@ const GroundDetailsScreen: React.FC = () => {
   const [message, setMessage] = useState("");
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+  const [showTournamentPicker, setShowTournamentPicker] = useState(false);
 
   const [pickerState, setPickerState] = useState<DateTimePickerState>({
     show: false,
@@ -64,7 +77,6 @@ const GroundDetailsScreen: React.FC = () => {
   });
 
   const finalGroundId = (params.groundId as string) || "";
-
   const [ground, setGround] = useState<Ground | null>(selectedGround);
 
   // Fetch ground details if not in Zustand
@@ -101,7 +113,7 @@ const GroundDetailsScreen: React.FC = () => {
       }
     };
     fetchTournaments();
-  }, []);
+  }, [token]);
 
   const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") => {
     setPickerState({ show: true, mode, type });
@@ -177,131 +189,233 @@ const GroundDetailsScreen: React.FC = () => {
     label,
     date,
     onPress,
+    icon: Icon,
   }: {
     label: string;
     date: Date;
     onPress: () => void;
+    icon: any;
   }) => (
     <TouchableOpacity
       onPress={onPress}
-      className="border border-gray-300 p-3 rounded-lg my-2 bg-gray-50"
+      style={{
+        borderColor: theme.primaryBorder,
+        backgroundColor: theme.primaryBg,
+      }}
+      className="border-2 p-4 rounded-xl my-2"
     >
-      <Text className="text-gray-700 font-medium">{label}</Text>
-      <Text className="text-lg text-black">
-        {formatDate(date)} at {formatTime(date)}
-      </Text>
+      <View className="flex-row items-center justify-between">
+        <View className="flex-1">
+          <Text className="text-gray-600 text-sm mb-1">{label}</Text>
+          <Text className="text-base font-semibold text-gray-900">
+            {formatDate(date)} • {formatTime(date)}
+          </Text>
+        </View>
+        <Icon size={24} color={theme.primary} />
+      </View>
     </TouchableOpacity>
+  );
+
+  const selectedTournament = tournaments.find(
+    (t) => t.id === selectedTournamentId
   );
 
   if (!ground) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#0000ff" />
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <ActivityIndicator size="large" color={theme.primary} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 p-4">
-        <Image
-          source={{ uri: ground.imageUrls.split(",")[0] }}
-          className="w-full h-60 rounded-xl"
-        />
-        <Text className="text-2xl font-bold mt-4">
-          {ground.groundOwnerName}
-        </Text>
-        <Text className="text-gray-600">{ground.primaryLocation}</Text>
-        <Text className="mt-2 text-base">{ground.groundDescription}</Text>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Ground Image */}
+        <View className="relative">
+          <Image
+            source={{
+              uri: "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800&q=80",
+            }}
+            className="w-full h-64"
+            resizeMode="cover"
+          />
 
-        {/* Ratings Section */}
-        {groundReviews && (
-          <View className="flex-row items-center mt-3">
-            <Star size={20} color="#FBBF24" fill="#FBBF24" />
-            <Text className="ml-2 font-bold text-lg">
-              {groundReviews.averageRating.toFixed(1)}
-            </Text>
-            <Text className="ml-2 text-gray-500">
-              ({groundReviews.totalReviews} reviews)
-            </Text>
-          </View>
-        )}
-
-        <View className="mt-4">
-          <Text className="font-semibold">Facilities:</Text>
-          {ground.facilityAvailable.split(",").map((f, idx) => (
-            <Text key={idx} className="text-gray-700">
-              • {f.trim()}
-            </Text>
-          ))}
+          <View className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         </View>
 
-        {/* Booking Form */}
-        <View className="mt-6">
-          <Text className="font-semibold text-lg mb-4">Book This Ground</Text>
+        <View className="px-4 pt-4">
+          {/* Ground Info */}
+          <Text className="text-3xl font-bold text-gray-900 mb-1">
+            {ground.groundOwnerName}
+          </Text>
+          <Text className="text-base text-gray-600 mb-3">
+            {ground.primaryLocation}
+          </Text>
 
-          <Text className="mt-2 font-semibold">Select Tournament:</Text>
-          <View className="border border-gray-300 rounded-lg my-2">
-            <Picker
-              selectedValue={selectedTournamentId}
-              onValueChange={(itemValue) => setSelectedTournamentId(itemValue)}
-            >
-              {tournaments.map((t) => (
-                <Picker.Item key={t.id} label={t.name} value={t.id} />
+          {/* Ratings Section */}
+          {groundReviews && (
+            <View className="flex-row items-center mb-4">
+              <View
+                style={{ backgroundColor: theme.primary }}
+                className="flex-row items-center px-3 py-2 rounded-full"
+              >
+                <Star size={16} color="#ffffff" fill="#ffffff" />
+                <Text className="ml-1 font-bold text-base text-white">
+                  {groundReviews.averageRating.toFixed(1)}
+                </Text>
+              </View>
+              <Text className="ml-3 text-gray-600 text-base">
+                {groundReviews.totalReviews} reviews
+              </Text>
+            </View>
+          )}
+
+          <Text className="text-base text-gray-700 leading-6 mb-4">
+            {ground.groundDescription}
+          </Text>
+
+          {/* Facilities Section */}
+          <View
+            style={{
+              backgroundColor: theme.primaryBg,
+              borderColor: theme.primaryBorder,
+            }}
+            className="border-2 rounded-2xl p-4 mb-6"
+          >
+            <Text className="font-bold text-lg mb-3 text-gray-900">
+              Facilities
+            </Text>
+            <View className="flex-row flex-wrap">
+              {ground.facilityAvailable.split(",").map((f, idx) => (
+                <View
+                  key={idx}
+                  style={{ backgroundColor: "white" }}
+                  className="px-4 py-2 rounded-full mr-2 mb-2 border border-gray-200"
+                >
+                  <Text className="text-gray-700 text-sm font-medium">
+                    {f.trim()}
+                  </Text>
+                </View>
               ))}
-            </Picker>
+            </View>
           </View>
 
-          <Text className="mt-4 font-semibold mb-2">Start Date & Time:</Text>
-          <DateTimeButton
-            label="Select Start Date"
-            date={startDateTime}
-            onPress={() => showDateTimePicker("date", "start")}
-          />
-          <DateTimeButton
-            label="Select Start Time"
-            date={startDateTime}
-            onPress={() => showDateTimePicker("time", "start")}
-          />
+          {/* Booking Form */}
+          <View className="mb-6">
+            <Text className="font-bold text-2xl mb-4 text-gray-900">
+              Book This Ground
+            </Text>
 
-          <Text className="mt-4 font-semibold mb-2">End Date & Time:</Text>
-          <DateTimeButton
-            label="Select End Date"
-            date={endDateTime}
-            onPress={() => showDateTimePicker("date", "end")}
-          />
-          <DateTimeButton
-            label="Select End Time"
-            date={endDateTime}
-            onPress={() => showDateTimePicker("time", "end")}
-          />
+            {/* Tournament Selection */}
+            <Text className="font-semibold text-base mb-2 text-gray-900">
+              Select Tournament
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowTournamentPicker(true)}
+              style={{
+                borderColor: theme.primaryBorder,
+                backgroundColor: theme.primaryBg,
+              }}
+              className="border-2 p-4 rounded-xl mb-4 flex-row justify-between items-center"
+            >
+              <Text className="text-base font-medium text-gray-900 flex-1">
+                {selectedTournament?.name || "Select a tournament"}
+              </Text>
+              <ChevronDown size={24} color={theme.primary} />
+            </TouchableOpacity>
 
-          <Text className="mt-4 font-semibold">Purpose:</Text>
-          <TextInput
-            placeholder="Enter purpose of booking"
-            value={purpose}
-            onChangeText={setPurpose}
-            className="border border-gray-300 p-3 rounded-lg my-2 bg-gray-50"
-          />
+            {/* Start Date & Time */}
+            <Text className="font-semibold text-base mb-2 text-gray-900">
+              Start Date & Time
+            </Text>
+            <DateTimeButton
+              label="Date"
+              date={startDateTime}
+              onPress={() => showDateTimePicker("date", "start")}
+              icon={Calendar}
+            />
+            <DateTimeButton
+              label="Time"
+              date={startDateTime}
+              onPress={() => showDateTimePicker("time", "start")}
+              icon={Clock}
+            />
 
-          <Text className="mt-2 font-semibold">Message:</Text>
-          <TextInput
-            placeholder="Any additional message"
-            value={message}
-            onChangeText={setMessage}
-            className="border border-gray-300 p-3 rounded-lg my-2 bg-gray-50"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
+            {/* End Date & Time */}
+            <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
+              End Date & Time
+            </Text>
+            <DateTimeButton
+              label="Date"
+              date={endDateTime}
+              onPress={() => showDateTimePicker("date", "end")}
+              icon={Calendar}
+            />
+            <DateTimeButton
+              label="Time"
+              date={endDateTime}
+              onPress={() => showDateTimePicker("time", "end")}
+              icon={Clock}
+            />
+
+            {/* Purpose */}
+            <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
+              Purpose
+            </Text>
+            <TextInput
+              placeholder="Enter purpose of booking"
+              placeholderTextColor="#9ca3af"
+              value={purpose}
+              onChangeText={setPurpose}
+              style={{
+                borderColor: theme.primaryBorder,
+                backgroundColor: theme.primaryBg,
+              }}
+              className="border-2 p-4 rounded-xl text-base text-gray-900"
+            />
+
+            {/* Message */}
+            <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
+              Additional Message
+            </Text>
+            <TextInput
+              placeholder="Any additional message or requirements"
+              placeholderTextColor="#9ca3af"
+              value={message}
+              onChangeText={setMessage}
+              style={{
+                borderColor: theme.primaryBorder,
+                backgroundColor: theme.primaryBg,
+              }}
+              className="border-2 p-4 rounded-xl text-base text-gray-900"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
         </View>
       </ScrollView>
 
-      <View className="p-4 border-t border-gray-200 bg-white">
+      {/* Fixed Bottom Button */}
+      <View
+        className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200"
+        style={{
+          paddingBottom: Platform.OS === "ios" ? 34 : 16,
+        }}
+      >
         <TouchableOpacity
-          className="bg-blue-600 p-4 rounded-xl"
+          style={{ backgroundColor: theme.primary }}
+          className="p-4 rounded-2xl shadow-lg"
           onPress={handleBookNow}
           disabled={loading}
+          activeOpacity={0.8}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -313,20 +427,97 @@ const GroundDetailsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* DateTime Picker */}
-      {Platform.OS === "ios" && pickerState.show && (
-        <Modal transparent animationType="slide" visible={pickerState.show}>
-          <View className="flex-1 justify-end bg-black/50">
-            <View className="bg-white p-4">
-              <View className="flex-row justify-between items-center mb-4">
-                <TouchableOpacity onPress={hideDateTimePicker}>
-                  <Text className="text-blue-600 text-lg">Cancel</Text>
+      {/* Tournament Picker Modal */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={showTournamentPicker}
+        onRequestClose={() => setShowTournamentPicker(false)}
+      >
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white rounded-t-3xl">
+            <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+              <TouchableOpacity onPress={() => setShowTournamentPicker(false)}>
+                <Text
+                  style={{ color: theme.primary }}
+                  className="text-base font-semibold"
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-bold text-gray-900">
+                Select Tournament
+              </Text>
+              <TouchableOpacity onPress={() => setShowTournamentPicker(false)}>
+                <Text
+                  style={{ color: theme.primary }}
+                  className="text-base font-semibold"
+                >
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {tournaments.map((tournament) => (
+                <TouchableOpacity
+                  key={tournament.id}
+                  onPress={() => {
+                    setSelectedTournamentId(tournament.id);
+                    setShowTournamentPicker(false);
+                  }}
+                  className="p-4 border-b border-gray-100"
+                  style={{
+                    backgroundColor:
+                      selectedTournamentId === tournament.id
+                        ? theme.primaryBg
+                        : "white",
+                  }}
+                >
+                  <Text
+                    className="text-base font-medium"
+                    style={{
+                      color:
+                        selectedTournamentId === tournament.id
+                          ? theme.primary
+                          : "#111827",
+                    }}
+                  >
+                    {tournament.name}
+                  </Text>
                 </TouchableOpacity>
-                <Text className="text-lg font-semibold">
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* DateTime Picker for iOS */}
+      {Platform.OS === "ios" && pickerState.show && (
+        <Modal
+          transparent
+          animationType="slide"
+          visible={pickerState.show}
+          onRequestClose={hideDateTimePicker}
+        >
+          <View className="flex-1 justify-end bg-black/50">
+            <View className="bg-white rounded-t-3xl">
+              <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+                <TouchableOpacity onPress={hideDateTimePicker}>
+                  <Text
+                    style={{ color: theme.primary }}
+                    className="text-base font-semibold"
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <Text className="text-lg font-bold text-gray-900">
                   Select {pickerState.mode === "date" ? "Date" : "Time"}
                 </Text>
                 <TouchableOpacity onPress={hideDateTimePicker}>
-                  <Text className="text-blue-600 text-lg font-semibold">
+                  <Text
+                    style={{ color: theme.primary }}
+                    className="text-base font-semibold"
+                  >
                     Done
                   </Text>
                 </TouchableOpacity>
@@ -339,12 +530,14 @@ const GroundDetailsScreen: React.FC = () => {
                 is24Hour
                 display="spinner"
                 onChange={onDateTimeChange}
+                textColor="#000000"
               />
             </View>
           </View>
         </Modal>
       )}
 
+      {/* DateTime Picker for Android */}
       {Platform.OS === "android" && pickerState.show && (
         <DateTimePicker
           value={pickerState.type === "start" ? startDateTime : endDateTime}
