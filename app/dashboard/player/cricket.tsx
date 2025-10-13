@@ -1,10 +1,22 @@
-import { BookOpen, PlusCircle, Shield, Trophy } from "lucide-react-native";
-import React from "react";
-import { Platform, ScrollView, StatusBar, View } from "react-native";
-
 import AppScreen from "@/components/AppScreen";
-import { useAuth } from "@/context/AuthContext"; // ✅ import context
+import { useAuth } from "@/context/AuthContext";
+import { usePlayerAnalyticsStore } from "@/store/playerAnalyticsStore";
+import { Team, useTeamStore } from "@/store/teamStore";
 import { router } from "expo-router";
+import { BookOpen, PlusCircle, Shield, Trophy, X } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import ModalComponent from "react-native-modal";
+import Svg, { Circle } from "react-native-svg";
 import ActivityCard from "../../../components/ActivityCard";
 import BottomNavBar from "../../../components/BottomNavBar";
 import Header from "../../../components/Header";
@@ -12,9 +24,47 @@ import QuickActionCard from "../../../components/QuickActionCard";
 import SectionHeader from "../../../components/SectionHeader";
 import StatCard from "../../../components/StatCard";
 
-const CricketHomeScreen: React.FC = () => {
-  const { user } = useAuth(); // ✅ get logged in user directly
-  const name = user?.fullName ?? "Player"; // fallback if name not available
+const CricketHomeScreen = () => {
+  const { user, token } = useAuth();
+  const { summary, isLoading, fetchAnalytics } = usePlayerAnalyticsStore();
+
+  const { myTeams, fetchTeams } = useTeamStore(); // ✅ Zustand store for teams
+  const name = user?.fullName ?? "Player";
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<"teams" | "performance" | null>(
+    null
+  );
+
+  const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
+
+  // Fetch analytics and myTeams
+  useEffect(() => {
+    if (token) fetchAnalytics(token);
+    if (token && baseURL) fetchTeams(token, baseURL);
+  }, [token]);
+
+  if (isLoading) {
+    return (
+      <AppScreen
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator size="large" color="#2563EB" />
+      </AppScreen>
+    );
+  }
+
+  // 🏆 Win rate values
+  const winRate = summary?.winRate ?? 0;
+  const strokeDasharray = 2 * Math.PI * 45;
+  const strokeDashoffset = strokeDasharray - (strokeDasharray * winRate) / 100;
+
+  const openModal = (type: "teams" | "performance") => {
+    setModalType(type);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => setModalVisible(false);
 
   return (
     <AppScreen
@@ -24,63 +74,127 @@ const CricketHomeScreen: React.FC = () => {
     >
       <Header
         type="welcome"
-        name={name} // ✅ use AuthContext username
-        avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(
-          0
-        )}`}
-        onNotificationPress={() => console.log("Notifications clicked")}
-        onProfilePress={() => {
-          console.log("Profile button pressed");
-          router.push("/profile");
-        }}
+        name={name}
+        avatarUrl={`https://placehold.co/40x40/E2E8F0/4A5568?text=${name.charAt(0)}`}
+        onProfilePress={() => router.push("/profile")}
       />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
       >
+        {/* 📊 Top Stats */}
         <View className="flex-row justify-between mt-2">
-          <StatCard value="12" label="Matches" color="bg-blue-400" />
-          <StatCard value="6" label="Wins" color="bg-green-400" />
-          <StatCard value="159" label="Avg Score" color="bg-red-400" />
+          <StatCard
+            value={summary?.totalMatchesPlayed?.toString() ?? "0"}
+            label="Matches"
+            color="bg-blue-400"
+          />
+          <StatCard
+            value={summary?.matchesWon?.toString() ?? "0"}
+            label="Wins"
+            color="bg-green-400"
+          />
+          <StatCard
+            value={summary?.averageScore?.toString() ?? "0"}
+            label="Avg Score"
+            color="bg-red-400"
+          />
         </View>
 
-        <SectionHeader title="Upcoming Activity" />
-        <ActivityCard
-          layoutType="detailed"
-          icon={<Shield size={20} color="white" />}
-          title="City Tournament"
-          subtitle="VS Delhi Riders"
-          tag="Booked Free"
-          date="12/03/26"
-          time="10:00 AM"
-          location="Sports Complex"
-        />
-        <ActivityCard
-          layoutType="detailed"
-          icon={<Shield size={20} color="white" />}
-          title="Practice Match"
-          subtitle="VS Punjabi Munde"
-          tag="Booked Free"
-          date="12/03/26"
-          time="10:00 AM"
-          location="Ground no.5"
-        />
+        {/* 🏆 Win Rate */}
+        <SectionHeader title="Win Rate" />
+        <View style={{ alignItems: "center", marginVertical: 16 }}>
+          <View style={{ width: 120, height: 120 }}>
+            <Svg width={120} height={120}>
+              <Circle
+                cx={60}
+                cy={60}
+                r={45}
+                stroke="#E5E7EB"
+                strokeWidth={10}
+                fill="none"
+              />
+              <Circle
+                cx={60}
+                cy={60}
+                r={45}
+                stroke="#22C55E"
+                strokeWidth={10}
+                fill="none"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin="60,60"
+              />
+            </Svg>
+            <View
+              style={StyleSheet.absoluteFill}
+              className="items-center justify-center"
+            >
+              <Text className="text-xl font-bold text-green-700">
+                {winRate}%
+              </Text>
+              <Text className="text-xs text-gray-500 mt-1">Win Rate</Text>
+            </View>
+          </View>
+        </View>
 
-        <SectionHeader title="Recent Activity" />
-        <ActivityCard
-          layoutType="simple"
-          icon={<Trophy size={20} color="gold" />}
-          description="You won the match "
-          timestamp="2 hours ago"
-        />
-        <ActivityCard
-          layoutType="simple"
-          icon={<Trophy size={20} color="gold" />}
-          description="New tournament Summer League 2024 registration open"
-          timestamp="1 day ago"
-        />
+        {/* 🏏 Performance Overview */}
+        <View className="flex-row items-center justify-between px-2 mt-6 mb-2">
+          <SectionHeader title="Performance Overview" />
+          <TouchableOpacity onPress={() => openModal("performance")}>
+            <Text className="text-red-600 font-medium">View All</Text>
+          </TouchableOpacity>
+        </View>
+        {summary ? (
+          <View className="bg-gray-100 rounded-2xl p-4 mx-2 mb-4">
+            <Text className="text-gray-700 text-sm mb-1">
+              <Text className="font-semibold">Total Runs:</Text>{" "}
+              {summary.totalRuns ?? 0}
+            </Text>
+            <Text className="text-gray-700 text-sm mb-1">
+              <Text className="font-semibold">Total Wickets:</Text>{" "}
+              {summary.totalWickets ?? 0}
+            </Text>
+            <Text className="text-gray-700 text-sm">
+              <Text className="font-semibold">Matches Played:</Text>{" "}
+              {summary.totalMatchesPlayed ?? 0}
+            </Text>
+          </View>
+        ) : (
+          <Text className="text-center text-gray-400 mt-4">
+            No performance data available.
+          </Text>
+        )}
 
+        {/* 👥 Teams Section */}
+        <View className="flex-row items-center justify-between px-2 mt-6 mb-2">
+          <SectionHeader title="Your Teams" />
+          <TouchableOpacity onPress={() => openModal("teams")}>
+            <Text className="text-blue-600 font-medium">View All</Text>
+          </TouchableOpacity>
+        </View>
+        {myTeams.length > 0 ? (
+          myTeams
+            .slice(0, 2)
+            .map((team: Team) => (
+              <ActivityCard
+                key={team.id}
+                layoutType="simple"
+                icon={<Shield size={20} color="white" />}
+                description={`${team.name}`}
+                timestamp={team.isActive ? "Active" : "Pending"}
+              />
+            ))
+        ) : (
+          <Text className="text-center text-gray-400 my-2">
+            You haven’t joined any teams yet.
+          </Text>
+        )}
+
+        {/* ⚡ Quick Actions */}
         <SectionHeader title="Quick Actions" />
         <View className="flex-row justify-between mb-4">
           <QuickActionCard
@@ -94,6 +208,7 @@ const CricketHomeScreen: React.FC = () => {
             onPress={() => router.push("/tournament/ViewTournament")}
           />
         </View>
+
         <View className="flex-row justify-between">
           <QuickActionCard
             icon={BookOpen}
@@ -109,6 +224,55 @@ const CricketHomeScreen: React.FC = () => {
       </ScrollView>
 
       <BottomNavBar role="player" type="cricket" />
+
+      {/* 🔽 Popup Modal */}
+      <ModalComponent
+        isVisible={modalVisible}
+        onBackdropPress={closeModal}
+        onBackButtonPress={closeModal}
+        style={{ margin: 0, justifyContent: "flex-end" }}
+      >
+        <View className="bg-white rounded-t-3xl p-5 max-h-[70%]">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-bold">
+              {modalType === "teams" ? "Your Teams" : "Full Performance Stats"}
+            </Text>
+            <TouchableOpacity onPress={closeModal}>
+              <X size={22} color="gray" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {modalType === "teams" &&
+              myTeams.map((team: Team) => (
+                <View key={team.id} className="bg-gray-100 rounded-xl p-3 mb-2">
+                  <Text className="font-semibold text-gray-800">
+                    {team.name}
+                  </Text>
+                  <Text className="text-gray-500 text-sm">
+                    {team.isActive ? "Active" : "Pending"}
+                  </Text>
+                </View>
+              ))}
+
+            {modalType === "performance" && summary && (
+              <View className="bg-gray-50 rounded-xl p-3">
+                {Object.entries(summary).map(([key, value]) => (
+                  <View
+                    key={key}
+                    className="flex-row justify-between border-b border-gray-200 py-1"
+                  >
+                    <Text className="capitalize text-gray-600">{key}</Text>
+                    <Text className="font-semibold text-gray-800">
+                      {String(value)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </ModalComponent>
     </AppScreen>
   );
 };

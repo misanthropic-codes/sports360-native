@@ -2,6 +2,14 @@ import { create } from "zustand";
 
 // ✅ Ground structure
 export interface Ground {
+  businessLogoUrl: any;
+  profileImageUrl: any;
+  businessName: ReactNode;
+  bio: ReactNode;
+  contactPhone: any;
+  contactEmail: any;
+  website: any;
+  businessAddress: any;
   id: string;
   groundOwnerName: string;
   ownerName: string;

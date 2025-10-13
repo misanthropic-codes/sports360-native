@@ -1,35 +1,28 @@
-import { Heart, MapPin, Star } from "lucide-react-native";
+import { Globe, Heart, Mail, MapPin, Phone, Star } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
-import { useGroundStore } from "../store/groundStore"; // ✅ Zustand store
+import {
+  ImageBackground,
+  Linking,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ground, useGroundStore } from "../store/groundStore";
 
 interface VenueCardProps {
-  groundId: string;
-  imageUrl: string;
-  availabilityText: string;
-  initialIsFavorited?: boolean;
-  stadiumName: string;
-  location: string;
-  price: string;
-  features: string[];
+  ground: Ground; // Pass the full Ground object
   onBookNowPress: () => void;
+  initialIsFavorited?: boolean;
 }
 
 const VenueCard: React.FC<VenueCardProps> = ({
-  groundId,
-  imageUrl,
-  availabilityText,
-  initialIsFavorited = false,
-  stadiumName,
-  location,
-  price,
-  features,
+  ground,
   onBookNowPress,
+  initialIsFavorited = false,
 }) => {
   const [isFavorited, setIsFavorited] = useState<boolean>(initialIsFavorited);
 
-  // ✅ Get review data from Zustand store
-  const reviewsData = useGroundStore((state) => state.groundReviews[groundId]);
+  const reviewsData = useGroundStore((state) => state.groundReviews[ground.id]);
   const [averageRating, setAverageRating] = useState<number>(0);
 
   useEffect(() => {
@@ -59,11 +52,15 @@ const VenueCard: React.FC<VenueCardProps> = ({
     );
   };
 
+  const handleLinkPress = (url?: string) => {
+    if (url) Linking.openURL(url);
+  };
+
   return (
     <View className="bg-white rounded-2xl shadow-lg m-4 border border-slate-100">
       {/* Image Section */}
       <ImageBackground
-        source={{ uri: imageUrl }}
+        source={{ uri: ground.businessLogoUrl || ground.profileImageUrl }}
         className="h-48 w-full"
         imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
       >
@@ -72,7 +69,9 @@ const VenueCard: React.FC<VenueCardProps> = ({
           <View className="flex-row justify-between items-start">
             <View className="bg-green-500 rounded-full px-3 py-1">
               <Text className="text-white text-xs font-bold">
-                {availabilityText}
+                {ground.acceptOnlineBookings
+                  ? "Online Booking Enabled"
+                  : "Unavailable"}
               </Text>
             </View>
             <TouchableOpacity
@@ -98,46 +97,66 @@ const VenueCard: React.FC<VenueCardProps> = ({
 
       {/* Info Section */}
       <View className="p-4">
-        <View className="flex-row justify-between items-start">
-          <View>
-            <Text className="text-xl font-bold text-slate-800">
-              {stadiumName}
-            </Text>
-            <View className="flex-row items-center mt-1">
-              <MapPin size={16} color="#EF4444" />
-              <Text className="text-slate-500 ml-1">{location}</Text>
-            </View>
-          </View>
-          <Text className="text-lg font-bold text-green-600">{price}</Text>
+        <Text className="text-xl font-bold text-slate-800">
+          {ground.businessName}
+        </Text>
+        <Text className="text-slate-600 mb-2">{ground.ownerName}</Text>
+        <Text className="text-slate-500 mb-3">{ground.bio}</Text>
+
+        {/* Contact & Website Features */}
+        <View className="flex-row flex-wrap gap-2 mb-4">
+          {ground.contactPhone && (
+            <TouchableOpacity
+              onPress={() => handleLinkPress(`tel:${ground.contactPhone}`)}
+              className="flex-row items-center px-3 py-1 rounded-lg bg-green-100"
+            >
+              <Phone size={16} color="#16A34A" />
+              <Text className="ml-1 text-green-700 font-semibold">
+                {ground.contactPhone}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {ground.contactEmail && (
+            <TouchableOpacity
+              onPress={() => handleLinkPress(`mailto:${ground.contactEmail}`)}
+              className="flex-row items-center px-3 py-1 rounded-lg bg-indigo-100"
+            >
+              <Mail size={16} color="#4F46E5" />
+              <Text className="ml-1 text-indigo-700 font-semibold">
+                {ground.contactEmail}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {ground.website && (
+            <TouchableOpacity
+              onPress={() => handleLinkPress(ground.website)}
+              className="flex-row items-center px-3 py-1 rounded-lg bg-yellow-100"
+            >
+              <Globe size={16} color="#CA8A04" />
+              <Text className="ml-1 text-yellow-700 font-semibold">
+                {ground.website}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Features & Button */}
-        <View className="flex-row justify-between items-center mt-4">
-          <View className="flex-row gap-2 flex-wrap flex-1">
-            {features.map((feature: string, index: number) => (
-              <View
-                key={`${feature}-${index}`}
-                className={`px-4 py-2 rounded-lg ${
-                  index % 2 === 0 ? "bg-green-100" : "bg-indigo-100"
-                }`}
-              >
-                <Text
-                  className={`font-semibold ${
-                    index % 2 === 0 ? "text-green-700" : "text-indigo-700"
-                  }`}
-                >
-                  {feature}
-                </Text>
-              </View>
-            ))}
+        {/* Address */}
+        {ground.businessAddress && (
+          <View className="flex-row items-center mb-4">
+            <MapPin size={16} color="#EF4444" />
+            <Text className="ml-1 text-slate-500">
+              {ground.businessAddress}
+            </Text>
           </View>
-          <TouchableOpacity
-            onPress={onBookNowPress}
-            className="bg-blue-500 rounded-lg px-6 py-3 shadow ml-2"
-          >
-            <Text className="text-white font-bold">Book Now</Text>
-          </TouchableOpacity>
-        </View>
+        )}
+
+        {/* Book Now Button */}
+        <TouchableOpacity
+          onPress={onBookNowPress}
+          className="bg-blue-500 rounded-lg px-6 py-3 shadow items-center"
+        >
+          <Text className="text-white font-bold">Book Now</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

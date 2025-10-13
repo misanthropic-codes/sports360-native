@@ -20,6 +20,8 @@ import {
 } from "react-native";
 import { Ground, useGroundStore } from "../../store/groundStore";
 
+const BASE_URL = "http://172.20.10.4:8080/api/v1";
+
 type Tournament = {
   id: string;
   name: string;
@@ -31,14 +33,42 @@ type DateTimePickerState = {
   type: "start" | "end";
 };
 
-const BASE_URL = "http://172.20.10.4:8080/api/v1";
-
 const GroundDetailsScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { token, role } = useAuth();
 
-  // Theme colors based on role
+  const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
+  const selectedGround = useGroundStore((state) => state.selectedGround);
+  const groundReviews = useGroundStore((state) =>
+    selectedGround ? state.groundReviews[selectedGround.id] : null
+  );
+
+  const [ground, setGround] = useState<Ground | null>(selectedGround);
+  const [loading, setLoading] = useState(false);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+  const [showTournamentPicker, setShowTournamentPicker] = useState(false);
+
+  const [purpose, setPurpose] = useState("");
+  const [message, setMessage] = useState("");
+
+  const [startDateTime, setStartDateTime] = useState(new Date());
+  const [endDateTime, setEndDateTime] = useState(() => {
+    const end = new Date();
+    end.setHours(end.getHours() + 2);
+    return end;
+  });
+
+  const [pickerState, setPickerState] = useState<DateTimePickerState>({
+    show: false,
+    mode: "date",
+    type: "start",
+  });
+
+  const finalGroundId = (params.groundId as string) || "";
+
+  // 🎨 Role-based theme
   const theme = useMemo(() => {
     const isOrganizer = role?.toLowerCase() === "organizer";
     return {
@@ -50,58 +80,26 @@ const GroundDetailsScreen: React.FC = () => {
     };
   }, [role]);
 
-  const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
-  const selectedGround = useGroundStore((state) => state.selectedGround);
-  const groundReviews = useGroundStore((state) =>
-    selectedGround ? state.groundReviews[selectedGround.id] : null
-  );
-
-  const [loading, setLoading] = useState(false);
-  const [startDateTime, setStartDateTime] = useState(new Date());
-  const [endDateTime, setEndDateTime] = useState(() => {
-    const end = new Date();
-    end.setHours(end.getHours() + 2);
-    return end;
-  });
-
-  const [purpose, setPurpose] = useState("");
-  const [message, setMessage] = useState("");
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
-  const [showTournamentPicker, setShowTournamentPicker] = useState(false);
-
-  const [pickerState, setPickerState] = useState<DateTimePickerState>({
-    show: false,
-    mode: "date",
-    type: "start",
-  });
-
-  const finalGroundId = (params.groundId as string) || "";
-  const [ground, setGround] = useState<Ground | null>(selectedGround);
-
-  // Fetch ground details if not in Zustand
+  // 🏟️ Fetch Ground Details
   useEffect(() => {
     const fetchGroundDetails = async () => {
-      if (!finalGroundId || ground) return;
+      if (ground || !finalGroundId) return;
 
       try {
         const res = await axios.get(
-          `${BASE_URL}/booking/grounds/${finalGroundId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          `${BASE_URL}/booking/grounds/${finalGroundId}`
         );
         setGround(res.data.data);
         setSelectedGround(res.data.data);
       } catch (error) {
-        console.error("Error fetching ground details:", error);
+        console.error("❌ Error fetching ground details:", error);
       }
     };
 
     fetchGroundDetails();
-  }, [finalGroundId, token, ground, setSelectedGround]);
+  }, [finalGroundId]);
 
-  // Fetch tournaments
+  // 🏆 Fetch Tournaments
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
@@ -109,15 +107,15 @@ const GroundDetailsScreen: React.FC = () => {
         setTournaments(data);
         if (data.length > 0) setSelectedTournamentId(data[0].id);
       } catch (error) {
-        console.error("Error fetching tournaments:", error);
+        console.error("❌ Error fetching tournaments:", error);
       }
     };
     fetchTournaments();
   }, [token]);
 
-  const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") => {
+  // 📅 DateTime Picker Controls
+  const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") =>
     setPickerState({ show: true, mode, type });
-  };
 
   const onDateTimeChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
@@ -129,10 +127,10 @@ const GroundDetailsScreen: React.FC = () => {
     }
   };
 
-  const hideDateTimePicker = () => {
+  const hideDateTimePicker = () =>
     setPickerState((prev) => ({ ...prev, show: false }));
-  };
 
+  // 📆 Formatters
   const formatDate = (date: Date): string =>
     date.toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -147,13 +145,9 @@ const GroundDetailsScreen: React.FC = () => {
       hour12: false,
     });
 
+  // 🏁 Book Ground
   const handleBookNow = async () => {
-    if (
-      !purpose.trim() ||
-      !message.trim() ||
-      !selectedTournamentId ||
-      !finalGroundId
-    ) {
+    if (!purpose.trim() || !message.trim() || !selectedTournamentId) {
       alert("Please fill in all fields");
       return;
     }
@@ -161,6 +155,7 @@ const GroundDetailsScreen: React.FC = () => {
       alert("End time must be after start time");
       return;
     }
+
     setLoading(true);
     try {
       await axios.post(
@@ -175,11 +170,12 @@ const GroundDetailsScreen: React.FC = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert("Booking request sent successfully!");
+
+      alert("✅ Booking request sent successfully!");
       router.push("/booking/ViewAllBookings");
     } catch (error: any) {
       console.error("Booking failed:", error.response?.data || error);
-      alert("Booking failed. Please try again.");
+      alert("❌ Booking failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -216,10 +212,6 @@ const GroundDetailsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  const selectedTournament = tournaments.find(
-    (t) => t.id === selectedTournamentId
-  );
-
   if (!ground) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
@@ -229,6 +221,10 @@ const GroundDetailsScreen: React.FC = () => {
     );
   }
 
+  const facilities = ground.facilityAvailable
+    ? ground.facilityAvailable.split(",")
+    : [];
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -237,36 +233,35 @@ const GroundDetailsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Ground Image */}
-        <View className="relative">
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800&q=80",
-            }}
-            className="w-full h-64"
-            resizeMode="cover"
-          />
-
-          <View className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        </View>
+        {/* 🖼️ Ground Image */}
+        <Image
+          source={{
+            uri:
+              ground.profileImageUrl ||
+              ground.businessLogoUrl ||
+              "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800&q=80",
+          }}
+          className="w-full h-64"
+          resizeMode="cover"
+        />
 
         <View className="px-4 pt-4">
           {/* Ground Info */}
           <Text className="text-3xl font-bold text-gray-900 mb-1">
-            {ground.groundOwnerName}
+            {ground.businessName}
           </Text>
           <Text className="text-base text-gray-600 mb-3">
-            {ground.primaryLocation}
+            {ground.businessAddress || "No address provided"}
           </Text>
 
-          {/* Ratings Section */}
+          {/* Ratings */}
           {groundReviews && (
             <View className="flex-row items-center mb-4">
               <View
                 style={{ backgroundColor: theme.primary }}
                 className="flex-row items-center px-3 py-2 rounded-full"
               >
-                <Star size={16} color="#ffffff" fill="#ffffff" />
+                <Star size={16} color="#fff" fill="#fff" />
                 <Text className="ml-1 font-bold text-base text-white">
                   {groundReviews.averageRating.toFixed(1)}
                 </Text>
@@ -278,10 +273,10 @@ const GroundDetailsScreen: React.FC = () => {
           )}
 
           <Text className="text-base text-gray-700 leading-6 mb-4">
-            {ground.groundDescription}
+            {ground.groundDescription || "No description available."}
           </Text>
 
-          {/* Facilities Section */}
+          {/* 🏗️ Facilities */}
           <View
             style={{
               backgroundColor: theme.primaryBg,
@@ -293,11 +288,10 @@ const GroundDetailsScreen: React.FC = () => {
               Facilities
             </Text>
             <View className="flex-row flex-wrap">
-              {ground.facilityAvailable.split(",").map((f, idx) => (
+              {facilities.map((f, idx) => (
                 <View
                   key={idx}
-                  style={{ backgroundColor: "white" }}
-                  className="px-4 py-2 rounded-full mr-2 mb-2 border border-gray-200"
+                  className="px-4 py-2 rounded-full mr-2 mb-2 border border-gray-200 bg-white"
                 >
                   <Text className="text-gray-700 text-sm font-medium">
                     {f.trim()}
@@ -307,7 +301,7 @@ const GroundDetailsScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Booking Form */}
+          {/* 📝 Booking Form */}
           <View className="mb-6">
             <Text className="font-bold text-2xl mb-4 text-gray-900">
               Book This Ground
@@ -326,12 +320,13 @@ const GroundDetailsScreen: React.FC = () => {
               className="border-2 p-4 rounded-xl mb-4 flex-row justify-between items-center"
             >
               <Text className="text-base font-medium text-gray-900 flex-1">
-                {selectedTournament?.name || "Select a tournament"}
+                {tournaments.find((t) => t.id === selectedTournamentId)?.name ||
+                  "Select a tournament"}
               </Text>
               <ChevronDown size={24} color={theme.primary} />
             </TouchableOpacity>
 
-            {/* Start Date & Time */}
+            {/* Date & Time Inputs */}
             <Text className="font-semibold text-base mb-2 text-gray-900">
               Start Date & Time
             </Text>
@@ -348,7 +343,6 @@ const GroundDetailsScreen: React.FC = () => {
               icon={Clock}
             />
 
-            {/* End Date & Time */}
             <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
               End Date & Time
             </Text>
@@ -403,12 +397,10 @@ const GroundDetailsScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Fixed Bottom Button */}
+      {/* Bottom Book Button */}
       <View
         className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200"
-        style={{
-          paddingBottom: Platform.OS === "ios" ? 34 : 16,
-        }}
+        style={{ paddingBottom: Platform.OS === "ios" ? 34 : 16 }}
       >
         <TouchableOpacity
           style={{ backgroundColor: theme.primary }}
@@ -427,13 +419,8 @@ const GroundDetailsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Tournament Picker Modal */}
-      <Modal
-        transparent
-        animationType="slide"
-        visible={showTournamentPicker}
-        onRequestClose={() => setShowTournamentPicker(false)}
-      >
+      {/* Tournament Picker */}
+      <Modal transparent animationType="slide" visible={showTournamentPicker}>
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl">
             <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
@@ -491,14 +478,9 @@ const GroundDetailsScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* DateTime Picker for iOS */}
+      {/* iOS DateTime Picker */}
       {Platform.OS === "ios" && pickerState.show && (
-        <Modal
-          transparent
-          animationType="slide"
-          visible={pickerState.show}
-          onRequestClose={hideDateTimePicker}
-        >
+        <Modal transparent animationType="slide" visible={pickerState.show}>
           <View className="flex-1 justify-end bg-black/50">
             <View className="bg-white rounded-t-3xl">
               <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
@@ -530,14 +512,13 @@ const GroundDetailsScreen: React.FC = () => {
                 is24Hour
                 display="spinner"
                 onChange={onDateTimeChange}
-                textColor="#000000"
               />
             </View>
           </View>
         </Modal>
       )}
 
-      {/* DateTime Picker for Android */}
+      {/* Android DateTime Picker */}
       {Platform.OS === "android" && pickerState.show && (
         <DateTimePicker
           value={pickerState.type === "start" ? startDateTime : endDateTime}
