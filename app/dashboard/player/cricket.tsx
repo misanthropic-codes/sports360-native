@@ -3,32 +3,39 @@ import { useAuth } from "@/context/AuthContext";
 import { usePlayerAnalyticsStore } from "@/store/playerAnalyticsStore";
 import { Team, useTeamStore } from "@/store/teamStore";
 import { router } from "expo-router";
-import { BookOpen, PlusCircle, Shield, Trophy, X } from "lucide-react-native";
+import {
+  Award,
+  BookOpen,
+  ChevronRight,
+  PlusCircle,
+  Shield,
+  Target,
+  Trophy,
+  Users,
+  X,
+} from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   Platform,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import ModalComponent from "react-native-modal";
-import Svg, { Circle } from "react-native-svg";
-import ActivityCard from "../../../components/ActivityCard";
+import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import BottomNavBar from "../../../components/BottomNavBar";
 import Header from "../../../components/Header";
-import QuickActionCard from "../../../components/QuickActionCard";
-import SectionHeader from "../../../components/SectionHeader";
-import StatCard from "../../../components/StatCard";
+
+const { width } = Dimensions.get("window");
 
 const CricketHomeScreen = () => {
   const { user, token } = useAuth();
   const { summary, isLoading, fetchAnalytics } = usePlayerAnalyticsStore();
-
-  const { myTeams, fetchTeams } = useTeamStore(); // ✅ Zustand store for teams
+  const { myTeams, fetchTeams } = useTeamStore();
   const name = user?.fullName ?? "Player";
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -38,7 +45,6 @@ const CricketHomeScreen = () => {
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
 
-  // Fetch analytics and myTeams
   useEffect(() => {
     if (token) fetchAnalytics(token);
     if (token && baseURL) fetchTeams(token, baseURL);
@@ -47,16 +53,20 @@ const CricketHomeScreen = () => {
   if (isLoading) {
     return (
       <AppScreen
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#F8FAFC",
+        }}
       >
         <ActivityIndicator size="large" color="#2563EB" />
       </AppScreen>
     );
   }
 
-  // 🏆 Win rate values
   const winRate = summary?.winRate ?? 0;
-  const strokeDasharray = 2 * Math.PI * 45;
+  const strokeDasharray = 2 * Math.PI * 36;
   const strokeDashoffset = strokeDasharray - (strokeDasharray * winRate) / 100;
 
   const openModal = (type: "teams" | "performance") => {
@@ -66,10 +76,18 @@ const CricketHomeScreen = () => {
 
   const closeModal = () => setModalVisible(false);
 
+  const navigateToTeam = (teamId: string) => {
+    router.push({
+      pathname: "/team/ManageTeam/ManageTeam",
+      params: { teamId: teamId },
+    });
+  };
+
   return (
     <AppScreen
       style={{
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+        backgroundColor: "#F1F5F9",
       }}
     >
       <Header
@@ -81,189 +99,799 @@ const CricketHomeScreen = () => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
       >
-        {/* 📊 Top Stats */}
-        <View className="flex-row justify-between mt-2">
-          <StatCard
-            value={summary?.totalMatchesPlayed?.toString() ?? "0"}
-            label="Matches"
-            color="bg-blue-400"
-          />
-          <StatCard
-            value={summary?.matchesWon?.toString() ?? "0"}
-            label="Wins"
-            color="bg-green-400"
-          />
-          <StatCard
-            value={summary?.averageScore?.toString() ?? "0"}
-            label="Avg Score"
-            color="bg-red-400"
-          />
+        {/* Performance Overview Header */}
+        <View style={{ marginTop: 20, marginBottom: 16 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              color: "#64748B",
+              fontWeight: "600",
+              letterSpacing: 0.5,
+            }}
+          >
+            PERFORMANCE OVERVIEW
+          </Text>
         </View>
 
-        {/* 🏆 Win Rate */}
-        <SectionHeader title="Win Rate" />
-        <View style={{ alignItems: "center", marginVertical: 16 }}>
-          <View style={{ width: 120, height: 120 }}>
-            <Svg width={120} height={120}>
-              <Circle
-                cx={60}
-                cy={60}
-                r={45}
-                stroke="#E5E7EB"
-                strokeWidth={10}
-                fill="none"
-              />
-              <Circle
-                cx={60}
-                cy={60}
-                r={45}
-                stroke="#22C55E"
-                strokeWidth={10}
-                fill="none"
-                strokeDasharray={strokeDasharray}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                rotation="-90"
-                origin="60,60"
-              />
-            </Svg>
+        {/* Stats Grid */}
+        <View style={{ flexDirection: "row", marginBottom: 16, gap: 12 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "white",
+              borderRadius: 16,
+              padding: 16,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+            }}
+          >
             <View
-              style={StyleSheet.absoluteFill}
-              className="items-center justify-center"
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: 8,
+              }}
             >
-              <Text className="text-xl font-bold text-green-700">
-                {winRate}%
-              </Text>
-              <Text className="text-xs text-gray-500 mt-1">Win Rate</Text>
+              <View
+                style={{
+                  backgroundColor: "#EEF2FF",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Target size={16} color="#6366F1" strokeWidth={2.5} />
+              </View>
             </View>
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: "700",
+                color: "#0F172A",
+                marginBottom: 2,
+              }}
+            >
+              {summary?.totalMatchesPlayed?.toString() ?? "0"}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "500" }}>
+              Matches
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "white",
+              borderRadius: 16,
+              padding: 16,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 2,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: 8,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "#DCFCE7",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Award size={16} color="#10B981" strokeWidth={2.5} />
+              </View>
+            </View>
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: "700",
+                color: "#0F172A",
+                marginBottom: 2,
+              }}
+            >
+              {summary?.matchesWon?.toString() ?? "0"}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#64748B", fontWeight: "500" }}>
+              Wins
+            </Text>
           </View>
         </View>
 
-        {/* 🏏 Performance Overview */}
-        <View className="flex-row items-center justify-between px-2 mt-6 mb-2">
-          <SectionHeader title="Performance Overview" />
-          <TouchableOpacity onPress={() => openModal("performance")}>
-            <Text className="text-red-600 font-medium">View All</Text>
-          </TouchableOpacity>
-        </View>
-        {summary ? (
-          <View className="bg-gray-100 rounded-2xl p-4 mx-2 mb-4">
-            <Text className="text-gray-700 text-sm mb-1">
-              <Text className="font-semibold">Total Runs:</Text>{" "}
-              {summary.totalRuns ?? 0}
-            </Text>
-            <Text className="text-gray-700 text-sm mb-1">
-              <Text className="font-semibold">Total Wickets:</Text>{" "}
-              {summary.totalWickets ?? 0}
-            </Text>
-            <Text className="text-gray-700 text-sm">
-              <Text className="font-semibold">Matches Played:</Text>{" "}
-              {summary.totalMatchesPlayed ?? 0}
-            </Text>
-          </View>
-        ) : (
-          <Text className="text-center text-gray-400 mt-4">
-            No performance data available.
-          </Text>
-        )}
+        {/* Win Rate and Performance Card */}
+        <View
+          style={{
+            backgroundColor: "white",
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 16,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            {/* Win Rate Circle */}
+            <View style={{ alignItems: "center" }}>
+              <View style={{ width: 100, height: 100, marginBottom: 8 }}>
+                <Svg width={100} height={100}>
+                  <Defs>
+                    <LinearGradient
+                      id="winGradient"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="100%"
+                    >
+                      <Stop offset="0%" stopColor="#10B981" />
+                      <Stop offset="100%" stopColor="#059669" />
+                    </LinearGradient>
+                  </Defs>
+                  <Circle
+                    cx={50}
+                    cy={50}
+                    r={36}
+                    stroke="#F1F5F9"
+                    strokeWidth={8}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={50}
+                    cy={50}
+                    r={36}
+                    stroke="url(#winGradient)"
+                    strokeWidth={8}
+                    fill="none"
+                    strokeDasharray={strokeDasharray}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    rotation="-90"
+                    origin="50,50"
+                  />
+                </Svg>
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 22,
+                      fontWeight: "800",
+                      color: "#10B981",
+                    }}
+                  >
+                    {winRate}%
+                  </Text>
+                </View>
+              </View>
+              <Text
+                style={{ fontSize: 11, color: "#64748B", fontWeight: "600" }}
+              >
+                WIN RATE
+              </Text>
+            </View>
 
-        {/* 👥 Teams Section */}
-        <View className="flex-row items-center justify-between px-2 mt-6 mb-2">
-          <SectionHeader title="Your Teams" />
-          <TouchableOpacity onPress={() => openModal("teams")}>
-            <Text className="text-blue-600 font-medium">View All</Text>
+            {/* Performance Stats */}
+            {summary ? (
+              <View style={{ flex: 1, marginLeft: 24 }}>
+                <View style={{ marginBottom: 16 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: "#64748B",
+                      fontWeight: "600",
+                      marginBottom: 4,
+                    }}
+                  >
+                    TOTAL RUNS
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "700",
+                      color: "#0F172A",
+                    }}
+                  >
+                    {summary.totalRuns ?? 0}
+                  </Text>
+                </View>
+                <View style={{ marginBottom: 16 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: "#64748B",
+                      fontWeight: "600",
+                      marginBottom: 4,
+                    }}
+                  >
+                    TOTAL WICKETS
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "700",
+                      color: "#0F172A",
+                    }}
+                  >
+                    {summary.totalWickets ?? 0}
+                  </Text>
+                </View>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      color: "#64748B",
+                      fontWeight: "600",
+                      marginBottom: 4,
+                    }}
+                  >
+                    AVG SCORE
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "700",
+                      color: "#F59E0B",
+                    }}
+                  >
+                    {summary.averageScore ?? 0}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+
+          {/* View All Button */}
+          <TouchableOpacity
+            onPress={() => openModal("performance")}
+            style={{
+              marginTop: 16,
+              paddingTop: 16,
+              borderTopWidth: 1,
+              borderTopColor: "#F1F5F9",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                color: "#6366F1",
+                fontWeight: "600",
+                marginRight: 4,
+              }}
+            >
+              View Full Stats
+            </Text>
+            <ChevronRight size={14} color="#6366F1" />
           </TouchableOpacity>
         </View>
-        {myTeams.length > 0 ? (
-          myTeams
-            .slice(0, 2)
-            .map((team: Team) => (
-              <ActivityCard
+
+        {/* Teams Section */}
+        <View style={{ marginBottom: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 12,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                color: "#64748B",
+                fontWeight: "600",
+                letterSpacing: 0.5,
+              }}
+            >
+              YOUR TEAMS
+            </Text>
+            {myTeams.length > 3 && (
+              <TouchableOpacity
+                onPress={() => openModal("teams")}
+                style={{ flexDirection: "row", alignItems: "center" }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#6366F1",
+                    fontWeight: "600",
+                    marginRight: 2,
+                  }}
+                >
+                  See All
+                </Text>
+                <ChevronRight size={12} color="#6366F1" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {myTeams.length > 0 ? (
+            myTeams.slice(0, 3).map((team: Team) => (
+              <TouchableOpacity
                 key={team.id}
-                layoutType="simple"
-                icon={<Shield size={20} color="white" />}
-                description={`${team.name}`}
-                timestamp={team.isActive ? "Active" : "Pending"}
-              />
+                onPress={() => navigateToTeam(team.id)}
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 12,
+                  padding: 14,
+                  marginBottom: 10,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 3,
+                  elevation: 2,
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: "#F8FAFC",
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  <Shield size={18} color="#6366F1" strokeWidth={2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: "#0F172A",
+                      marginBottom: 3,
+                    }}
+                  >
+                    {team.name}
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: team.isActive ? "#10B981" : "#F59E0B",
+                        marginRight: 6,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: team.isActive ? "#10B981" : "#F59E0B",
+                        fontWeight: "600",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {team.isActive ? "Active" : "Pending"}
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={16} color="#CBD5E1" strokeWidth={2} />
+              </TouchableOpacity>
             ))
-        ) : (
-          <Text className="text-center text-gray-400 my-2">
-            You haven’t joined any teams yet.
-          </Text>
-        )}
-
-        {/* ⚡ Quick Actions */}
-        <SectionHeader title="Quick Actions" />
-        <View className="flex-row justify-between mb-4">
-          <QuickActionCard
-            icon={Trophy}
-            label="Join Tournament"
-            onPress={() => router.push("/matches/MatchDetail")}
-          />
-          <QuickActionCard
-            icon={Shield}
-            label="View Matches"
-            onPress={() => router.push("/tournament/ViewTournament")}
-          />
+          ) : (
+            <View
+              style={{
+                backgroundColor: "white",
+                borderRadius: 12,
+                padding: 24,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <Users size={32} color="#CBD5E1" strokeWidth={1.5} />
+              <Text
+                style={{
+                  color: "#94A3B8",
+                  fontSize: 13,
+                  marginTop: 8,
+                  textAlign: "center",
+                }}
+              >
+                No teams yet
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/team/CreateTeam")}
+                style={{ marginTop: 12 }}
+              >
+                <Text
+                  style={{ color: "#6366F1", fontSize: 13, fontWeight: "600" }}
+                >
+                  Create or Join a Team
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
-        <View className="flex-row justify-between">
-          <QuickActionCard
-            icon={BookOpen}
-            label="Book Grounds"
-            onPress={() => router.push("/booking/Cricket-booking")}
-          />
-          <QuickActionCard
-            icon={PlusCircle}
-            label="Create / Join Team"
-            onPress={() => router.push("/team/CreateTeam")}
-          />
+        {/* Quick Actions */}
+        <View style={{ marginBottom: 20 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              color: "#64748B",
+              fontWeight: "600",
+              letterSpacing: 0.5,
+              marginBottom: 12,
+            }}
+          >
+            QUICK ACTIONS
+          </Text>
+
+          {/* First Row */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 10,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => router.push("/matches/MatchDetail")}
+              style={{
+                width: "48.5%",
+                backgroundColor: "white",
+                borderRadius: 12,
+                padding: 16,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "#FEF3C7",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 9,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 10,
+                }}
+              >
+                <Trophy size={18} color="#F59E0B" strokeWidth={2} />
+              </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: "#0F172A",
+                  lineHeight: 18,
+                }}
+              >
+                Join{"\n"}Tournament
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/tournament/ViewTournament")}
+              style={{
+                width: "48.5%",
+                backgroundColor: "white",
+                borderRadius: 12,
+                padding: 16,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "#DBEAFE",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 9,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 10,
+                }}
+              >
+                <Shield size={18} color="#2563EB" strokeWidth={2} />
+              </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: "#0F172A",
+                  lineHeight: 18,
+                }}
+              >
+                View{"\n"}Matches
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Second Row */}
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <TouchableOpacity
+              onPress={() => router.push("/booking/Cricket-booking")}
+              style={{
+                width: "48.5%",
+                backgroundColor: "white",
+                borderRadius: 12,
+                padding: 16,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "#DCFCE7",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 9,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 10,
+                }}
+              >
+                <BookOpen size={18} color="#10B981" strokeWidth={2} />
+              </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: "#0F172A",
+                  lineHeight: 18,
+                }}
+              >
+                Book{"\n"}Grounds
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/team/CreateTeam")}
+              style={{
+                width: "48.5%",
+                backgroundColor: "white",
+                borderRadius: 12,
+                padding: 16,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "#F3E8FF",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 9,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: 10,
+                }}
+              >
+                <PlusCircle size={18} color="#9333EA" strokeWidth={2} />
+              </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: "#0F172A",
+                  lineHeight: 18,
+                }}
+              >
+                Create/Join{"\n"}Team
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
       <BottomNavBar role="player" type="cricket" />
 
-      {/* 🔽 Popup Modal */}
+      {/* Modal */}
       <ModalComponent
         isVisible={modalVisible}
         onBackdropPress={closeModal}
         onBackButtonPress={closeModal}
         style={{ margin: 0, justifyContent: "flex-end" }}
       >
-        <View className="bg-white rounded-t-3xl p-5 max-h-[70%]">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-bold">
-              {modalType === "teams" ? "Your Teams" : "Full Performance Stats"}
+        <View
+          style={{
+            backgroundColor: "white",
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingTop: 20,
+            paddingHorizontal: 20,
+            paddingBottom: 30,
+            maxHeight: "80%",
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#0F172A" }}>
+              {modalType === "teams" ? "All Teams" : "Performance Stats"}
             </Text>
-            <TouchableOpacity onPress={closeModal}>
-              <X size={22} color="gray" />
+            <TouchableOpacity
+              onPress={closeModal}
+              style={{
+                backgroundColor: "#F1F5F9",
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <X size={18} color="#64748B" />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {modalType === "teams" &&
               myTeams.map((team: Team) => (
-                <View key={team.id} className="bg-gray-100 rounded-xl p-3 mb-2">
-                  <Text className="font-semibold text-gray-800">
-                    {team.name}
-                  </Text>
-                  <Text className="text-gray-500 text-sm">
-                    {team.isActive ? "Active" : "Pending"}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  key={team.id}
+                  onPress={() => {
+                    closeModal();
+                    navigateToTeam(team.id);
+                  }}
+                  style={{
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: "white",
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 12,
+                    }}
+                  >
+                    <Shield size={18} color="#6366F1" strokeWidth={2} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "600",
+                        color: "#0F172A",
+                        marginBottom: 3,
+                      }}
+                    >
+                      {team.name}
+                    </Text>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <View
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: team.isActive
+                            ? "#10B981"
+                            : "#F59E0B",
+                          marginRight: 6,
+                        }}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: team.isActive ? "#10B981" : "#F59E0B",
+                          fontWeight: "600",
+                          textTransform: "uppercase",
+                          letterSpacing: 0.3,
+                        }}
+                      >
+                        {team.isActive ? "Active" : "Pending"}
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={16} color="#CBD5E1" />
+                </TouchableOpacity>
               ))}
 
             {modalType === "performance" && summary && (
-              <View className="bg-gray-50 rounded-xl p-3">
-                {Object.entries(summary).map(([key, value]) => (
+              <View
+                style={{
+                  backgroundColor: "#F8FAFC",
+                  borderRadius: 12,
+                  padding: 16,
+                }}
+              >
+                {Object.entries(summary).map(([key, value], index) => (
                   <View
                     key={key}
-                    className="flex-row justify-between border-b border-gray-200 py-1"
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      paddingVertical: 10,
+                      borderBottomWidth:
+                        index < Object.entries(summary).length - 1 ? 1 : 0,
+                      borderBottomColor: "#E2E8F0",
+                    }}
                   >
-                    <Text className="capitalize text-gray-600">{key}</Text>
-                    <Text className="font-semibold text-gray-800">
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: "#64748B",
+                        fontWeight: "600",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {key.replace(/([A-Z])/g, " $1").trim()}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700",
+                        color: "#0F172A",
+                      }}
+                    >
                       {String(value)}
                     </Text>
                   </View>
