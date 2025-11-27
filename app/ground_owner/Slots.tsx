@@ -6,13 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface TimeSlot {
@@ -336,7 +336,7 @@ export default function DateTimePickerScreen(): JSX.Element {
       const endISO = bookingEndTime.toISOString();
 
       const res = await fetch(
-        `http://172.20.10.4:8080/api/v1/booking/grounds/available?startTime=${startISO}&endTime=${endISO}`,
+        `https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/booking/grounds/available?startTime=${startISO}&endTime=${endISO}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

@@ -6,21 +6,21 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, ChevronDown, Clock, Star } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { Ground, useGroundStore } from "../../store/groundStore";
 
-const BASE_URL = "http://172.20.10.4:8080/api/v1";
+const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
 type Tournament = {
   id: string;

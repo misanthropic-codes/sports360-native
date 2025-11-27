@@ -4,16 +4,16 @@ import { useBookingStore } from "@/store/bookingStore";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const GroundListScreen: React.FC = () => {
@@ -24,7 +24,7 @@ const GroundListScreen: React.FC = () => {
   const [groundsData, setGroundsData] = useState<any[]>([]);
   const router = useRouter();
 
-  const BASE_URL = "http://172.20.10.4:8080/api/v1";
+  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
   const FIXED_IMAGE =
     "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2505&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 

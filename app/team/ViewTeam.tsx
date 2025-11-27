@@ -65,7 +65,7 @@ const TeamScreen: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const baseURL = "http://172.20.10.4:8080/api/v1";
+  const baseURL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
   const fetchTeamData = async () => {
     if (!user?.token || !teamId) return;
@@ -231,7 +231,7 @@ const TeamScreen: React.FC = () => {
       {/* Bottom Button */}
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-purple-200">
         <TouchableOpacity
-          onPress={() => router.push(`/team/${teamId}/invite`)}
+          onPress={() => Alert.alert("Coming Soon", "Invite team feature coming soon")}
           className="bg-purple-600 py-4 rounded-2xl shadow-lg"
           activeOpacity={0.8}
         >

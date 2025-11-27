@@ -8,8 +8,30 @@ export interface Team {
 
 export interface Ground {
   id: string;
-  name: string;
-  location?: string;
+  userId: string;
+  groundOwnerName: string;
+  ownerName: string;
+  groundType: string;
+  yearsOfOperation: string;
+  primaryLocation: string;
+  facilityAvailable: string;
+  bookingFrequency: string;
+  groundDescription: string;
+  imageUrls: string;
+  acceptOnlineBookings: boolean;
+  allowTournamentsBookings: boolean;
+  receiveGroundAvailabilityNotifications: boolean;
+  name?: string | null;
+  location?: string | null;
+  address?: string;
+  coordinates?: string;
+  facilities?: string | null;
+  pricePerHour?: number;
+  tournamentPrice?: number;
+  capacity?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GenerateFixturePayload {
@@ -120,7 +142,7 @@ export const joinTournament = async (
 // 🔹 Ground API
 export const getGrounds = async (token: string): Promise<Ground[]> => {
   const res = await api.get(
-    "/ground-owner/all-grounds",
+    "/ground-owner/my-grounds",
     withAuthHeaders(token)
   );
   return res.data?.data || [];

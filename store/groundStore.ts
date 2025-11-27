@@ -2,15 +2,8 @@ import { create } from "zustand";
 
 // ✅ Ground structure
 export interface Ground {
-  businessLogoUrl: any;
-  profileImageUrl: any;
-  businessName: ReactNode;
-  bio: ReactNode;
-  contactPhone: any;
-  contactEmail: any;
-  website: any;
-  businessAddress: any;
   id: string;
+  userId: string;
   groundOwnerName: string;
   ownerName: string;
   groundType: string;
@@ -23,7 +16,27 @@ export interface Ground {
   acceptOnlineBookings: boolean;
   allowTournamentsBookings: boolean;
   receiveGroundAvailabilityNotifications: boolean;
-  owner: {
+  name?: string | null;
+  location?: string | null;
+  address?: string;
+  coordinates?: string;
+  facilities?: string | null;
+  pricePerHour?: number;
+  tournamentPrice?: number;
+  capacity?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  // Legacy fields that might still be needed or can be optional
+  businessLogoUrl?: any;
+  profileImageUrl?: any;
+  businessName?: any;
+  bio?: any;
+  contactPhone?: any;
+  contactEmail?: any;
+  website?: any;
+  businessAddress?: any;
+  owner?: {
     id: string;
     fullName: string;
     email: string;

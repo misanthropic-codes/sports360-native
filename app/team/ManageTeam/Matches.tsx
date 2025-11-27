@@ -24,7 +24,7 @@ const Matches: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const BASE_URL = "http://172.20.10.4:8080/api/v1";
+  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
   useEffect(() => {
     const fetchMatches = async () => {

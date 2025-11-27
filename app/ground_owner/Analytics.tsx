@@ -1,6 +1,13 @@
-import { useAuth } from "@/context/AuthContext"; // your auth context hook
+import { useAuth } from "@/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { create } from "zustand";
 
@@ -13,7 +20,7 @@ const useAnalyticsStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const res = await fetch(
-        "http://172.20.10.4:8080/api/v1/ground-owner/analytics",
+        "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/ground-owner/analytics",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -31,6 +38,7 @@ const useAnalyticsStore = create((set) => ({
 export default function GroundOwnerAnalyticsScreen() {
   const { token } = useAuth();
   const { analytics, loading, error, fetchAnalytics } = useAnalyticsStore();
+  const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
     if (token) {
@@ -38,19 +46,41 @@ export default function GroundOwnerAnalyticsScreen() {
     }
   }, [token]);
 
-  if (loading) {
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    if (token) {
+      await fetchAnalytics(token);
+    }
+    setRefreshing(false);
+  }, [token, fetchAnalytics]);
+
+  if (loading && !refreshing) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#000" />
-        <Text className="text-gray-700 mt-2">Loading analytics...</Text>
+      <View className="flex-1 justify-center items-center bg-gray-50">
+        <ActivityIndicator size="large" color="#15803d" />
+        <Text className="text-gray-500 mt-4 font-medium">
+          Loading analytics...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <Text className="text-red-600 text-lg">Error: {error}</Text>
+      <View className="flex-1 justify-center items-center bg-gray-50 p-4">
+        <View className="bg-red-50 p-4 rounded-full mb-4">
+          <Ionicons name="alert-circle" size={32} color="#dc2626" />
+        </View>
+        <Text className="text-red-600 text-lg font-bold text-center mb-2">
+          Something went wrong
+        </Text>
+        <Text className="text-gray-500 text-center mb-6">{error}</Text>
+        <Text
+          onPress={() => token && fetchAnalytics(token)}
+          className="text-green-700 font-bold text-lg"
+        >
+          Try Again
+        </Text>
       </View>
     );
   }
@@ -59,76 +89,135 @@ export default function GroundOwnerAnalyticsScreen() {
 
   const { summary, grounds } = analytics;
 
-  return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="p-4">
-        <Text className="text-2xl font-bold mb-4 text-gray-800">
-          Ground Owner Analytics
-        </Text>
+  interface SummaryCardProps {
+    title: string;
+    value: number | string;
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+  }
 
-        {/* Summary Cards */}
-        <View className="flex-row flex-wrap justify-between mb-6">
-          <View className="w-[48%] bg-gray-100 p-4 rounded-xl mb-3">
-            <Text className="text-gray-500 text-sm">Total Grounds</Text>
-            <Text className="text-xl font-bold text-gray-800">
-              {summary.totalGrounds}
-            </Text>
-          </View>
-          <View className="w-[48%] bg-gray-100 p-4 rounded-xl mb-3">
-            <Text className="text-gray-500 text-sm">Total Bookings</Text>
-            <Text className="text-xl font-bold text-gray-800">
-              {summary.totalBookings}
-            </Text>
-          </View>
-          <View className="w-[48%] bg-gray-100 p-4 rounded-xl mb-3">
-            <Text className="text-gray-500 text-sm">Approved</Text>
-            <Text className="text-xl font-bold text-gray-800">
-              {summary.approvedBookings}
-            </Text>
-          </View>
-          <View className="w-[48%] bg-gray-100 p-4 rounded-xl mb-3">
-            <Text className="text-gray-500 text-sm">Pending</Text>
-            <Text className="text-xl font-bold text-gray-800">
-              {summary.pendingBookings}
-            </Text>
-          </View>
+  const SummaryCard = ({ title, value, icon, color }: SummaryCardProps) => (
+    <View className="w-[48%] bg-white p-4 rounded-2xl mb-4 shadow-sm border border-gray-100">
+      <View className={`w-10 h-10 rounded-full justify-center items-center mb-3 ${color}`}>
+        <Ionicons name={icon} size={20} color="#15803d" />
+      </View>
+      <Text className="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">
+        {title}
+      </Text>
+      <Text className="text-2xl font-bold text-gray-900">{value}</Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#15803d" />
+        }
+      >
+        {/* Header */}
+        <View className="mb-6">
+          <Text className="text-3xl font-bold text-gray-900">Analytics</Text>
+          <Text className="text-gray-500 mt-1">
+            Overview of your grounds performance
+          </Text>
+        </View>
+
+        {/* Summary Grid */}
+        <View className="flex-row flex-wrap justify-between mb-2">
+          <SummaryCard
+            title="Total Grounds"
+            value={summary.totalGrounds}
+            icon="map"
+            color="bg-green-50"
+          />
+          <SummaryCard
+            title="Total Bookings"
+            value={summary.totalBookings}
+            icon="calendar"
+            color="bg-blue-50"
+          />
+          <SummaryCard
+            title="Approved"
+            value={summary.approvedBookings}
+            icon="checkmark-circle"
+            color="bg-emerald-50"
+          />
+          <SummaryCard
+            title="Pending"
+            value={summary.pendingBookings}
+            icon="time"
+            color="bg-amber-50"
+          />
         </View>
 
         {/* Grounds List */}
-        <Text className="text-xl font-semibold mb-2 text-gray-800">
-          Your Grounds
+        <Text className="text-xl font-bold text-gray-900 mb-4">
+          Detailed Breakdown
         </Text>
+
         {grounds.map((g) => (
           <View
             key={g.groundId}
-            className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-4"
+            className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-gray-100"
           >
-            <Text className="text-lg font-bold text-gray-900">
-              {g.groundName}
-            </Text>
-            <Text className="text-gray-500 mb-2">{g.location}</Text>
-            <View className="flex-row justify-between mt-2">
+            <View className="flex-row justify-between items-start mb-3">
+              <View className="flex-1 mr-4">
+                <Text className="text-lg font-bold text-gray-900 mb-1">
+                  {g.groundName}
+                </Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="location-outline" size={14} color="#6b7280" />
+                  <Text className="text-gray-500 text-sm ml-1">
+                    {g.location}
+                  </Text>
+                </View>
+              </View>
+              <View className="bg-green-50 px-3 py-1 rounded-full">
+                <Text className="text-green-700 font-bold">
+                  ₹{g.pricePerHour}/hr
+                </Text>
+              </View>
+            </View>
+
+            <View className="h-[1px] bg-gray-100 my-3" />
+
+            <View className="flex-row justify-between items-center mb-4">
               <View>
-                <Text className="text-gray-500 text-sm">Total Bookings</Text>
-                <Text className="text-base font-semibold text-gray-800">
+                <Text className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                  Total Bookings
+                </Text>
+                <Text className="text-xl font-bold text-gray-900">
                   {g.totalBookings}
                 </Text>
               </View>
-              <View>
-                <Text className="text-gray-500 text-sm">Price/Hour</Text>
-                <Text className="text-base font-semibold text-gray-800">
-                  ₹{g.pricePerHour}
+              <View className="items-end">
+                <Text className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                  Utilization
+                </Text>
+                <Text className="text-xl font-bold text-green-700">
+                  {g.utilizationRate}%
                 </Text>
               </View>
             </View>
-            <View className="mt-2">
-              <Text className="text-gray-500 text-sm">Utilization Rate</Text>
-              <Text className="text-base font-semibold text-gray-800">
-                {g.utilizationRate}%
-              </Text>
+
+            {/* Utilization Bar */}
+            <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <View
+                className="h-full bg-green-600 rounded-full"
+                style={{ width: `${Math.min(g.utilizationRate, 100)}%` }}
+              />
             </View>
           </View>
         ))}
+
+        {grounds.length === 0 && (
+          <View className="items-center py-10">
+            <Text className="text-gray-400">No grounds data available</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

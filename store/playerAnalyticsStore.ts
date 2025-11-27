@@ -60,7 +60,7 @@ export const usePlayerAnalyticsStore = create<PlayerAnalyticsState>((set) => ({
   fetchAnalytics: async (token) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await fetch("http://172.20.10.4:8080/api/v1/user/analytics", {
+      const res = await fetch("https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/user/analytics", {
         headers: { Authorization: `Bearer ${token}` },
       });
 

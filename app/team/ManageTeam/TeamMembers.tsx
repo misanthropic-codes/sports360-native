@@ -11,7 +11,7 @@ type Member = {
 };
 
 // 🚀 Base URL hardcoded
-const BASE_URL = "http://172.20.10.4:8080/api/v1";
+const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
 const TeamMembers: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);

@@ -2,11 +2,11 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  View,
+    ActivityIndicator,
+    SafeAreaView,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import BottomNavBar from "../../components/BottomNavBar";
 import VenueCard from "../../components/Card"; // Updated VenueCard
@@ -16,7 +16,7 @@ import SearchBar from "../../components/SearchBar";
 import { useAuth } from "../../context/AuthContext";
 import { Ground, useGroundStore } from "../../store/groundStore";
 
-const BASE_URL = "http://172.20.10.4:8080/api/v1";
+const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
 const GroundBookingScreen = () => {
   const router = useRouter();

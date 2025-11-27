@@ -3,29 +3,29 @@ import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import {
-  BarChart3,
-  Calendar,
-  CheckCircle,
-  ClipboardList,
-  Clock,
-  Mail,
-  Timer,
-  User,
-  XCircle,
+    BarChart3,
+    Calendar,
+    CheckCircle,
+    ClipboardList,
+    Clock,
+    Mail,
+    Timer,
+    User,
+    XCircle,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 // ---------------------- TYPES ----------------------
@@ -114,7 +114,7 @@ const GroundOwnerDashboard: React.FC = () => {
         console.log("Token:", token ? "Present" : "Missing");
 
         const response = await fetch(
-          "http://172.20.10.4:8080/api/v1/booking/status",
+          "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/booking/status",
           {
             method: "GET",
             headers: {

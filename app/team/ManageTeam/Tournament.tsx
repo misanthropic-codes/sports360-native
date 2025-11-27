@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 
-const BASE_URL = "http://172.20.10.4:8080/api/v1";
+const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
 type Tournament = {
   id: string;

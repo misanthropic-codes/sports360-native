@@ -49,7 +49,7 @@ export const useOrganizerStore = create<OrganizerState>((set) => ({
     console.log("🚀 Fetching organizer analytics...");
     try {
       const res = await fetch(
-        "http://172.20.10.4:8080/api/v1/organizer-profile/analytics",
+        "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/organizer-profile/analytics",
         {
           method: "GET",
           headers: {
