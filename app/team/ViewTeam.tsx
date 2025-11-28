@@ -231,7 +231,7 @@ const TeamScreen: React.FC = () => {
       {/* Bottom Button */}
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-purple-200">
         <TouchableOpacity
-          onPress={() => Alert.alert("Coming Soon", "Invite team feature coming soon")}
+          onPress={() => router.push(`/tournament/InviteTeam?teamId=${teamId}`)}
           className="bg-purple-600 py-4 rounded-2xl shadow-lg"
           activeOpacity={0.8}
         >

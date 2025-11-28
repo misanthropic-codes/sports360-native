@@ -3,11 +3,13 @@ import CheckboxItem from "@/components/CheckBoxItem";
 import ReusableDropdown from "@/components/dropdown";
 import SelectionPill from "@/components/SelelctionPill";
 import ReusableTextInput from "@/components/TextInput";
+import { router } from "expo-router";
+import api from "../../../api/api";
 
-import * as ImagePicker from "expo-image-picker";
+import { useAuth } from "@/context/AuthContext";
 import React, { useState } from "react";
 import {
-  Image,
+  Alert,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -20,62 +22,154 @@ import FeatherIcon from "react-native-vector-icons/Feather";
 import Icon from "react-native-vector-icons/Ionicons";
 
 const CompleteProfileScreen = () => {
-  const [formState, setFormState] = useState({
-    experience: "New organizer",
-    tournamentTypes: ["T20 Tournaments", "League Format"],
-    preferences: {
-      registrations: true,
-      auctions: true,
-      notifications: false,
-    },
+  const { token, user } = useAuth();
+  const userId = user?.id;
+
+  // Form state
+  const [organizationName, setOrganizationName] = useState("");
+  const [contactPersonName, setContactPersonName] = useState("");
+  const [experience, setExperience] = useState<string | null>(null);
+  const [orgType, setOrgType] = useState<string | null>(null);
+  const [primaryLocation, setPrimaryLocation] = useState("");
+  const [tournamentType, setTournamentType] = useState<string | null>(null);
+  const [frequency, setFrequency] = useState<string | null>(null);
+  const [aboutOrganization, setAboutOrganization] = useState("");
+  
+  const [prefs, setPrefs] = useState({
+    registrations: true,
+    auctions: false,
+    notifications: true,
   });
 
-  const [orgType, setOrgType] = useState<string | null>(null);
-  const [frequency, setFrequency] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const handleSubmit = async () => {
+    if (!userId) {
+      Alert.alert("Error", "User not logged in");
+      return;
+    }
 
-  const handleToggle = (
-    field: "tournamentTypes" | "experience",
-    value: string
-  ) => {
-    setFormState((prevState) => {
-      const currentValues = prevState[field] as string[];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter((item) => item !== value)
-        : [...currentValues, value];
-      return { ...prevState, [field]: newValues };
-    });
-  };
+    // Validation
+    if (!organizationName.trim()) {
+      Alert.alert("Validation Error", "Please enter organization name");
+      return;
+    }
 
-  const handlePreferenceToggle = (key: keyof typeof formState.preferences) => {
-    setFormState((prevState) => ({
-      ...prevState,
-      preferences: {
-        ...prevState.preferences,
-        [key]: !prevState.preferences[key],
-      },
-    }));
-  };
+    if (!contactPersonName.trim()) {
+      Alert.alert("Validation Error", "Please enter contact person name");
+      return;
+    }
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
+    if (!experience) {
+      Alert.alert("Validation Error", "Please select experience level");
+      return;
+    }
 
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+    if (!orgType) {
+      Alert.alert("Validation Error", "Please select organization type");
+      return;
+    }
+
+    if (!primaryLocation.trim()) {
+      Alert.alert("Validation Error", "Please enter primary location");
+      return;
+    }
+
+    if (!tournamentType) {
+      Alert.alert("Validation Error", "Please select tournament type");
+      return;
+    }
+
+    if (!frequency) {
+      Alert.alert("Validation Error", "Please select frequency");
+      return;
+    }
+
+    // Map UI values to backend enum values
+    const experienceMap: Record<string, string> = {
+      "New Organizer": "new_organizer",
+      "1-2 Years": "1-2_years",
+      "3-5 Years": "3-5_years",
+      "5+ Years": "5+_years",
+    };
+
+    const orgTypeMap: Record<string, string> = {
+      "Cricket Academy": "cricket_academy",
+      "Cricket Club": "cricket_club",
+      "Sports Association": "sports_association",
+      "Corporate Association": "corporate_association",
+      "Individual Organizer": "individual_organizer",
+      "School or College": "school_or_college",
+    };
+
+    const tournamentTypeMap: Record<string, string> = {
+      "T20 Tournaments": "T20_TOURNAMENT",
+      "ODI Matches": "ODI_MATCHES",
+      "Test Matches": "TEST_MATCHES",
+      "League Format": "LEAGUE_FORMAT",
+      "Youth Cricket": "YOUTH_CRICKET",
+      "Corporate Events": "CORPORATE_EVENTS",
+    };
+
+    const frequencyMap: Record<string, string> = {
+      "Weekly": "weekly",
+      "Monthly": "monthly",
+      "Quarterly": "quarterly",
+      "Twice a Year": "twice_a_year",
+      "Yearly": "yearly",
+    };
+
+    // Prepare payload
+    const payload = {
+      organizationName: organizationName.trim(),
+      organizerContactPersonName: contactPersonName.trim(),
+      experienceInOrganizing: experienceMap[experience] || experience.toLowerCase(),
+      organizationType: orgTypeMap[orgType] || orgType.toLowerCase(),
+      primaryLocation: primaryLocation.trim(),
+      tournamentType: tournamentTypeMap[tournamentType] || tournamentType.toUpperCase().replace(/ /g, "_"),
+      expectedTournamentFrequency: frequencyMap[frequency] || frequency.toLowerCase(),
+      aboutOrganization: aboutOrganization.trim(),
+      acceptTeamRegistrationRequests: prefs.registrations,
+      allowPlayerAuctionInTournament: prefs.auctions,
+      receiveGroundBookingNotifications: prefs.notifications,
+    };
+
+    console.log("📤 Submitting organizer profile:", payload);
+
+    try {
+      const response = await api.post("/organizer-profile/profile/cricket", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status >= 200 && response.status < 300) {
+        Alert.alert(
+          "Success",
+          "Organizer profile created successfully!",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Navigate to organizer dashboard
+                router.replace("/dashboard/organizer/cricket" as any);
+              }
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("❌ Organizer profile error:", error);
+      Alert.alert("Error", "Something went wrong while submitting profile");
     }
   };
 
+
   const experienceOptions = [
-    "New organizer",
-    "1-2 years",
-    "3-5 years",
-    "5+ years",
+    "New Organizer",
+    "1-2 Years",
+    "3-5 Years",
+    "5+ Years",
   ];
+  
   const tournamentTypeOptions = [
     "T20 Tournaments",
     "ODI Matches",
@@ -84,8 +178,23 @@ const CompleteProfileScreen = () => {
     "Youth Cricket",
     "Corporate Events",
   ];
-  const orgTypeOptions = ["School", "Club", "Academy", "Company"];
-  const frequencyOptions = ["Weekly", "Monthly", "Quarterly", "Yearly"];
+  
+  const orgTypeOptions = [
+    "Cricket Academy",
+    "Cricket Club",
+    "Sports Association",
+    "Corporate Association",
+    "Individual Organizer",
+    "School or College",
+  ];
+  
+  const frequencyOptions = [
+    "Weekly",
+    "Monthly",
+    "Quarterly",
+    "Twice a Year",
+    "Yearly",
+  ];
 
   return (
     <SafeAreaView
@@ -129,39 +238,27 @@ const CompleteProfileScreen = () => {
         className="bg-gray-50 flex-1 relative"
         style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 30 }}
       >
-        {/* Profile Picture - Positioned */}
-        <View className="items-center absolute -top-12 left-0 right-0 z-20">
-          <TouchableOpacity
-            onPress={pickImage}
-            className="w-24 h-24 bg-gray-200 rounded-full justify-center items-center border-4 border-white shadow-md overflow-hidden"
-          >
-            {profileImage ? (
-              <Image
-                source={{ uri: profileImage }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <Icon name="camera-outline" size={32} color="#888" />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View className="px-4 pt-20 pb-6">
+        <View className="px-4 pb-6">
           {/* Form Fields */}
           <View className="space-y-5">
             <ReusableTextInput
-              label="Organisation name*"
+              label="Organisation Name *"
               placeholder="Enter your organisation name..."
+              value={organizationName}
+              onChangeText={setOrganizationName}
             />
 
             <ReusableTextInput
-              label="Contact Person Name*"
-              placeholder="Enter Contact person name..."
+              label="Contact Person Name *"
+              placeholder="Enter contact person name..."
+              value={contactPersonName}
+              onChangeText={setContactPersonName}
             />
 
             <ReusableDropdown
+              label="Organization Type *"
               options={orgTypeOptions}
               selectedValue={orgType}
               onValueChange={setOrgType}
@@ -170,41 +267,45 @@ const CompleteProfileScreen = () => {
 
             <View>
               <Text className="text-gray-600 text-sm font-medium mb-3">
-                Experience in Organizing
+                Experience in Organizing *
               </Text>
               <View className="flex-row flex-wrap gap-2">
                 {experienceOptions.map((opt) => (
                   <SelectionPill
                     key={opt}
                     label={opt}
-                    isSelected={formState.experience === opt}
-                    onPress={() =>
-                      setFormState((s) => ({ ...s, experience: opt }))
-                    }
+                    isSelected={experience === opt}
+                    onPress={() => setExperience(opt)}
                   />
                 ))}
               </View>
             </View>
 
-            <ReusableTextInput label="Primary location *" placeholder="Patna" />
+            <ReusableTextInput
+              label="Primary Location *"
+              placeholder="e.g., Kolkata"
+              value={primaryLocation}
+              onChangeText={setPrimaryLocation}
+            />
 
             <View>
               <Text className="text-gray-600 text-sm font-medium mb-3">
-                Tournament types you organize
+                Tournament Type You Organize *
               </Text>
               <View className="flex-row flex-wrap gap-2">
                 {tournamentTypeOptions.map((type) => (
                   <SelectionPill
                     key={type}
                     label={type}
-                    isSelected={formState.tournamentTypes.includes(type)}
-                    onPress={() => handleToggle("tournamentTypes", type)}
+                    isSelected={tournamentType === type}
+                    onPress={() => setTournamentType(type)}
                   />
                 ))}
               </View>
             </View>
 
             <ReusableDropdown
+              label="Expected Tournament Frequency *"
               options={frequencyOptions}
               selectedValue={frequency}
               onValueChange={setFrequency}
@@ -215,6 +316,8 @@ const CompleteProfileScreen = () => {
               label="Tell us about your organization"
               placeholder="Tell us about your organization, your experience and your goals...."
               multiline
+              value={aboutOrganization}
+              onChangeText={setAboutOrganization}
             />
 
             <View>
@@ -224,18 +327,18 @@ const CompleteProfileScreen = () => {
               <View className="bg-purple-100/50 p-3 rounded-lg">
                 <CheckboxItem
                   label="Accept team registration requests"
-                  isChecked={formState.preferences.registrations}
-                  onPress={() => handlePreferenceToggle("registrations")}
+                  isChecked={prefs.registrations}
+                  onPress={() => setPrefs({ ...prefs, registrations: !prefs.registrations })}
                 />
                 <CheckboxItem
                   label="Allow player auctions in Tournament"
-                  isChecked={formState.preferences.auctions}
-                  onPress={() => handlePreferenceToggle("auctions")}
+                  isChecked={prefs.auctions}
+                  onPress={() => setPrefs({ ...prefs, auctions: !prefs.auctions })}
                 />
                 <CheckboxItem
                   label="Receive Ground Booking Notification"
-                  isChecked={formState.preferences.notifications}
-                  onPress={() => handlePreferenceToggle("notifications")}
+                  isChecked={prefs.notifications}
+                  onPress={() => setPrefs({ ...prefs, notifications: !prefs.notifications })}
                 />
               </View>
             </View>
@@ -244,9 +347,7 @@ const CompleteProfileScreen = () => {
               <ReusableButton
                 title="Complete Profile"
                 role="organizer"
-                onPress={() => {
-                  // handle submit
-                }}
+                onPress={handleSubmit}
               />
               <Text className="text-gray-500 text-xs mt-3">
                 You can update your profile anytime in the settings
