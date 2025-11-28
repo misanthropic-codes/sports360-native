@@ -1,8 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
+import { Calendar, Clipboard, Trophy } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 
 type Match = {
   id: string;
@@ -29,13 +30,9 @@ const Matches: React.FC = () => {
   useEffect(() => {
     const fetchMatches = async () => {
       if (!teamId || !token) {
-        console.log("[Matches] Missing teamId or token");
-        Alert.alert("Error", "Missing team ID or authentication token");
         setLoading(false);
         return;
       }
-
-      console.log("[Matches] Fetching matches for teamId:", teamId);
 
       try {
         const response = await axios.get(`${BASE_URL}/team/${teamId}/matches`, {
@@ -44,18 +41,10 @@ const Matches: React.FC = () => {
           },
         });
 
-        console.log("[Matches] Response data:", response.data);
-
         const matchesData = response.data?.data?.matches || [];
-        console.log("[Matches] Parsed matches:", matchesData);
-
         setMatches(matchesData);
       } catch (error: any) {
-        console.error(
-          "[Matches] Error fetching matches:",
-          error.response || error
-        );
-        Alert.alert("Error", "Failed to fetch matches");
+        console.error("Failed to fetch matches:", error.response || error);
       } finally {
         setLoading(false);
       }
@@ -64,45 +53,182 @@ const Matches: React.FC = () => {
     fetchMatches();
   }, [teamId, token]);
 
+  const getStatusBadge = (status: string) => {
+    const lowerStatus = status.toLowerCase();
+    
+    if (lowerStatus.includes("completed") || lowerStatus.includes("finished")) {
+      return {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        border: "border-green-200",
+        label: "Completed"
+      };
+    }
+    if (lowerStatus.includes("live") || lowerStatus.includes("ongoing")) {
+      return {
+        bg: "bg-red-100",
+        text: "text-red-700",
+        border: "border-red-200",
+        label: "Live"
+      };
+    }
+    return {
+      bg: "bg-blue-100",
+      text: "text-blue-700",
+      border: "border-blue-200",
+      label: "Upcoming"
+    };
+  };
+
+  const formatMatchDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+    
+    if (isToday) {
+      return `Today, ${date.toLocaleTimeString("en-US", { 
+        hour: "numeric", 
+        minute: "2-digit",
+        hour12: true 
+      })}`;
+    }
+    
+    if (isTomorrow) {
+      return `Tomorrow, ${date.toLocaleTimeString("en-US", { 
+        hour: "numeric", 
+        minute: "2-digit",
+        hour12: true 
+      })}`;
+    }
+    
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    });
+  };
+
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#1D4ED8" />
-        <Text>Loading matches...</Text>
+      <View className="flex-1 justify-center items-center py-12">
+        <ActivityIndicator size="large" color="#4F46E5" />
+        <Text className="mt-4 text-gray-600 font-medium">Loading matches...</Text>
       </View>
     );
   }
 
   if (matches.length === 0) {
     return (
-      <View className="p-4">
-        <Text className="text-center text-gray-500">No matches found.</Text>
+      <View className="flex-1 justify-center items-center py-16">
+        <View className="bg-gray-100 rounded-full p-6 mb-4">
+          <Clipboard size={48} color="#9CA3AF" weight="light" />
+        </View>
+        <Text className="text-xl font-bold text-gray-900 mb-2">
+          No Matches Found
+        </Text>
+        <Text className="text-gray-500 text-center px-8">
+          Your team doesn't have any scheduled matches yet
+        </Text>
       </View>
     );
   }
 
   return (
-    <View className="space-y-2 p-4">
-      {matches.map((match) => (
-        <View key={match.id} className="p-4 bg-white rounded shadow">
-          <Text className="text-lg font-bold">{match.tournamentName}</Text>
-          <Text className="text-md">
-            {match.teamAName || ""} VS{" "}
-            {match.teamBName || match.opponentTeamName || ""}
-          </Text>
-          <Text className="text-gray-500">
-            {new Date(match.matchTime).toLocaleDateString()} —{" "}
-            {new Date(match.matchTime).toLocaleTimeString()}
-          </Text>
-          <Text>Status: {match.status}</Text>
-          {match.scoreA && match.scoreB && (
-            <Text>
-              Score: {match.scoreA} - {match.scoreB}
-            </Text>
-          )}
-          <Text>Match Type: {match.matchType}</Text>
-        </View>
-      ))}
+    <View className="space-y-3">
+      {/* Header */}
+      <View className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-2">
+        <Text className="text-indigo-900 font-bold text-lg">
+          {matches.length} {matches.length === 1 ? "Match" : "Matches"}
+        </Text>
+        <Text className="text-indigo-600 text-sm">
+          Scheduled and completed matches
+        </Text>
+      </View>
+
+      {/* Matches List */}
+      {matches.map((match) => {
+        const statusBadge = getStatusBadge(match.status);
+        const isCompleted = match.status.toLowerCase().includes("completed") || 
+                           match.status.toLowerCase().includes("finished");
+        
+        return (
+          <View
+            key={match.id}
+            className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+          >
+            {/* Tournament Header */}
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center flex-1">
+                <Trophy size={16} color="#6366F1" weight="bold" />
+                <Text className="text-gray-900 font-bold text-base ml-2 flex-1" numberOfLines={1}>
+                  {match.tournamentName}
+                </Text>
+              </View>
+              
+              <View className={`
+                px-3 py-1 rounded-full border
+                ${statusBadge.bg} ${statusBadge.text} ${statusBadge.border}
+              `}>
+                <Text className="text-xs font-bold uppercase tracking-wide">
+                  {statusBadge.label}
+                </Text>
+              </View>
+            </View>
+
+            {/* Match Details */}
+            <View className="bg-gray-50 rounded-lg p-4 mb-3">
+              {/* Teams */}
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-gray-900 font-semibold text-base flex-1" numberOfLines={1}>
+                  {match.teamAName || "Team A"}
+                </Text>
+                <Text className="text-gray-500 font-bold mx-3">VS</Text>
+                <Text className="text-gray-900 font-semibold text-base flex-1 text-right" numberOfLines={1}>
+                  {match.teamBName || match.opponentTeamName || "Team B"}
+                </Text>
+              </View>
+
+              {/* Score */}
+              {isCompleted && match.scoreA && match.scoreB && (
+                <View className="flex-row items-center justify-center mt-2 pt-2 border-t border-gray-200">
+                  <Text className="text-indigo-600 font-bold text-2xl">
+                    {match.scoreA}
+                  </Text>
+                  <Text className="text-gray-400 font-bold text-lg mx-4">-</Text>
+                  <Text className="text-indigo-600 font-bold text-2xl">
+                    {match.scoreB}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Match Info */}
+            <View className="space-y-2">
+              <View className="flex-row items-center">
+                <Calendar size={16} color="#6B7280" weight="bold" />
+                <Text className="text-gray-600 text-sm ml-2">
+                  {formatMatchDate(match.matchTime)}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center">
+                <View className="bg-gray-200 px-2 py-1 rounded">
+                  <Text className="text-gray-700 text-xs font-medium">
+                    {match.matchType}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 };

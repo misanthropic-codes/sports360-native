@@ -55,6 +55,7 @@ const InitialLayout = () => {
       <Stack.Screen name="matches/MatchDetail" />
       <Stack.Screen name="team/Myteam" />
       <Stack.Screen name="team/CreateTeam" />
+      <Stack.Screen name="team/ManageTeam/ManageTeam" />
       <Stack.Screen name="ground_owner/Booking" />
     </Stack>
   );

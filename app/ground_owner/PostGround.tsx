@@ -307,7 +307,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Primary Location *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., Mumbai, Maharashtra"
                   value={primaryLocation}
                   onChangeText={setPrimaryLocation}
@@ -341,7 +341,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Ground Description *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="Describe your ground..."
                   value={groundDescription}
                   onChangeText={setGroundDescription}
@@ -354,7 +354,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Capacity *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., 33000"
                   value={capacity}
                   onChangeText={setCapacity}
@@ -371,7 +371,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Price Per Hour (₹) *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., 5000"
                   value={pricePerHour}
                   onChangeText={setPricePerHour}
@@ -383,7 +383,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Tournament Price (₹) *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., 200000"
                   value={tournamentPrice}
                   onChangeText={setTournamentPrice}
@@ -400,7 +400,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Address *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., D Road, Churchgate, Mumbai - 400020"
                   value={address}
                   onChangeText={setAddress}
@@ -413,7 +413,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Coordinates *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., 18.9388,72.8258"
                   value={coordinates}
                   onChangeText={setCoordinates}
@@ -430,7 +430,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Image URLs *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="https://example.com/image1.jpg,https://example.com/image2.jpg"
                   value={imageUrls}
                   onChangeText={setImageUrls}

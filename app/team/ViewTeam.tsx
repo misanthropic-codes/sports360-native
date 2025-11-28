@@ -229,7 +229,7 @@ const TeamScreen: React.FC = () => {
       )}
 
       {/* Bottom Button */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-purple-200">
+      <View className="bg-white p-4 border-t border-purple-200 mb-4">
         <TouchableOpacity
           onPress={() => router.push(`/tournament/InviteTeam?teamId=${teamId}`)}
           className="bg-purple-600 py-4 rounded-2xl shadow-lg"
@@ -240,6 +240,8 @@ const TeamScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <BottomNavBar role="player" type="cricket" />
     </SafeAreaView>
   );
 };
