@@ -29,6 +29,7 @@ interface AuthContextType {
   user: User | null;
   login: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +56,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem("user", JSON.stringify(userData));
   };
 
+  const updateUser = async (updates: Partial<User>) => {
+    if (!user) {
+      console.warn("Cannot update user: no user is logged in");
+      return;
+    }
+
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+    console.log("✅ User updated in AuthContext:", updates);
+  };
+
   const logout = async () => {
     setUser(null);
     setToken(null);
@@ -68,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         user,
         login,
+        updateUser,
         logout,
       }}
     >

@@ -22,7 +22,7 @@ import FeatherIcon from "react-native-vector-icons/Feather";
 import Icon from "react-native-vector-icons/Ionicons";
 
 const CompleteProfileScreen = () => {
-  const { token, user } = useAuth();
+  const { token, user, updateUser } = useAuth();
   const userId = user?.id;
 
   // Form state
@@ -142,6 +142,9 @@ const CompleteProfileScreen = () => {
       });
 
       if (response.status >= 200 && response.status < 300) {
+        // Update user object with cricket domain
+        await updateUser({ domains: ["cricket"] });
+
         Alert.alert(
           "Success",
           "Organizer profile created successfully!",

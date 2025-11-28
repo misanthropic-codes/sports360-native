@@ -23,7 +23,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useAuth } from "@/context/AuthContext"; // ✅ import AuthContext
 
 const CompleteProfileScreen: FC = () => {
-  const { token, user } = useAuth();
+  const { token, user, updateUser } = useAuth();
   const userId = user?.id;
 
   const [location, setLocation] = useState("");
@@ -107,6 +107,9 @@ const CompleteProfileScreen: FC = () => {
       });
 
       if (response.status >= 200 && response.status < 300) {
+        // Update user object with cricket domain
+        await updateUser({ domains: ["cricket"] });
+
         Alert.alert(
           "Success", 
           "Profile created successfully!",

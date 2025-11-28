@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   SafeAreaView,
@@ -11,7 +13,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
 import api from "../../api/api";
 
@@ -68,12 +71,21 @@ const RoleCard = ({
   return (
     <TouchableOpacity
       onPress={() => onPress(label)}
-      className="flex-1 items-center justify-center h-28 mx-2 rounded-2xl bg-white"
+      className="flex-1 items-center justify-center h-28 mx-2 rounded-2xl bg-white relative"
       style={{
         borderWidth: isSelected ? 2 : 1,
         borderColor,
       }}
     >
+      {/* Checkbox indicator in corner */}
+      <View className="absolute top-2 right-2">
+        <Ionicons 
+          name={isSelected ? "checkbox" : "square-outline"} 
+          size={20} 
+          color={isSelected ? roleColors[label] : "#C0C0C0"} 
+        />
+      </View>
+      
       <IconComponent name={iconName} size={32} color={iconColor} />
       <Text className="mt-2 font-rubikMedium" style={{ color: textColor }}>
         {label}
@@ -188,57 +200,69 @@ const SignupScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar barStyle="light-content" backgroundColor="#166FFF" />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="bg-primary pt-6 pb-8 rounded-b-[40px]">
-          <View className="px-5">
-            <TouchableOpacity
-              className="self-start p-2 -ml-2"
-              onPress={() => router.back()}
-            >
-              <Feather name="arrow-left" size={28} color="#fff" />
-            </TouchableOpacity>
-            <Text className="text-white font-rubikBold text-3xl mt-4">
-              Create Your Account
-            </Text>
-            <Text className="text-white font-rubik text-base mt-1">
-              Join Sports360 community today!
-            </Text>
-          </View>
 
-          <View className="mt-6">
-            <View className="flex-row items-center px-6">
-              <View className="flex-1 h-px bg-white/50" />
-              <Text className="text-white font-rubikMedium mx-4">
-                I want to register as
-              </Text>
-              <View className="flex-1 h-px bg-white/50" />
-            </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header Section */}
+            <View className="bg-primary pt-6 pb-8 rounded-b-[40px]">
+              <View className="px-5">
+                <TouchableOpacity
+                  className="self-start p-2 -ml-2"
+                  onPress={() => router.back()}
+                >
+                  <Feather name="arrow-left" size={28} color="#fff" />
+                </TouchableOpacity>
+                <Text className="text-white font-rubikBold text-3xl mt-4">
+                  Create Your Account
+                </Text>
+                <Text className="text-white font-rubik text-base mt-1">
+                  Join Sports360 community today!
+                </Text>
+              </View>
 
-            <View className="flex-row justify-between mt-4 px-4">
-              <RoleCard
-                label="Player"
-                IconComponent={FontAwesome5}
-                iconName="running"
-                selected={selectedRole}
-                onPress={setSelectedRole}
-              />
-              <RoleCard
-                label="Organizer"
-                IconComponent={Ionicons}
-                iconName="briefcase"
-                selected={selectedRole}
-                onPress={setSelectedRole}
-              />
-              <RoleCard
-                label="Ground Owner"
-                IconComponent={MaterialCommunityIcons}
-                iconName="stadium"
-                selected={selectedRole}
-                onPress={setSelectedRole}
-              />
+              <View className="mt-6">
+                <View className="flex-row items-center px-6">
+                  <View className="flex-1 h-px bg-white/50" />
+                  <Text className="text-white font-rubikMedium mx-4">
+                    I want to register as
+                  </Text>
+                  <View className="flex-1 h-px bg-white/50" />
+                </View>
+
+                <View className="flex-row justify-between mt-4 px-4">
+                  <RoleCard
+                    label="Player"
+                    IconComponent={FontAwesome5}
+                    iconName="running"
+                    selected={selectedRole}
+                    onPress={setSelectedRole}
+                  />
+                  <RoleCard
+                    label="Organizer"
+                    IconComponent={Ionicons}
+                    iconName="briefcase"
+                    selected={selectedRole}
+                    onPress={setSelectedRole}
+                  />
+                  <RoleCard
+                    label="Ground Owner"
+                    IconComponent={MaterialCommunityIcons}
+                    iconName="stadium"
+                    selected={selectedRole}
+                    onPress={setSelectedRole}
+                  />
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
 
         <View className="px-6 py-6">
           <View className="mb-4">
@@ -352,12 +376,8 @@ const SignupScreen = () => {
                 keyboardType="phone-pad"
                 value={phone}
                 onChangeText={setPhone}
+                returnKeyType="done"
               />
-              <TouchableOpacity onPress={() => router.push("/verifyScreen")}>
-                <Text className="font-rubikSemiBold text-primary">
-                  Verify through OTP
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -373,6 +393,7 @@ const SignupScreen = () => {
                 secureTextEntry={!isPasswordVisible}
                 value={password}
                 onChangeText={setPassword}
+                returnKeyType="next"
               />
               <TouchableOpacity
                 onPress={() => setIsPasswordVisible((prev) => !prev)}
@@ -398,9 +419,12 @@ const SignupScreen = () => {
                 secureTextEntry={!isConfirmPasswordVisible}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
+                returnKeyType="done"
               />
               <TouchableOpacity
-                onPress={() => setIsConfirmPasswordVisible((prev) => !prev)}
+                onPress={() =>
+                  setIsConfirmPasswordVisible((prev) => !prev)
+                }
               >
                 <Feather
                   name={isConfirmPasswordVisible ? "eye" : "eye-off"}
@@ -430,7 +454,9 @@ const SignupScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
