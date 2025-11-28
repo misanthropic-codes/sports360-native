@@ -9,9 +9,10 @@ import {
     ClipboardList,
     Clock,
     Mail,
+    PlusCircle,
     Timer,
     User,
-    XCircle,
+    XCircle
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -348,6 +349,27 @@ const GroundOwnerDashboard: React.FC = () => {
           </View>
         </View>
 
+        {/* Post a Ground CTA */}
+        <View style={styles.ctaSection}>
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => router.push("/ground_owner/PostGround" as any)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.ctaContent}>
+              <View style={styles.ctaIconContainer}>
+                <PlusCircle size={28} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+              <View style={styles.ctaTextContainer}>
+                <Text style={styles.ctaTitle}>Post a Ground</Text>
+                <Text style={styles.ctaSubtitle}>
+                  List your ground and start receiving bookings
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Summary Cards */}
         {summary && (
           <View style={styles.summarySection}>
@@ -586,6 +608,51 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
     fontSize: 14,
+  },
+
+  // CTA Section
+  ctaSection: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  ctaButton: {
+    backgroundColor: "#16a34a",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  ctaContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+  },
+  ctaIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  ctaTextContainer: {
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 4,
+  },
+  ctaSubtitle: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.85)",
+    lineHeight: 18,
   },
 
   // Summary Section

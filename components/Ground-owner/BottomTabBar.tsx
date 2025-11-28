@@ -1,10 +1,10 @@
 import { usePathname, useRouter } from "expo-router";
 import {
-  BarChart3,
-  Calendar,
-  ClipboardList,
-  Home,
-  MapPin,
+    BarChart3,
+    Calendar,
+    ClipboardList,
+    Home,
+    MapPin,
 } from "lucide-react-native";
 import React from "react";
 import { Animated, TouchableOpacity, View } from "react-native";

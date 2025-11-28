@@ -1,3 +1,4 @@
+import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
@@ -247,6 +248,8 @@ export default function GroundOwnerAnalyticsScreen() {
           </View>
         )}
       </ScrollView>
+
+      <BottomNavBar />
     </SafeAreaView>
   );
 }
