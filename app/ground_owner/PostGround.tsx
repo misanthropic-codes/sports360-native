@@ -267,7 +267,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Ground Owner Name *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., Wankhede Cricket Stadium"
                   value={groundOwnerName}
                   onChangeText={setGroundOwnerName}
@@ -278,7 +278,7 @@ export default function PostGround() {
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Owner Name *</Text>
                 <TextInput
-                  className="bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
                   placeholder="e.g., Stadium Manager - Suresh Patil"
                   value={ownerName}
                   onChangeText={setOwnerName}
