@@ -37,10 +37,12 @@ const CricketHomeScreen = () => {
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
   const name = user?.fullName ?? "Player";
   const role = user?.role?.toLowerCase() || "player";
-  const type =
+  const type: string =
     Array.isArray(user?.domains) && user.domains.length > 0
-      ? user.domains.join(", ")
-      : user?.domains || "cricket";
+      ? user.domains[0]
+      : typeof user?.domains === "string"
+      ? user.domains
+      : "cricket";
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"teams" | "performance" | null>(

@@ -88,7 +88,7 @@ export default function TournamentInvitations() {
 
               // Remove from list
               setInvitations(
-                invitations.filter((inv) => inv.tournamentId !== tournamentId)
+                invitations.filter((inv) => inv.tournament.id !== tournamentId)
               );
 
               Alert.alert(

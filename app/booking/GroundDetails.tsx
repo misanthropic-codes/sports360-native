@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Calendar, ChevronDown, Clock, Star } from "lucide-react-native";
+import { Calendar, ChevronDown, Clock, Star, User } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
