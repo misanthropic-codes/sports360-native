@@ -1,18 +1,44 @@
-import { LogOut } from "lucide-react-native";
-import React from "react";
+import { getPlayerAnalytics } from "@/api/userApi";
+import { useRouter } from "expo-router";
+import { Edit, LogOut, Target, Trophy } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
-  Image,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 
-const ProfileScreen = ({ navigation }: { navigation?: any }) => {
-  const { user, logout } = useAuth();
+const ProfileScreen = () => {
+  const { user, logout, token } = useAuth();
+  const router = useRouter();
+  
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+  const type = Array.isArray(user?.domains) ? user.domains[0] : user?.domains || "cricket";
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (!token) return;
+      
+      try {
+        const data = await getPlayerAnalytics("overall", undefined, undefined, token);
+        setAnalytics(data);
+      } catch (error) {
+        console.error("Failed to fetch analytics:", error);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [token]);
 
   if (!user) {
     return (
@@ -35,6 +61,16 @@ const ProfileScreen = ({ navigation }: { navigation?: any }) => {
       >
         {/* Header */}
         <View className="bg-indigo-600 pt-12 pb-8 px-6 rounded-b-3xl items-center shadow">
+          <View className="absolute top-4 right-4">
+            <TouchableOpacity
+              onPress={() => router.push(`/edit-${type}` as any)}
+              className="bg-white/20 rounded-full p-3"
+              activeOpacity={0.7}
+            >
+              <Edit size={20} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
           <Image
             source={{
               uri:
@@ -52,6 +88,53 @@ const ProfileScreen = ({ navigation }: { navigation?: any }) => {
             {user.role}
           </Text>
         </View>
+
+        {/* Performance Stats */}
+        {!loadingAnalytics && analytics && (
+          <View className="px-6 mt-6">
+            <Text className="text-lg font-bold text-gray-900 mb-3">
+              Performance Overview
+            </Text>
+            
+            <View className="flex-row space-x-3 mb-3">
+              <View className="flex-1 bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-gray-500 text-xs font-medium">MATCHES</Text>
+                  <Trophy size={16} color="#4F46E5" />
+                </View>
+                <Text className="text-gray-900 font-bold text-2xl">
+                  {analytics.matches || 0}
+                </Text>
+              </View>
+
+              <View className="flex-1 bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-gray-500 text-xs font-medium">WIN RATE</Text>
+                  <Target size={16} color="#10B981" />
+                </View>
+                <Text className="text-gray-900 font-bold text-2xl">
+                  {Math.round((analytics.winRate || 0) * 100)}%
+                </Text>
+              </View>
+            </View>
+
+            <View className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-gray-500 text-xs font-medium">TOURNAMENTS</Text>
+                <Trophy size={16} color="#F59E0B" />
+              </View>
+              <Text className="text-gray-900 font-bold text-2xl">
+                {analytics.tournaments || 0}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {loadingAnalytics && (
+          <View className="px-6 mt-6 items-center">
+            <ActivityIndicator size="small" color="#4F46E5" />
+          </View>
+        )}
 
         {/* Info Cards */}
         <View className="px-6 mt-6 space-y-5">

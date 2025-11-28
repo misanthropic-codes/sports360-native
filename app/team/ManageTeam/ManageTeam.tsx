@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import { Clipboard, Gear, Trophy, UserPlus, Users } from "phosphor-react-native";
+import { Clipboard, Envelope, Gear, Trophy, UserPlus, Users } from "phosphor-react-native";
 import React, { useState } from "react";
 import {
     Platform,
@@ -15,8 +15,9 @@ import JoinRequests from "./JoinRequest";
 import Matches from "./Matches";
 import TeamMembers from "./TeamMembers";
 import Tournaments from "./Tournament";
+import TournamentInvitations from "./TournamentInvitations";
 
-type Tab = "members" | "requests" | "tournaments" | "matches";
+type Tab = "members" | "requests" | "invitations" | "tournaments" | "matches";
 
 const tabs = [
   { 
@@ -28,6 +29,11 @@ const tabs = [
     id: "requests", 
     label: "Join Requests",
     icon: UserPlus,
+  },
+  { 
+    id: "invitations", 
+    label: "Invitations",
+    icon: Envelope,
   },
   { 
     id: "tournaments", 
@@ -139,6 +145,7 @@ const ManageTeam: React.FC = () => {
           <View className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
             {activeTab === "members" && <TeamMembers />}
             {activeTab === "requests" && <JoinRequests />}
+            {activeTab === "invitations" && <TournamentInvitations />}
             {activeTab === "tournaments" && <Tournaments />}
             {activeTab === "matches" && <Matches />}
           </View>

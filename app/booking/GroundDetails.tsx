@@ -1,3 +1,5 @@
+import type { Review } from "@/api/reviewApi";
+import { getGroundRatingStats, getGroundReviews } from "@/api/reviewApi";
 import { getAllTournaments } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -6,17 +8,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, ChevronDown, Clock, Star } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Ground, useGroundStore } from "../../store/groundStore";
 
@@ -66,6 +68,11 @@ const GroundDetailsScreen: React.FC = () => {
     type: "start",
   });
 
+  // Reviews state
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<any>(null);
+  const [showReviews, setShowReviews] = useState(false);
+
   const finalGroundId = (params.groundId as string) || "";
 
   // 🎨 Role-based theme
@@ -97,6 +104,34 @@ const GroundDetailsScreen: React.FC = () => {
     };
 
     fetchGroundDetails();
+  }, [finalGroundId]);
+
+  // Fetch Reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!finalGroundId) return;
+
+      console.log("🔍 Fetching reviews for ground:", finalGroundId);
+
+      try {
+        const [reviewsData, statsData] = await Promise.all([
+          getGroundReviews(finalGroundId, 1, 10, token),
+          getGroundRatingStats(finalGroundId, token),
+        ]);
+        
+        console.log("✅ Reviews fetched:", reviewsData);
+        console.log("✅ Stats fetched:", statsData);
+        
+        setReviews(reviewsData.reviews);
+        setReviewStats(statsData);
+        
+        console.log("💾 State set - Reviews:", reviewsData.reviews.length, "Stats:", statsData);
+      } catch (error) {
+        console.error("❌ Error fetching reviews:", error);
+      }
+    };
+
+    fetchReviews();
   }, [finalGroundId]);
 
   // 🏆 Fetch Tournaments
@@ -255,26 +290,138 @@ const GroundDetailsScreen: React.FC = () => {
           </Text>
 
           {/* Ratings */}
-          {groundReviews && (
-            <View className="flex-row items-center mb-4">
-              <View
-                style={{ backgroundColor: theme.primary }}
-                className="flex-row items-center px-3 py-2 rounded-full"
-              >
-                <Star size={16} color="#fff" fill="#fff" />
-                <Text className="ml-1 font-bold text-base text-white">
-                  {groundReviews.averageRating.toFixed(1)}
+          {reviewStats && (
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <View
+                  style={{ backgroundColor: theme.primary }}
+                  className="flex-row items-center px-3 py-2 rounded-full"
+                >
+                  <Star size={16} color="#fff" fill="#fff" />
+                  <Text className="ml-1 font-bold text-base text-white">
+                    {reviewStats.averageRating?.toFixed(1) || "0.0"}
+                  </Text>
+                </View>
+                <Text className="ml-3 text-gray-600 text-base">
+                  {reviewStats.totalReviews || 0} reviews
                 </Text>
               </View>
-              <Text className="ml-3 text-gray-600 text-base">
-                {groundReviews.totalReviews} reviews
-              </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  console.log("🔘 View Reviews button clicked. Current state:", showReviews);
+                  console.log("📊 Review Stats:", reviewStats);
+                  console.log("📝 Reviews count:", reviews.length);
+                  setShowReviews(!showReviews);
+                }}
+                style={{ backgroundColor: theme.primaryBg, borderColor: theme.primaryBorder }}
+                className="border-2 rounded-xl py-3 px-4 flex-row items-center justify-center"
+              >
+                <Star size={18} color={theme.primary} />
+                <Text style={{ color: theme.primary }} className="font-semibold ml-2">
+                  {showReviews ? "Hide Reviews" : "View Reviews"}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
           <Text className="text-base text-gray-700 leading-6 mb-4">
             {ground.groundDescription || "No description available."}
           </Text>
+
+          {/* Reviews Section */}
+          {showReviews && (
+            <View className="mb-6">
+              {/* Rating Stats */}
+              {reviewStats && (
+                <View
+                  style={{ backgroundColor: theme.primaryBg, borderColor: theme.primaryBorder }}
+                  className="border-2 rounded-2xl p-5 mb-4"
+                >
+                  <Text className="text-lg font-bold text-gray-900 mb-4">Overall Rating</Text>
+                  <View className="items-center">
+                    <Text style={{ color: theme.primary }} className="text-5xl font-bold">
+                      {reviewStats.averageRating?.toFixed(1) || "0.0"}
+                    </Text>
+                    <View className="flex-row mt-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={20}
+                          color="#F59E0B"
+                          fill={star <= Math.round(reviewStats.averageRating || 0) ? "#F59E0B" : "transparent"}
+                        />
+                      ))}
+                    </View>
+                    <Text className="text-gray-500 text-sm mt-2">
+                      {reviewStats.totalReviews || 0} reviews
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Reviews List */}
+              <Text className="text-lg font-bold text-gray-900 mb-3">Customer Reviews</Text>
+              
+              {reviews.length > 0 ? (
+                <>
+                  {reviews.slice(0, 3).map((review) => (
+                    <View
+                      key={review.id}
+                      className="bg-white border border-gray-200 rounded-xl p-4 mb-3"
+                    >
+                      <View className="flex-row items-center justify-between mb-2">
+                        <View className="flex-row items-center flex-1">
+                          <View style={{ backgroundColor: theme.primaryBg }} className="w-8 h-8 rounded-full items-center justify-center mr-2">
+                            <User size={16} color={theme.primary} />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-gray-900 font-semibold text-sm">
+                              {review.userName || "Anonymous"}
+                            </Text>
+                            {review.createdAt && (
+                              <Text className="text-gray-500 text-xs">
+                                {new Date(review.createdAt).toLocaleDateString("en-IN", {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+
+                        <View className="flex-row">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={12}
+                              color="#F59E0B"
+                              fill={star <= review.rating ? "#F59E0B" : "transparent"}
+                            />
+                          ))}
+                        </View>
+                      </View>
+
+                      {review.comment && (
+                        <Text className="text-gray-700 text-sm leading-5">{review.comment}</Text>
+                      )}
+                    </View>
+                  ))}
+                  
+                  {reviews.length > 3 && (
+                    <Text className="text-gray-500 text-sm text-center mt-2">
+                      Showing 3 of {reviews.length} reviews
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <View className="bg-white border border-gray-200 rounded-xl p-6 items-center">
+                  <Star size={32} color="#CBD5E1" />
+                  <Text className="text-gray-400 mt-2 text-center text-sm">No reviews yet</Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* 🏗️ Facilities */}
           <View
