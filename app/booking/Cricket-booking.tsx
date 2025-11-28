@@ -2,11 +2,11 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    Text,
-    View,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import BottomNavBar from "../../components/BottomNavBar";
 import VenueCard from "../../components/Card"; // Updated VenueCard
@@ -78,7 +78,7 @@ const GroundBookingScreen = () => {
               ground={ground} // Pass full ground object
               onBookNowPress={() => {
                 setSelectedGround(ground);
-                router.push(`booking/GroundDetails?groundId=${ground.id}`);
+                router.push(`booking/GroundDetails?groundId=${ground.id}` as any);
               }}
             />
           ))

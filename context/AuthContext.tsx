@@ -1,25 +1,26 @@
 // context/AuthContext.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    ReactNode,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
 
 export interface User {
-  id: number;
+  id: string;
   fullName: string;
   email: string;
-  dateOfBirth?: string | null;
+  dateOfBirth: string;
   profilePicUrl?: string;
-  phone?: string;
-  role: string;
-  isVerified?: boolean | string;
-  createdAt?: string;
-  domains: string[];
-  token: string;
+  phone: string;
+  passwordHash?: string; // From backend, should not be used in frontend
+  role: "player" | "organizer" | "ground_owner";
+  isVerified: string; // Backend returns as string "false" or "true"
+  createdAt: string;
+  domains?: string[]; // Optional, populated after onboarding
+  token?: string; // Optional, obtained from login
 }
 
 interface AuthContextType {
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (userData: User) => {
     setUser(userData);
-    setToken(userData.token);
+    setToken(userData.token || null);
     await AsyncStorage.setItem("user", JSON.stringify(userData));
   };
 

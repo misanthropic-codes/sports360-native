@@ -4,16 +4,16 @@ import { useBookingStore } from "@/store/bookingStore";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const GroundListScreen: React.FC = () => {
@@ -47,8 +47,8 @@ const GroundListScreen: React.FC = () => {
         return acc;
       }, {});
 
-      const groupedArray = Object.values(grouped || {});
-      setGrounds(groupedArray);
+      const groupedArray = Object.values(grouped || {}) as any[];
+      setGrounds(groupedArray as any);
       setGroundsData(groupedArray);
     } catch (err) {
       console.error("Error fetching grounds:", err);

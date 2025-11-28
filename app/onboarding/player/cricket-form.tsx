@@ -6,7 +6,7 @@ import ReusableTextInput from "@/components/TextInput";
 import api from "../../../api/api";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { FC, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 import {
   Alert,
   Platform,
@@ -42,6 +42,25 @@ const CompleteProfileScreen: FC = () => {
     captain: false,
     tournament: true,
   });
+
+  // Pre-populate form fields from user data
+  useEffect(() => {
+    if (user) {
+      // Set full name
+      if (user.fullName) {
+        setFullName(user.fullName);
+      }
+
+      // Convert and set date of birth from YYYY-MM-DD to DD/MM/YYYY
+      if (user.dateOfBirth) {
+        const [year, month, day] = user.dateOfBirth.split("-");
+        setDob(`${day}/${month}/${year}`);
+        
+        // Also update the date picker date object
+        setDate(new Date(`${year}-${month}-${day}`));
+      }
+    }
+  }, [user]);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);

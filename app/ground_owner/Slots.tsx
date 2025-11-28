@@ -49,7 +49,7 @@ interface DurationOption {
   minutes: number;
 }
 
-export default function DateTimePickerScreen(): JSX.Element {
+export default function DateTimePickerScreen(): React.JSX.Element {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] =
     useState<TimeSlotType>("afternoon");
@@ -189,7 +189,7 @@ export default function DateTimePickerScreen(): JSX.Element {
     return endTime;
   };
 
-  const renderCalendar = (): JSX.Element => {
+  const renderCalendar = (): React.JSX.Element => {
     const daysInMonth = getDaysInMonth(selectedDate);
     const firstDay = getFirstDayOfMonth(selectedDate);
     const today = new Date();

@@ -2,21 +2,49 @@ import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { create } from "zustand";
 
+interface GroundAnalytics {
+  groundId: string;
+  groundName: string;
+  location: string;
+  pricePerHour: number;
+  totalBookings: number;
+  utilizationRate: number;
+}
+
+interface AnalyticsSummary {
+  totalGrounds: number;
+  totalBookings: number;
+  approvedBookings: number;
+  pendingBookings: number;
+}
+
+interface AnalyticsData {
+  summary: AnalyticsSummary;
+  grounds: GroundAnalytics[];
+}
+
+interface AnalyticsStore {
+  analytics: AnalyticsData | null;
+  loading: boolean;
+  error: string | null;
+  fetchAnalytics: (token: string) => Promise<void>;
+}
+
 // Zustand store for analytics
-const useAnalyticsStore = create((set) => ({
+const useAnalyticsStore = create<AnalyticsStore>((set) => ({
   analytics: null,
   loading: false,
   error: null,
-  fetchAnalytics: async (token) => {
+  fetchAnalytics: async (token: string) => {
     set({ loading: true, error: null });
     try {
       const res = await fetch(
@@ -30,7 +58,7 @@ const useAnalyticsStore = create((set) => ({
       const data = await res.json();
       set({ analytics: data, loading: false });
     } catch (err) {
-      set({ error: err.message, loading: false });
+      set({ error: err instanceof Error ? err.message : 'An error occurred', loading: false });
     }
   },
 }));
@@ -158,7 +186,7 @@ export default function GroundOwnerAnalyticsScreen() {
           Detailed Breakdown
         </Text>
 
-        {grounds.map((g) => (
+        {grounds.map((g: GroundAnalytics) => (
           <View
             key={g.groundId}
             className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-gray-100"
