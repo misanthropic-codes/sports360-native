@@ -18,10 +18,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../../api/api";
 
-type GroundType = "Local Ground" | "Sports Complex" | "Cricket Ground";
-type YearsOfOperation = "New" | "1-2 Years" | "3-5 Years" | "5+ Years";
-type FacilityType = "Turf Grass" | "Artificial Turf" | "Concrete";
-type BookingFrequency = "Daily" | "Weekly" | "Monthly" | "Quarterly";
+type GroundType = "Turf" | "Stadium" | "Local Ground" | "School/College Ground" | "Private Facility";
+type YearsOfOperation = "Less than 1 year" | "1-2 Years" | "3-5 Years" | "5+ Years";
+type FacilityType = "Floodlights" | "Washroom" | "Parking" | "League Format" | "Locker Room" | "Turf Grass";
+type BookingFrequency = "Daily" | "Weekly" | "Monthly" | "Yearly" | "Seasonly";
 
 export default function PostGround() {
   const { token } = useAuth();
@@ -55,27 +55,37 @@ export default function PostGround() {
   const [showFacilityDropdown, setShowFacilityDropdown] = useState(false);
   const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false);
 
-  const groundTypeOptions: GroundType[] = ["Local Ground", "Sports Complex", "Cricket Ground"];
-  const yearsOptions: YearsOfOperation[] = ["New", "1-2 Years", "3-5 Years", "5+ Years"];
-  const facilityOptions: FacilityType[] = ["Turf Grass", "Artificial Turf", "Concrete"];
-  const frequencyOptions: BookingFrequency[] = ["Daily", "Weekly", "Monthly", "Quarterly"];
+  const groundTypeOptions: GroundType[] = ["Turf", "Stadium", "Local Ground", "School/College Ground", "Private Facility"];
+  const yearsOptions: YearsOfOperation[] = ["Less than 1 year", "1-2 Years", "3-5 Years", "5+ Years"];
+  const facilityOptions: FacilityType[] = ["Floodlights", "Washroom", "Parking", "League Format", "Locker Room", "Turf Grass"];
+  const frequencyOptions: BookingFrequency[] = ["Daily", "Weekly", "Monthly", "Yearly", "Seasonly"];
 
   const mapToBackend = (value: string): string => {
     const mapping: Record<string, string> = {
+      // Ground Types
+      "Turf": "turf",
+      "Stadium": "stadium",
       "Local Ground": "local_ground",
-      "Sports Complex": "sports_complex",
-      "Cricket Ground": "cricket_ground",
-      "New": "new",
+      "School/College Ground": "school_college_ground",
+      "Private Facility": "private_facility",
+      // Years of Operation
+      "Less than 1 year": "less_than_1_year",
       "1-2 Years": "1-2_years",
       "3-5 Years": "3-5_years",
       "5+ Years": "5+_years",
+      // Facilities
+      "Floodlights": "floodlights",
+      "Washroom": "washroom",
+      "Parking": "parking",
+      "League Format": "league_format",
+      "Locker Room": "locker_room",
       "Turf Grass": "turf_grass",
-      "Artificial Turf": "artificial_turf",
-      "Concrete": "concrete",
+      // Booking Frequency
       "Daily": "daily",
       "Weekly": "weekly",
       "Monthly": "monthly",
-      "Quarterly": "quarterly",
+      "Yearly": "yearly",
+      "Seasonly": "seasonly",
     };
     return mapping[value] || value.toLowerCase();
   };
