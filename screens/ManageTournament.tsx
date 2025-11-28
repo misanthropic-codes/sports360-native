@@ -1,20 +1,20 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  Text,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    SafeAreaView,
+    StatusBar,
+    Text,
 } from "react-native";
 import Header from "../components/Ui/Header";
 import TabNavigation from "../components/Ui/TabNaviagtion";
 
 import {
-  deleteTournament,
-  getTeamsByTournament,
-  getTournamentById,
+    deleteTournament,
+    getTeamsByTournament,
+    getTournamentById,
 } from "../api/tournamentApi";
 
 import LeaderboardTab from "../components/Tournament/Leaderboard";
@@ -157,7 +157,16 @@ const ManageTournamentScreen = () => {
       <Header
         tournamentName={tournament.name}
         status={tournament.status}
-        onEdit={() => {}}
+        onEdit={() => {
+          if (user?.role !== "organizer") {
+            Alert.alert("Unauthorized", "Only organizers can edit tournaments.");
+            return;
+          }
+          router.push({
+            pathname: "/tournament/editTournament" as any,
+            params: { tournamentId: id },
+          });
+        }}
         onDelete={handleDelete}
       />
       <TabNavigation

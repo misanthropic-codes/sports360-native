@@ -108,6 +108,20 @@ export const getMyTeams = async (token: string): Promise<Team[]> => {
   return res.data?.data || [];
 };
 
+// Update Tournament
+export const updateTournament = async (
+  id: string,
+  data: any,
+  token: string
+): Promise<any> => {
+  const res = await api.put(
+    `/tournament/update/${id}`,
+    data,
+    withAuthHeaders(token)
+  );
+  return res.data?.data || null;
+};
+
 export const deleteTournament = async (id: string, token: string) => {
   const res = await api.delete(
     `/tournament/delete/${id}`,

@@ -2,7 +2,7 @@ import type { TournamentInvitation } from "@/api/teamApi";
 import { getTournamentInvitations, respondToInvitation } from "@/api/teamApi";
 import { useAuth } from "@/context/AuthContext";
 import { useLocalSearchParams } from "expo-router";
-import { Calendar, Check, Trophy, X } from "lucide-react-native";
+import { Calendar, Check, MapPin, Trophy, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -145,20 +145,23 @@ export default function TournamentInvitations() {
       <View className="space-y-4">
         {Array.isArray(invitations) && invitations.map((invitation) => (
           <View
-            key={invitation.tournamentId}
+            key={invitation.tournament.id}
             className="bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm"
           >
-            {/* Tournament Name */}
+            {/* Tournament Header */}
             <View className="flex-row items-start justify-between mb-4">
               <View className="flex-1 mr-3">
-                <Text className="text-lg font-bold text-gray-900 mb-2">
-                  {invitation.tournamentName || "Tournament Invitation"}
+                <Text className="text-xl font-bold text-gray-900 mb-1">
+                  {invitation.tournament.name}
+                </Text>
+                <Text className="text-gray-600 text-sm mb-3">
+                  {invitation.tournament.description}
                 </Text>
 
                 {/* Status Badge */}
                 <View className="bg-blue-50 px-3 py-1.5 rounded-full self-start">
                   <Text className="text-blue-700 text-xs font-semibold uppercase">
-                    Pending
+                    {invitation.invitationDetails.status}
                   </Text>
                 </View>
               </View>
@@ -168,13 +171,83 @@ export default function TournamentInvitations() {
               </View>
             </View>
 
-            {/* Invitation Details */}
-            {invitation.invitedAt && (
-              <View className="flex-row items-center mb-3 pb-3 border-b border-gray-100">
+            {/* Tournament Details Grid */}
+            <View className="bg-gray-50 rounded-xl p-4 mb-4">
+              <View className="flex-row flex-wrap gap-3">
+                {/* Location */}
+                <View className="flex-row items-center flex-1 min-w-[45%]">
+                  <MapPin size={16} color="#6B7280" />
+                  <View className="ml-2">
+                    <Text className="text-gray-500 text-xs">Location</Text>
+                    <Text className="text-gray-900 font-semibold text-sm">
+                      {invitation.tournament.location}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Prize Pool */}
+                <View className="flex-row items-center flex-1 min-w-[45%]">
+                  <Text className="text-lg">💰</Text>
+                  <View className="ml-2">
+                    <Text className="text-gray-500 text-xs">Prize Pool</Text>
+                    <Text className="text-gray-900 font-semibold text-sm">
+                      ₹{invitation.tournament.prizePool.toLocaleString()}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Team Size */}
+                <View className="flex-row items-center flex-1 min-w-[45%]">
+                  <Text className="text-lg">👥</Text>
+                  <View className="ml-2">
+                    <Text className="text-gray-500 text-xs">Team Size</Text>
+                    <Text className="text-gray-900 font-semibold text-sm">
+                      {invitation.tournament.teamSize} players
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Total Teams */}
+                <View className="flex-row items-center flex-1 min-w-[45%]">
+                  <Text className="text-lg">🏆</Text>
+                  <View className="ml-2">
+                    <Text className="text-gray-500 text-xs">Total Teams</Text>
+                    <Text className="text-gray-900 font-semibold text-sm">
+                      {invitation.tournament.teamCount} teams
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Tournament Dates */}
+            <View className="flex-row items-center mb-3 pb-3 border-b border-gray-100">
+              <Calendar size={16} color="#6B7280" />
+              <View className="ml-2 flex-1">
+                <Text className="text-gray-500 text-xs">Tournament Dates</Text>
+                <Text className="text-gray-900 text-sm">
+                  {new Date(invitation.tournament.startDate).toLocaleDateString("en-IN", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}{" "}
+                  -{" "}
+                  {new Date(invitation.tournament.endDate).toLocaleDateString("en-IN", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </Text>
+              </View>
+            </View>
+
+            {/* Invited Date */}
+            {invitation.invitationDetails.invitedAt && (
+              <View className="flex-row items-center mb-3">
                 <Calendar size={16} color="#6B7280" />
                 <Text className="text-gray-600 text-sm ml-2">
-                  Invited{" "}
-                  {new Date(invitation.invitedAt).toLocaleDateString("en-IN", {
+                  Invited on{" "}
+                  {new Date(invitation.invitationDetails.invitedAt).toLocaleDateString("en-IN", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
@@ -184,13 +257,13 @@ export default function TournamentInvitations() {
             )}
 
             {/* Message */}
-            {invitation.message && (
+            {invitation.invitationDetails.message && (
               <View className="bg-gray-50 rounded-xl p-4 mb-4">
                 <Text className="text-gray-500 text-xs font-medium mb-1">
-                  MESSAGE
+                  MESSAGE FROM ORGANIZER
                 </Text>
                 <Text className="text-gray-800 text-sm leading-5">
-                  {invitation.message}
+                  {invitation.invitationDetails.message}
                 </Text>
               </View>
             )}
@@ -198,36 +271,36 @@ export default function TournamentInvitations() {
             {/* Action Buttons */}
             <View className="flex-row space-x-3 mt-2">
               <TouchableOpacity
-                onPress={() => handleRespond(invitation.tournamentId, "accept")}
-                disabled={respondingTo === invitation.tournamentId}
+                onPress={() => handleRespond(invitation.tournament.id, "accept")}
+                disabled={respondingTo === invitation.tournament.id}
                 className={`flex-1 py-3.5 rounded-xl flex-row items-center justify-center ${
-                  respondingTo === invitation.tournamentId
+                  respondingTo === invitation.tournament.id
                     ? "bg-gray-300"
                     : "bg-green-600"
                 }`}
               >
-                {respondingTo === invitation.tournamentId ? (
+                {respondingTo === invitation.tournament.id ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <>
                     <Check size={18} color="#ffffff" />
                     <Text className="text-white font-bold text-sm ml-2">
-                      Accept
+                      Accept Invitation
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => handleRespond(invitation.tournamentId, "reject")}
-                disabled={respondingTo === invitation.tournamentId}
+                onPress={() => handleRespond(invitation.tournament.id, "reject")}
+                disabled={respondingTo === invitation.tournament.id}
                 className={`flex-1 py-3.5 rounded-xl flex-row items-center justify-center border-2 ${
-                  respondingTo === invitation.tournamentId
+                  respondingTo === invitation.tournament.id
                     ? "bg-gray-100 border-gray-300"
                     : "bg-white border-red-200"
                 }`}
               >
-                {respondingTo === invitation.tournamentId ? (
+                {respondingTo === invitation.tournament.id ? (
                   <ActivityIndicator size="small" color="#6B7280" />
                 ) : (
                   <>

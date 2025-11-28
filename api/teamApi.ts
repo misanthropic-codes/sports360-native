@@ -53,11 +53,27 @@ export interface JoinRequest {
 }
 
 export interface TournamentInvitation {
-  tournamentId: string;
-  tournamentName?: string;
-  status: "pending" | "accepted" | "rejected";
-  invitedAt: string;
-  message?: string;
+  tournament: {
+    id: string;
+    name: string;
+    description: string;
+    createdBy: string;
+    startDate: string;
+    endDate: string;
+    location: string;
+    bannerImageUrl: string;
+    teamSize: number;
+    teamCount: number;
+    prizePool: number;
+    status: string;
+    createdAt: string;
+  };
+  invitationDetails: {
+    status: string;
+    message: string | null;
+    invitedAt: string;
+    reviewedAt: string | null;
+  };
 }
 
 // ============================================
@@ -323,12 +339,11 @@ export const getTournamentInvitations = async (
   status?: string,
   token?: string
 ): Promise<TournamentInvitation[]> => {
-  const params = status ? { status } : {};
   const res = await api.get(`/team/${teamId}/tournament-invitations`, {
-    params,
-    ...withAuthHeaders(token || ""),
+    params: { status },
+    headers: { Authorization: `Bearer ${token}` },
   });
-  return res.data?.data || [];
+  return res.data?.data?.invitations || [];
 };
 
 /**
