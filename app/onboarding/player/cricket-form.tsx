@@ -175,13 +175,17 @@ const CompleteProfileScreen: FC = () => {
         </View>
 
         <View className="px-4 space-y-5">
-          <ReusableDropdown
-            label="Playing Position *"
-            selectedValue={playingPosition}
-            onValueChange={setPlayingPosition}
-            placeholder="Select Position"
-            options={["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"]}
-          />
+          <View>
+            <Text className="text-gray-600 text-sm mb-2">
+              Playing Position *
+            </Text>
+            <ReusableDropdown
+              selectedValue={playingPosition}
+              onValueChange={setPlayingPosition}
+              placeholder="Select Position"
+              options={["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"]}
+            />
+          </View>
 
           <View>
             <Text className="text-gray-600 text-sm mb-2">Batting Style</Text>
@@ -197,20 +201,24 @@ const CompleteProfileScreen: FC = () => {
             </View>
           </View>
 
-          <ReusableDropdown
-            label="Bowling Style"
-            selectedValue={bowlingStyle}
-            onValueChange={setBowlingStyle}
-            placeholder="Select Bowling Style"
-            options={[
-              "Right Arm Fast",
-              "Right Arm Medium",
-              "Right Arm Spin",
-              "Left Arm Fast",
-              "Left Arm Medium",
-              "Left Arm Spin"
-            ]}
-          />
+          <View>
+            <Text className="text-gray-600 text-sm mb-2">
+              Bowling Style
+            </Text>
+            <ReusableDropdown
+              selectedValue={bowlingStyle}
+              onValueChange={setBowlingStyle}
+              placeholder="Select Bowling Style"
+              options={[
+                "Right Arm Fast",
+                "Right Arm Medium",
+                "Right Arm Spin",
+                "Left Arm Fast",
+                "Left Arm Medium",
+                "Left Arm Spin"
+              ]}
+            />
+          </View>
 
           <View>
             <Text className="text-gray-600 text-sm mb-2">Experience Level *</Text>

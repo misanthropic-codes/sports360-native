@@ -7,14 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import React, { useState } from "react";
 import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 // @ts-ignore - DateTimePicker types might not be available
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -428,40 +429,142 @@ const CreateTournament: React.FC = () => {
         </ScrollView>
 
         {/* Date Time Pickers */}
-        {showStartDatePicker && (
+        {/* Start Date Picker */}
+        {Platform.OS === "ios" && showStartDatePicker && (
+          <Modal transparent={true} animationType="slide" visible={showStartDatePicker}>
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
+                  <Text className="font-semibold text-lg text-gray-800">Select Start Date</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowStartDatePicker(false)}
+                    className="bg-purple-600 px-4 py-2 rounded-full"
+                  >
+                    <Text className="text-white font-semibold">Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={formData.startDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={onStartDateChange}
+                  minimumDate={new Date()}
+                  textColor="#000000"
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {Platform.OS === "android" && showStartDatePicker && (
           <DateTimePicker
             value={formData.startDate}
             mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
+            display="default"
             onChange={onStartDateChange}
             minimumDate={new Date()}
           />
         )}
 
-        {showStartTimePicker && (
+        {/* Start Time Picker */}
+        {Platform.OS === "ios" && showStartTimePicker && (
+          <Modal transparent={true} animationType="slide" visible={showStartTimePicker}>
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
+                  <Text className="font-semibold text-lg text-gray-800">Select Start Time</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowStartTimePicker(false)}
+                    className="bg-purple-600 px-4 py-2 rounded-full"
+                  >
+                    <Text className="text-white font-semibold">Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={formData.startDate}
+                  mode="time"
+                  display="spinner"
+                  onChange={onStartTimeChange}
+                  textColor="#000000"
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {Platform.OS === "android" && showStartTimePicker && (
           <DateTimePicker
             value={formData.startDate}
             mode="time"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
+            display="default"
             onChange={onStartTimeChange}
           />
         )}
 
-        {showEndDatePicker && (
+        {/* End Date Picker */}
+        {Platform.OS === "ios" && showEndDatePicker && (
+          <Modal transparent={true} animationType="slide" visible={showEndDatePicker}>
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
+                  <Text className="font-semibold text-lg text-gray-800">Select End Date</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowEndDatePicker(false)}
+                    className="bg-purple-600 px-4 py-2 rounded-full"
+                  >
+                    <Text className="text-white font-semibold">Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={formData.endDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={onEndDateChange}
+                  minimumDate={formData.startDate}
+                  textColor="#000000"
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {Platform.OS === "android" && showEndDatePicker && (
           <DateTimePicker
             value={formData.endDate}
             mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
+            display="default"
             onChange={onEndDateChange}
             minimumDate={formData.startDate}
           />
         )}
 
-        {showEndTimePicker && (
+        {/* End Time Picker */}
+        {Platform.OS === "ios" && showEndTimePicker && (
+          <Modal transparent={true} animationType="slide" visible={showEndTimePicker}>
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
+                  <Text className="font-semibold text-lg text-gray-800">Select End Time</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowEndTimePicker(false)}
+                    className="bg-purple-600 px-4 py-2 rounded-full"
+                  >
+                    <Text className="text-white font-semibold">Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={formData.endDate}
+                  mode="time"
+                  display="spinner"
+                  onChange={onEndTimeChange}
+                  textColor="#000000"
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+        {Platform.OS === "android" && showEndTimePicker && (
           <DateTimePicker
             value={formData.endDate}
             mode="time"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
+            display="default"
             onChange={onEndTimeChange}
           />
         )}

@@ -257,13 +257,17 @@ const CompleteProfileScreen = () => {
               onChangeText={setContactPersonName}
             />
 
-            <ReusableDropdown
-              label="Organization Type *"
-              options={orgTypeOptions}
-              selectedValue={orgType}
-              onValueChange={setOrgType}
-              placeholder="Select Organization Type"
-            />
+            <View>
+              <Text className="text-gray-600 text-sm font-medium mb-2">
+                Organization Type *
+              </Text>
+              <ReusableDropdown
+                options={orgTypeOptions}
+                selectedValue={orgType}
+                onValueChange={setOrgType}
+                placeholder="Select Organization Type"
+              />
+            </View>
 
             <View>
               <Text className="text-gray-600 text-sm font-medium mb-3">
@@ -304,13 +308,17 @@ const CompleteProfileScreen = () => {
               </View>
             </View>
 
-            <ReusableDropdown
-              label="Expected Tournament Frequency *"
-              options={frequencyOptions}
-              selectedValue={frequency}
-              onValueChange={setFrequency}
-              placeholder="Select Frequency"
-            />
+            <View>
+              <Text className="text-gray-600 text-sm font-medium mb-2">
+                Expected Tournament Frequency *
+              </Text>
+              <ReusableDropdown
+                options={frequencyOptions}
+                selectedValue={frequency}
+                onValueChange={setFrequency}
+                placeholder="Select Frequency"
+              />
+            </View>
 
             <ReusableTextInput
               label="Tell us about your organization"
