@@ -59,7 +59,7 @@ const CreateTeamScreen: React.FC = () => {
     console.log("📤 Sending team data:", JSON.stringify(formData, null, 2));
 
     try {
-      const response = await api.post("/team", formData, {
+      const response = await api.post("/team/create", formData, {
         headers: {
           Authorization: `Bearer ${user.token}`,
         },
