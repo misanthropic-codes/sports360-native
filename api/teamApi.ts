@@ -223,6 +223,40 @@ export const getTeamMembers = async (
   return res.data?.data || [];
 };
 
+/**
+ * Bench Member (captain)
+ * PUT /team/:id/member/:memberId/bench
+ */
+export const benchMember = async (
+  teamId: string,
+  memberId: string,
+  token: string
+): Promise<any> => {
+  const res = await api.put(
+    `/team/${teamId}/member/${memberId}/bench`,
+    { teamId, memberId },
+    withAuthHeaders(token)
+  );
+  return res.data;
+};
+
+/**
+ * Unbench Member (captain)
+ * PUT /team/:id/member/:memberId/unbench
+ */
+export const unbenchMember = async (
+  teamId: string,
+  memberId: string,
+  token: string
+): Promise<any> => {
+  const res = await api.put(
+    `/team/${teamId}/member/${memberId}/unbench`,
+    { teamId, memberId },
+    withAuthHeaders(token)
+  );
+  return res.data;
+};
+
 // ============================================
 // JOIN REQUEST APIs
 // ============================================
@@ -388,6 +422,8 @@ export default {
   addMember,
   removeMember,
   getTeamMembers,
+  benchMember,
+  unbenchMember,
   requestJoinTeam,
   getJoinRequests,
   approveJoinRequest,

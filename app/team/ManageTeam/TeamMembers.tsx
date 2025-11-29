@@ -1,9 +1,10 @@
+import { benchMember, unbenchMember } from "@/api/teamApi";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { useLocalSearchParams } from "expo-router";
 import { Crown, DotsThreeVertical, User } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
 
 type Member = {
   teamId: string;
@@ -24,6 +25,7 @@ type Member = {
   battingStyle: string;
   bowlingStyle: string;
   batsmanType: string | null;
+  isBenched?: boolean;
 };
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
@@ -31,7 +33,9 @@ const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 const TeamMembers: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [benchingMemberId, setBenchingMemberId] = useState<string | null>(null);
+  const { token, user } = useAuth();
 
   const params = useLocalSearchParams();
   const teamId = params.teamId as string;
@@ -77,6 +81,72 @@ const TeamMembers: React.FC = () => {
     return "bg-gray-100 text-gray-700 border-gray-200";
   };
 
+  // Check if current user is captain
+  const isCurrentUserCaptain = members.some(
+    (m) => m.userId === user?.id && m.role.toLowerCase().includes("captain")
+  );
+
+  // Handle bench/unbench member
+  const handleBenchMember = (memberId: string, currentlyBenched: boolean) => {
+    if (!isCurrentUserCaptain) {
+      Alert.alert("Unauthorized", "Only team captains can bench/unbench members.");
+      return;
+    }
+
+    const action = currentlyBenched ? "Unbench" : "Bench";
+    Alert.alert(
+      `${action} Member`,
+      `Are you sure you want to ${action.toLowerCase()} this member?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: action,
+          style: currentlyBenched ? "default" : "destructive",
+          onPress: async () => {
+            try {
+              if (!token || !teamId) {
+                Alert.alert("Error", "Missing authentication or team information.");
+                return;
+              }
+
+              setBenchingMemberId(memberId);
+              setOpenMenuId(null);
+
+              if (currentlyBenched) {
+                await unbenchMember(teamId, memberId, token);
+              } else {
+                await benchMember(teamId, memberId, token);
+              }
+
+              // Update local state
+              setMembers((prevMembers) =>
+                prevMembers.map((m) =>
+                  m.userId === memberId
+                    ? { ...m, isBenched: !currentlyBenched }
+                    : m
+                )
+              );
+
+              Alert.alert(
+                "Success",
+                `Member ${currentlyBenched ? "unbenched" : "benched"} successfully`
+              );
+            } catch (error: any) {
+              console.error("Bench/Unbench error:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message ||
+                  `Failed to ${action.toLowerCase()} member`
+              );
+            } finally {
+              setBenchingMemberId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center py-12">
@@ -115,14 +185,31 @@ const TeamMembers: React.FC = () => {
       </View>
 
       {/* Members List */}
-      {members.map((member) => {
-        const isCaptain = member.role.toLowerCase().includes("captain") || 
+      {members.map((member, index) => {
+        // Check if THIS member is a captain
+        const isMemberCaptain = member.role.toLowerCase().includes("captain") || 
                          member.role.toLowerCase().includes("leader");
+        const isMenuOpen = openMenuId === member.userId;
+        // Show menu only if: current user is captain AND this member is NOT a captain
+        const shouldShowMenu = isCurrentUserCaptain && !isMemberCaptain;
         
         return (
           <View
             key={member.userId}
-            className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-3"
+            style={{
+              backgroundColor: "white",
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 12,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: isMenuOpen ? 999 : 2,
+              zIndex: isMenuOpen ? 9999 : members.length - index,
+            }}
           >
             {/* Header */}
             <View className="flex-row items-center justify-between mb-3">
@@ -131,7 +218,7 @@ const TeamMembers: React.FC = () => {
                   <Text className="text-gray-900 font-bold text-lg mr-2">
                     {member.fullName}
                   </Text>
-                  {isCaptain && (
+                  {isMemberCaptain && (
                     <Crown size={20} weight="fill" color="#F59E0B" />
                   )}
                 </View>
@@ -153,8 +240,8 @@ const TeamMembers: React.FC = () => {
               </View>
             </View>
 
-            {/* Role Badge */}
-            <View className="mb-3">
+            {/* Role Badge and Benched Badge */}
+            <View className="mb-3 flex-row">
               <View className={`
                 self-start px-3 py-1 rounded-full border
                 ${getRoleBadgeColor(member.role)}
@@ -163,6 +250,15 @@ const TeamMembers: React.FC = () => {
                   {member.role}
                 </Text>
               </View>
+              {member.isBenched && (
+                <View 
+                  className="ml-2 px-3 py-1 rounded-full bg-red-100 border border-red-300"
+                >
+                  <Text className="text-xs font-bold uppercase tracking-wide text-red-700">
+                    BENCHED
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Player Profile */}
@@ -217,12 +313,66 @@ const TeamMembers: React.FC = () => {
                   year: "numeric",
                 })}
               </Text>
-              <TouchableOpacity 
-                className="p-2 bg-gray-50 rounded-lg"
-                activeOpacity={0.7}
-              >
-                <DotsThreeVertical size={20} color="#6B7280" weight="bold" />
-              </TouchableOpacity>
+              {shouldShowMenu && (
+                <View style={{ position: "relative", zIndex: 1000 }}>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      console.log("🎯 Menu clicked for:", member.fullName);
+                      setOpenMenuId(openMenuId === member.userId ? null : member.userId);
+                    }}
+                    style={{
+                      padding: 8,
+                      backgroundColor: "#F9FAFB",
+                      borderRadius: 8,
+                    }}
+                    activeOpacity={0.7}
+                    disabled={benchingMemberId === member.userId}
+                  >
+                    <DotsThreeVertical size={20} color="#6B7280" weight="bold" />
+                  </TouchableOpacity>
+                  {openMenuId === member.userId && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 40,
+                        right: 0,
+                        backgroundColor: "white",
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "#e5e7eb",
+                        minWidth: 160,
+                        zIndex: 2000,
+                        elevation: 5,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => {
+                          handleBenchMember(member.userId, member.isBenched || false);
+                        }}
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "500",
+                            color: member.isBenched ? "#16a34a" : "#dc2626",
+                          }}
+                        >
+                          {member.isBenched ? "Unbench Member" : "Bench Member"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           </View>
         );
