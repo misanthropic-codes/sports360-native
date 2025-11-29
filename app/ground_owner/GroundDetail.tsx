@@ -20,14 +20,14 @@ export default function GroundDetailsScreen() {
     );
   }
 
-  const InfoCard = ({ label, value, icon }) => (
+  const InfoCard = ({ label, value, icon }: { label: string; value: string; icon?: any }) => (
     <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
       <Text className="text-green-700 font-semibold text-sm mb-1">{label}</Text>
       <Text className="text-gray-700 text-base">{value}</Text>
     </View>
   );
 
-  const Badge = ({ text, active = false }) => (
+  const Badge = ({ text, active = false }: { text: string; active?: boolean }) => (
     <View
       className={`px-4 py-2 rounded-full mr-2 ${active ? "bg-green-600" : "bg-gray-200"}`}
     >
@@ -50,7 +50,7 @@ export default function GroundDetailsScreen() {
             showsHorizontalScrollIndicator={false}
             className="h-64"
           >
-            {ground.imageUrls.split(",").map((url, index) => (
+            {ground.imageUrls.split(",").map((url: string, index: number) => (
               <Image
                 key={index}
                 source={{ uri: url }}
@@ -119,7 +119,7 @@ export default function GroundDetailsScreen() {
               Facilities
             </Text>
             <View className="flex-row flex-wrap">
-              {ground.facilityAvailable.split(",").map((facility, index) => (
+              {ground.facilityAvailable.split(",").map((facility: string, index: number) => (
                 <View key={index} className="flex-row items-center mr-4 mb-2">
                   <View className="w-2 h-2 bg-green-600 rounded-full mr-2" />
                   <Text className="text-gray-700">{facility.trim()}</Text>
