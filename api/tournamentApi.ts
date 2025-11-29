@@ -194,3 +194,21 @@ export const deleteMatch = async (
   );
   return res.data;
 };
+
+/**
+ * Update Match Status
+ * PATCH /matches/:matchId/status
+ */
+export const updateMatchStatus = async (
+  matchId: string,
+  tournamentId: string,
+  status: "upcoming" | "ongoing" | "completed",
+  token: string
+) => {
+  const res = await api.patch(
+    `/matches/${matchId}/status`,
+    { tournamentId, status },
+    withAuthHeaders(token)
+  );
+  return res.data;
+};
