@@ -88,7 +88,7 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
       {viewAllRoute && (
         <Text
           className="text-indigo-600 font-medium text-sm bg-indigo-50 px-3 py-1.5 rounded-full"
-          onPress={() => router.push(viewAllRoute)}
+          onPress={() => router.push(viewAllRoute as any)}
         >
           View All
         </Text>

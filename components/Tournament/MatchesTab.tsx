@@ -464,7 +464,7 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
         ) : matches.length === 0 ? (
           <View className="flex-1 justify-center items-center px-6">
             <View className="bg-gray-100 rounded-full p-6 mb-4">
-              <Trophy size={48} color="#9CA3AF" weight="light" />
+              <Trophy size={48} color="#9CA3AF" />
             </View>
             <Text className="text-xl font-bold text-gray-900 mb-2">
               No Matches Yet

@@ -215,11 +215,6 @@ const JoinTournamentScreen = () => {
                       <Text className={`text-lg font-bold ${isSelected ? "text-indigo-900" : "text-gray-900"}`}>
                         {team.name}
                       </Text>
-                      {team.members && (
-                        <Text className={`text-sm mt-1 ${isSelected ? "text-indigo-600" : "text-gray-500"}`}>
-                          {team.members.length} members
-                        </Text>
-                      )}
                     </View>
                     {isSelected ? (
                       <CheckCircle2 size={28} color="#4F46E5" />

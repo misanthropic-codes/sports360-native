@@ -1,20 +1,20 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    Text,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  Text,
 } from "react-native";
 import Header from "../components/Ui/Header";
 import TabNavigation from "../components/Ui/TabNaviagtion";
 
 import {
-    deleteTournament,
-    getTeamsByTournament,
-    getTournamentById,
+  deleteTournament,
+  getTeamsByTournament,
+  getTournamentById,
 } from "../api/tournamentApi";
 
 import LeaderboardTab from "../components/Tournament/Leaderboard";
@@ -46,20 +46,20 @@ const ManageTournamentScreen = () => {
 
   // Fetch tournament details
   useEffect(() => {
-    if (!id) return;
-    getTournamentById(id)
+    if (!id || !token) return;
+    getTournamentById(id, token)
       .then(setTournament)
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, token]);
 
   // Fetch teams when "teams" tab is active
   useEffect(() => {
-    if (activeTab === "teams" && id) {
+    if (activeTab === "teams" && id && token) {
       setTeamsLoading(true);
-      getTeamsByTournament(id)
-        .then((res) => {
-          setTeamsMessage(res?.message || "");
-          setTeamsData(res?.data || []);
+      getTeamsByTournament(id, token)
+        .then((teams) => {
+          setTeamsMessage("");
+          setTeamsData(teams || []);
         })
         .catch(() => {
           setTeamsMessage("Error fetching teams.");
