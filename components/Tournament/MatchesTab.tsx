@@ -1,23 +1,25 @@
 // components/Tournament/MatchesTab.tsx
-import { getTeamsByTournament, Team } from "@/api/tournamentApi";
+import { deleteMatch, getTeamsByTournament, Team } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { router } from "expo-router";
 import {
-  AlertTriangle,
-  Calendar,
-  Clock,
-  FileText,
-  Trophy,
-  Zap,
+    AlertTriangle,
+    Calendar,
+    Clock,
+    FileText,
+    Trash2,
+    Trophy,
+    Zap,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface Match {
@@ -32,12 +34,13 @@ interface Match {
 }
 
 const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
 
   const handleCreateSchedule = () => {
     router.push(`/tournament/GenerateFixtures?id=${tournamentId}`);
@@ -79,6 +82,53 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
       .join(" ");
   };
 
+  // Function to handle match deletion
+  const handleDeleteMatch = (matchId: string) => {
+    if (user?.role !== "organizer") {
+      Alert.alert("Unauthorized", "Only organizers can delete matches.");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Match",
+      "Are you sure you want to delete this match? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (!token) {
+                Alert.alert("Error", "You must be logged in to delete matches.");
+                return;
+              }
+
+              setDeletingMatchId(matchId);
+
+              await deleteMatch(tournamentId, matchId, token);
+
+              // Remove match from local state
+              setMatches((prevMatches) =>
+                prevMatches.filter((match) => match.id !== matchId)
+              );
+
+              Alert.alert("Success", "Match deleted successfully");
+            } catch (error: any) {
+              console.error("Delete match error:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to delete match"
+              );
+            } finally {
+              setDeletingMatchId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!token) return setError("User not authenticated");
@@ -105,9 +155,8 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
         // Fetch teams using your existing API function
         try {
           const teamsData = await getTeamsByTournament(tournamentId, token);
-          // Handle the same structure as in GenerateFixtureScreen
-          const teams = teamsData?.data || teamsData || [];
-          setTeams(Array.isArray(teams) ? teams : []);
+          // getTeamsByTournament returns Team[] directly
+          setTeams(Array.isArray(teamsData) ? teamsData : []);
         } catch (teamsError) {
           console.log("Could not fetch teams data:", teamsError);
           setTeams([]);
@@ -155,17 +204,36 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
 
   const renderMatch = ({ item }: { item: Match }) => {
     const statusInfo = getStatusInfo(item.status);
+    const isDeleting = deletingMatchId === item.id;
+    const isOrganizer = user?.role === "organizer";
 
     return (
       <View className="bg-white rounded-xl mx-4 mb-4 shadow-sm border border-gray-100">
         {/* Header */}
         <View className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 rounded-t-xl border-b border-gray-100">
           <View className="flex-row justify-between items-center">
-            <Text className="font-semibold text-gray-800 text-sm">
-              Round {item.round} • Match {item.matchNumber}
-            </Text>
-            <View className={`px-2 py-1 rounded-full ${statusInfo.color}`}>
-              <Text className="text-xs font-medium">{statusInfo.text}</Text>
+            <View className="flex-row items-center flex-1">
+              <Text className="font-semibold text-gray-800 text-sm">
+                Round {item.round} • Match {item.matchNumber}
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <View className={`px-2 py-1 rounded-full ${statusInfo.color}`}>
+                <Text className="text-xs font-medium">{statusInfo.text}</Text>
+              </View>
+              {isOrganizer && (
+                <TouchableOpacity
+                  onPress={() => handleDeleteMatch(item.id)}
+                  disabled={isDeleting}
+                  className="ml-2 p-2 bg-red-50 rounded-lg active:bg-red-100"
+                >
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color="#EF4444" />
+                  ) : (
+                    <Trash2 size={16} color="#EF4444" />
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           <Text className="text-purple-600 font-medium text-xs mt-1">

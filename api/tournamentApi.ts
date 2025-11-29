@@ -182,3 +182,15 @@ export const getMatchById = async (
   const res = await api.get(`/matches/${id}`, withAuthHeaders(token));
   return res.data?.match || null;
 };
+
+export const deleteMatch = async (
+  tournamentId: string,
+  matchId: string,
+  token: string
+) => {
+  const res = await api.delete(
+    `/organizer-profile/tournament/${tournamentId}/match/${matchId}`,
+    withAuthHeaders(token)
+  );
+  return res.data;
+};
