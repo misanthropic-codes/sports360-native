@@ -242,6 +242,11 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
                       date={new Date(tournament.startDate).toDateString()}
                       location={tournament.location || "TBD"}
                       participants={tournament.teams?.length || 0}
+                      onJoinPress={() =>
+                        router.push(
+                          `/tournament/JoinTournament?id=${tournament.id}`
+                        )
+                      }
                     />
                   </View>
                 ))}
