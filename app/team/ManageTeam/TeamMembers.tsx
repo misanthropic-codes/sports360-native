@@ -6,9 +6,24 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
 type Member = {
+  teamId: string;
   userId: string;
   role: string;
-  name: string;
+  joinedAt: string;
+  isActive: boolean;
+  addedAt: string;
+  addedBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  removedAt: string | null;
+  removedBy: string | null;
+  fullName: string;
+  email: string;
+  profilePicUrl: string | null;
+  playingPosition: string;
+  battingStyle: string;
+  bowlingStyle: string;
+  batsmanType: string | null;
 };
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
@@ -31,12 +46,7 @@ const TeamMembers: React.FC = () => {
         });
 
         if (res.data.status === 200 && res.data.success) {
-          const membersData: Member[] = res.data.data.map((member: any) => ({
-            userId: member.userId,
-            role: member.role,
-            name: member.name || "Unknown",
-          }));
-          setMembers(membersData);
+          setMembers(res.data.data);
         }
       } catch (err) {
         console.error("Failed to fetch team members", err);
@@ -112,43 +122,101 @@ const TeamMembers: React.FC = () => {
         return (
           <View
             key={member.userId}
-            className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+            className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-3"
           >
-            <View className="flex-row items-center">
-              {/* Avatar */}
-              <View 
-                className={`
-                  w-12 h-12 rounded-full items-center justify-center mr-4
-                  ${isCaptain ? "bg-amber-500" : "bg-indigo-500"}
-                `}
-              >
-                <Text className="text-white font-bold text-base">
-                  {getInitials(member.name)}
-                </Text>
-              </View>
-
-              {/* Member Info */}
+            {/* Header */}
+            <View className="flex-row items-center justify-between mb-3">
               <View className="flex-1">
                 <View className="flex-row items-center mb-1">
-                  <Text className="text-gray-900 font-semibold text-base mr-2">
-                    {member.name}
+                  <Text className="text-gray-900 font-bold text-lg mr-2">
+                    {member.fullName}
                   </Text>
                   {isCaptain && (
-                    <Crown size={18} weight="fill" color="#F59E0B" />
+                    <Crown size={20} weight="fill" color="#F59E0B" />
                   )}
                 </View>
-                
-                <View className={`
-                  self-start px-3 py-1 rounded-full border
-                  ${getRoleBadgeColor(member.role)}
-                `}>
-                  <Text className="text-xs font-bold uppercase tracking-wide">
-                    {member.role}
+                <Text className="text-gray-600 text-sm">{member.email}</Text>
+              </View>
+              
+              <View
+                className={`px-3 py-1 rounded-full ${
+                  member.isActive ? "bg-green-100" : "bg-gray-100"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-semibold ${
+                    member.isActive ? "text-green-700" : "text-gray-600"
+                  }`}
+                >
+                  {member.isActive ? "Active" : "Inactive"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Role Badge */}
+            <View className="mb-3">
+              <View className={`
+                self-start px-3 py-1 rounded-full border
+                ${getRoleBadgeColor(member.role)}
+              `}>
+                <Text className="text-xs font-bold uppercase tracking-wide">
+                  {member.role}
+                </Text>
+              </View>
+            </View>
+
+            {/* Player Profile */}
+            <View className="bg-indigo-50 rounded-lg p-3 mb-3">
+              <Text className="text-indigo-900 font-semibold text-sm mb-2">
+                Player Profile
+              </Text>
+              <View className="space-y-1">
+                <View className="flex-row mb-1">
+                  <Text className="text-indigo-700 font-medium text-xs w-28">
+                    Position:
+                  </Text>
+                  <Text className="text-indigo-900 text-xs flex-1 capitalize">
+                    {member.playingPosition}
                   </Text>
                 </View>
+                <View className="flex-row mb-1">
+                  <Text className="text-indigo-700 font-medium text-xs w-28">
+                    Batting:
+                  </Text>
+                  <Text className="text-indigo-900 text-xs flex-1 capitalize">
+                    {member.battingStyle.replace("_", " ")}
+                  </Text>
+                </View>
+                <View className="flex-row mb-1">
+                  <Text className="text-indigo-700 font-medium text-xs w-28">
+                    Bowling:
+                  </Text>
+                  <Text className="text-indigo-900 text-xs flex-1 capitalize">
+                    {member.bowlingStyle.replace(/_/g, " ")}
+                  </Text>
+                </View>
+                {member.batsmanType && (
+                  <View className="flex-row">
+                    <Text className="text-indigo-700 font-medium text-xs w-28">
+                      Batsman Type:
+                    </Text>
+                    <Text className="text-indigo-900 text-xs flex-1 capitalize">
+                      {member.batsmanType}
+                    </Text>
+                  </View>
+                )}
               </View>
+            </View>
 
-              {/* Actions */}
+            {/* Footer with Join Date and Actions */}
+            <View className="flex-row justify-between items-center border-t border-gray-100 pt-3">
+              <Text className="text-gray-500 text-xs">
+                Joined {new Date(member.joinedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </Text>
               <TouchableOpacity 
                 className="p-2 bg-gray-50 rounded-lg"
                 activeOpacity={0.7}

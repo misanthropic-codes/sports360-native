@@ -29,11 +29,24 @@ export interface CreateTeamPayload {
 }
 
 export interface TeamMember {
-  id: string;
+  teamId: string;
   userId: string;
-  name: string;
   role: string;
-  joinedAt?: string;
+  joinedAt: string;
+  isActive: boolean;
+  addedAt: string;
+  addedBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  removedAt: string | null;
+  removedBy: string | null;
+  fullName: string;
+  email: string;
+  profilePicUrl: string | null;
+  playingPosition: string;
+  battingStyle: string;
+  bowlingStyle: string;
+  batsmanType: string | null;
 }
 
 export interface TeamDetails {

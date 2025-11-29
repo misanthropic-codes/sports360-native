@@ -1,3 +1,4 @@
+import BottomNavBar from "@/components/BottomNavBar";
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, Trophy, Users } from "lucide-react-native";
@@ -12,25 +13,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
-import BottomNavBar from "@/components/BottomNavBar";
-
-// Random name generator
-const randomNames = [
-  "Alex",
-  "Sam",
-  "Jordan",
-  "Taylor",
-  "Morgan",
-  "Casey",
-  "Riley",
-  "Jamie",
-  "Dakota",
-  "Cameron",
-];
-const getRandomName = (userId: string) => {
-  const index = userId.charCodeAt(0) % randomNames.length;
-  return randomNames[index] + "_" + userId.slice(0, 4);
-};
 
 type Member = {
   teamId: string;
@@ -38,6 +20,19 @@ type Member = {
   role: string;
   joinedAt: string;
   isActive: boolean;
+  addedAt: string;
+  addedBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  removedAt: string | null;
+  removedBy: string | null;
+  fullName: string;
+  email: string;
+  profilePicUrl: string | null;
+  playingPosition: string;
+  battingStyle: string;
+  bowlingStyle: string;
+  batsmanType: string | null;
 };
 
 type Tournament = {
@@ -154,17 +149,104 @@ const TeamScreen: React.FC = () => {
       keyExtractor={(item) => item.userId}
       contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 150 }}
       renderItem={({ item }) => (
-        <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-purple-100">
-          <Text className="text-purple-800 font-bold text-lg">
-            Name: {getRandomName(item.userId)}
-          </Text>
-          <Text className="text-purple-700">Role: {item.role}</Text>
-          <Text className="text-purple-700">
-            Status: {item.isActive ? "Active" : "Inactive"}
-          </Text>
-          <Text className="text-purple-700">
-            Joined At: {new Date(item.joinedAt).toLocaleString()}
-          </Text>
+        <View className="bg-white rounded-xl p-5 mb-4 shadow-md border border-purple-200">
+          {/* Header with Name and Status */}
+          <View className="flex-row justify-between items-start mb-3">
+            <View className="flex-1">
+              <Text className="text-purple-900 font-bold text-xl mb-1">
+                {item.fullName}
+              </Text>
+              <Text className="text-purple-600 text-sm">{item.email}</Text>
+            </View>
+            <View
+              className={`px-3 py-1 rounded-full ${
+                item.isActive ? "bg-green-100" : "bg-gray-100"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  item.isActive ? "text-green-700" : "text-gray-600"
+                }`}
+              >
+                {item.isActive ? "Active" : "Inactive"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Role Badge */}
+          <View className="mb-3">
+            <View
+              className={`self-start px-4 py-2 rounded-lg ${
+                item.role.toLowerCase() === "captain"
+                  ? "bg-amber-100 border border-amber-300"
+                  : "bg-purple-100 border border-purple-300"
+              }`}
+            >
+              <Text
+                className={`font-bold text-sm ${
+                  item.role.toLowerCase() === "captain"
+                    ? "text-amber-800"
+                    : "text-purple-800"
+                }`}
+              >
+                {item.role.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+
+          {/* Player Stats */}
+          <View className="bg-purple-50 rounded-lg p-3 mb-3">
+            <Text className="text-purple-900 font-semibold text-sm mb-2">
+              Player Profile
+            </Text>
+            <View className="space-y-1">
+              <View className="flex-row">
+                <Text className="text-purple-700 font-medium text-sm w-32">
+                  Position:
+                </Text>
+                <Text className="text-purple-900 text-sm flex-1 capitalize">
+                  {item.playingPosition}
+                </Text>
+              </View>
+              <View className="flex-row">
+                <Text className="text-purple-700 font-medium text-sm w-32">
+                  Batting Style:
+                </Text>
+                <Text className="text-purple-900 text-sm flex-1 capitalize">
+                  {item.battingStyle.replace("_", " ")}
+                </Text>
+              </View>
+              <View className="flex-row">
+                <Text className="text-purple-700 font-medium text-sm w-32">
+                  Bowling Style:
+                </Text>
+                <Text className="text-purple-900 text-sm flex-1 capitalize">
+                  {item.bowlingStyle.replace(/_/g, " ")}
+                </Text>
+              </View>
+              {item.batsmanType && (
+                <View className="flex-row">
+                  <Text className="text-purple-700 font-medium text-sm w-32">
+                    Batsman Type:
+                  </Text>
+                  <Text className="text-purple-900 text-sm flex-1 capitalize">
+                    {item.batsmanType}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Join Date */}
+          <View className="border-t border-purple-100 pt-3">
+            <Text className="text-purple-600 text-xs">
+              Joined {new Date(item.joinedAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
+          </View>
         </View>
       )}
     />
