@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -48,6 +49,26 @@ const InitialLayout = () => {
       <Stack.Screen name="onboarding/organizer/marathon-form" />
       <Stack.Screen name="onboarding/ground-owner/cricket-form" />
       <Stack.Screen name="feed/cricket" />
+      <Stack.Screen name="feed/marathon" />
+      <Stack.Screen name="booking/Cricket-booking" />
+      <Stack.Screen name="booking/Marathon-booking" />
+      <Stack.Screen name="booking/GroundDetails" />
+      <Stack.Screen name="booking/CreateBooking" />
+      <Stack.Screen name="booking/MyBookings" />
+      <Stack.Screen name="booking/ViewAllBookings" />
+      <Stack.Screen name="booking/BrowseGrounds" />
+      <Stack.Screen name="team/Myteam" />
+      <Stack.Screen name="team/CreateTeam" />
+      <Stack.Screen name="team/TeamDetails" />
+      <Stack.Screen name="tournament/ViewTournament" />
+      <Stack.Screen name="tournament/CreateTournament" />
+      <Stack.Screen name="tournament/TournamentDetails" />
+      <Stack.Screen name="dashboard/player/cricket" />
+      <Stack.Screen name="dashboard/player/marathon" />
+      <Stack.Screen name="dashboard/organizer/cricket" />
+      <Stack.Screen name="dashboard/organizer/marathon" />
+      <Stack.Screen name="dashboard/ground_owner" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 };

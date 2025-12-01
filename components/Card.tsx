@@ -1,19 +1,26 @@
-import { Globe, Heart, Mail, MapPin, Phone, Star } from "lucide-react-native";
+import { Clock, Heart, MapPin, Phone, Star } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ImageBackground,
-  Linking,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { Ground, useGroundStore } from "../store/groundStore";
 
 interface VenueCardProps {
-  ground: Ground; // Pass the full Ground object
+  ground: Ground;
   onBookNowPress: () => void;
   initialIsFavorited?: boolean;
 }
+
+// Mock images for different grounds
+const MOCK_GROUND_IMAGES = [
+  "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800&h=600&fit=crop",
+  "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=600&fit=crop",
+  "https://images.unsplash.com/photo-1589487391730-58f20eb2c308?w=800&h=600&fit=crop",
+  "https://images.unsplash.com/photo-1624526267942-ab0ff8a3e972?w=800&h=600&fit=crop",
+];
 
 const VenueCard: React.FC<VenueCardProps> = ({
   ground,
@@ -31,131 +38,133 @@ const VenueCard: React.FC<VenueCardProps> = ({
     }
   }, [reviewsData]);
 
+  // Get a consistent mock image based on ground ID
+  const mockImage = MOCK_GROUND_IMAGES[parseInt(ground.id || "0") % MOCK_GROUND_IMAGES.length];
+  const imageUrl = ground.businessLogoUrl || ground.profileImageUrl || mockImage;
+
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
-    const halfStar = rating - fullStars >= 0.5;
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
     return (
       <View className="flex-row items-center">
         {[...Array(fullStars)].map((_, i) => (
-          <Star key={`full-${i}`} size={16} color="#FBBF24" fill="#FBBF24" />
+          <Star key={`full-${i}`} size={12} color="#FBBF24" fill="#FBBF24" />
         ))}
-        {halfStar && <Star key="half" size={16} color="#FBBF24" fill="none" />}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} size={16} color="#CBD5E1" fill="none" />
-        ))}
-        <Text className="ml-1 text-slate-800 font-bold">
+        <Text className="ml-1 text-slate-700 font-bold text-xs">
           {rating.toFixed(1)}
         </Text>
       </View>
     );
   };
 
-  const handleLinkPress = (url?: string) => {
-    if (url) Linking.openURL(url);
-  };
-
   return (
-    <View className="bg-white rounded-2xl shadow-lg m-4 border border-slate-100">
+    <View 
+      className="bg-white rounded-3xl mx-4 mb-4 overflow-hidden"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      }}
+    >
       {/* Image Section */}
-      <ImageBackground
-        source={{ uri: ground.businessLogoUrl || ground.profileImageUrl }}
-        className="h-48 w-full"
-        imageStyle={{ borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
-      >
-        <View className="flex-1 p-3 justify-between">
-          {/* Top Row */}
-          <View className="flex-row justify-between items-start">
-            <View className="bg-green-500 rounded-full px-3 py-1">
+      <View className="relative">
+        <Image
+          source={{ uri: imageUrl }}
+          className="w-full h-52"
+          resizeMode="cover"
+        />
+
+        {/* Top Badges */}
+        <View className="absolute top-3 left-3 right-3 flex-row justify-between items-start">
+          {ground.acceptOnlineBookings && (
+            <View className="bg-green-500 rounded-full px-3 py-1.5 shadow-lg">
               <Text className="text-white text-xs font-bold">
-                {ground.acceptOnlineBookings
-                  ? "Online Booking Enabled"
-                  : "Unavailable"}
+                Available
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setIsFavorited((prev) => !prev)}
-              className="bg-white rounded-full w-10 h-10 items-center justify-center shadow-md"
-            >
-              <Heart
-                size={22}
-                color={isFavorited ? "#F43F5E" : "#94A3B8"}
-                fill={isFavorited ? "#F43F5E" : "none"}
-              />
-            </TouchableOpacity>
-          </View>
+          )}
+          
+          <TouchableOpacity
+            onPress={() => setIsFavorited((prev) => !prev)}
+            className="bg-white/90 rounded-full w-9 h-9 items-center justify-center shadow-lg ml-auto"
+            activeOpacity={0.8}
+          >
+            <Heart
+              size={18}
+              color={isFavorited ? "#F43F5E" : "#94A3B8"}
+              fill={isFavorited ? "#F43F5E" : "none"}
+            />
+          </TouchableOpacity>
+        </View>
 
-          {/* Rating Section */}
-          {averageRating > 0 && (
-            <View className="self-end bg-white/90 rounded-full px-3 py-2 flex-row items-center shadow-md">
-              {renderStars(averageRating)}
+        {/* Rating Badge - Bottom Right */}
+        {averageRating > 0 && (
+          <View className="absolute bottom-3 right-3 bg-white rounded-full px-3 py-1.5 shadow-lg">
+            {renderStars(averageRating)}
+          </View>
+        )}
+      </View>
+
+      {/* Content Section */}
+      <View className="p-4 bg-white">
+        {/* Title and Location */}
+        <View className="mb-3">
+          <Text className="text-xl font-semibold text-gray-900 mb-2" numberOfLines={1}>
+            {ground.name || ground.businessName || ground.groundOwnerName}
+          </Text>
+          
+          {(ground.address || ground.location || ground.businessAddress || ground.primaryLocation) && (
+            <View className="flex-row items-start mt-1">
+              <MapPin size={16} color="#000000" />
+              <Text className="ml-2 text-gray-700 text-sm flex-1" numberOfLines={2}>
+                {ground.address || ground.location || ground.businessAddress || ground.primaryLocation}
+              </Text>
             </View>
           )}
         </View>
-      </ImageBackground>
 
-      {/* Info Section */}
-      <View className="p-4">
-        <Text className="text-xl font-bold text-slate-800">
-          {ground.businessName}
-        </Text>
-        <Text className="text-slate-600 mb-2">{ground.ownerName}</Text>
-        <Text className="text-slate-500 mb-3">{ground.bio}</Text>
-
-        {/* Contact & Website Features */}
+        {/* Info Pills */}
         <View className="flex-row flex-wrap gap-2 mb-4">
           {ground.contactPhone && (
-            <TouchableOpacity
-              onPress={() => handleLinkPress(`tel:${ground.contactPhone}`)}
-              className="flex-row items-center px-3 py-1 rounded-lg bg-green-100"
-            >
-              <Phone size={16} color="#16A34A" />
-              <Text className="ml-1 text-green-700 font-semibold">
-                {ground.contactPhone}
+            <View className="flex-row items-center px-3 py-2 rounded-full bg-blue-100 border border-blue-200">
+              <Phone size={14} color="#1E40AF" />
+              <Text className="ml-2 text-blue-900 font-medium text-sm">
+                {ground.contactPhone.slice(0, 10)}
               </Text>
-            </TouchableOpacity>
+            </View>
           )}
-          {ground.contactEmail && (
-            <TouchableOpacity
-              onPress={() => handleLinkPress(`mailto:${ground.contactEmail}`)}
-              className="flex-row items-center px-3 py-1 rounded-lg bg-indigo-100"
-            >
-              <Mail size={16} color="#4F46E5" />
-              <Text className="ml-1 text-indigo-700 font-semibold">
-                {ground.contactEmail}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {ground.website && (
-            <TouchableOpacity
-              onPress={() => handleLinkPress(ground.website)}
-              className="flex-row items-center px-3 py-1 rounded-lg bg-yellow-100"
-            >
-              <Globe size={16} color="#CA8A04" />
-              <Text className="ml-1 text-yellow-700 font-semibold">
-                {ground.website}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Address */}
-        {ground.businessAddress && (
-          <View className="flex-row items-center mb-4">
-            <MapPin size={16} color="#EF4444" />
-            <Text className="ml-1 text-slate-500">
-              {ground.businessAddress}
+          
+          <View className="flex-row items-center px-3 py-2 rounded-full bg-green-100 border border-green-200">
+            <Clock size={14} color="#065F46" />
+            <Text className="ml-2 text-green-900 font-medium text-sm">
+              Open Now
             </Text>
           </View>
+        </View>
+
+        {/* Bio */}
+        {(ground.groundDescription || ground.bio) && (
+          <Text className="text-gray-700 text-sm mb-4 leading-5" numberOfLines={2}>
+            {ground.groundDescription || ground.bio}
+          </Text>
         )}
 
         {/* Book Now Button */}
         <TouchableOpacity
           onPress={onBookNowPress}
-          className="bg-blue-500 rounded-lg px-6 py-3 shadow items-center"
+          className="rounded-xl py-3.5 items-center"
+          activeOpacity={0.8}
+          style={{
+            backgroundColor: '#3B82F6',
+            shadowColor: "#3B82F6",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 6,
+          }}
         >
-          <Text className="text-white font-bold">Book Now</Text>
+          <Text className="text-white font-bold text-base">Book Now</Text>
         </TouchableOpacity>
       </View>
     </View>
