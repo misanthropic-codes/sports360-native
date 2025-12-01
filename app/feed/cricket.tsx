@@ -142,40 +142,41 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
   }, [allTournaments]);
 
   const categories = useMemo(
-    () => [
-      {
-        icon: <Trophy size={28} color="#4338CA" weight="fill" />,
-        title: "Knockout",
-        eventCount: categoryStats.knockout,
-        color: "#EEF2FF",
-        notificationCount: categoryStats.knockout > 0 ? 1 : 0,
-        notificationColor: "#4F46E5",
-      },
-      {
-        icon: <Cricket size={28} color="#7E22CE" weight="fill" />,
-        title: "Round Robin",
-        eventCount: categoryStats.roundRobin,
-        color: "#F5F3FF",
-        notificationCount: categoryStats.roundRobin > 0 ? 1 : 0,
-        notificationColor: "#9333EA",
-      },
-      {
-        icon: <Fire size={28} color="#BE123C" weight="fill" />,
-        title: "League",
-        eventCount: categoryStats.league,
-        color: "#FEF2F2",
-        notificationCount: categoryStats.league > 0 ? 2 : 0,
-        notificationColor: "#DC2626",
-      },
-      {
-        icon: <TrendUp size={28} color="#16A34A" weight="fill" />,
-        title: "Others",
-        eventCount: categoryStats.other,
-        color: "#F0FDF4",
-        notificationCount: categoryStats.other > 0 ? 1 : 0,
-        notificationColor: "#16A34A",
-      },
-    ],
+    () =>
+      [
+        {
+          icon: <Trophy size={28} color="#4338CA" weight="fill" />,
+          title: "Knockout",
+          eventCount: categoryStats.knockout,
+          color: "#EEF2FF",
+          notificationCount: categoryStats.knockout > 0 ? 1 : 0,
+          notificationColor: "#4F46E5",
+        },
+        {
+          icon: <Cricket size={28} color="#7E22CE" weight="fill" />,
+          title: "Round Robin",
+          eventCount: categoryStats.roundRobin,
+          color: "#F5F3FF",
+          notificationCount: categoryStats.roundRobin > 0 ? 1 : 0,
+          notificationColor: "#9333EA",
+        },
+        {
+          icon: <Fire size={28} color="#BE123C" weight="fill" />,
+          title: "League",
+          eventCount: categoryStats.league,
+          color: "#FEF2F2",
+          notificationCount: categoryStats.league > 0 ? 2 : 0,
+          notificationColor: "#DC2626",
+        },
+        {
+          icon: <TrendUp size={28} color="#16A34A" weight="fill" />,
+          title: "Others",
+          eventCount: categoryStats.other,
+          color: "#F0FDF4",
+          notificationCount: categoryStats.other > 0 ? 1 : 0,
+          notificationColor: "#16A34A",
+        },
+      ].filter((cat) => cat.eventCount > 0), // Only show categories with events
     [categoryStats]
   );
 
@@ -390,23 +391,25 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
             )}
 
             {/* Categories Section with Dynamic Counts */}
-            <View className="mt-8">
-              {renderSectionHeader("Tournament Formats")}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingLeft: 24,
-                  paddingRight: 24,
-                  gap: 12,
-                }}
-                className="mb-4"
-              >
-                {categories.map((cat) => (
-                  <CategoryCard key={cat.title} {...cat} />
-                ))}
-              </ScrollView>
-            </View>
+            {categories.length > 0 && (
+              <View className="mt-8">
+                {renderSectionHeader("Tournament Formats")}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{
+                    paddingLeft: 24,
+                    paddingRight: 24,
+                    gap: 12,
+                  }}
+                  className="mb-4"
+                >
+                  {categories.map((cat) => (
+                    <CategoryCard key={cat.title} {...cat} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {/* All Events Section */}
             <View className="mt-8">
