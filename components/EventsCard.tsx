@@ -20,7 +20,7 @@ const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
   onJoinPress,
 }) => {
   return (
-    <View className="bg-indigo-700 rounded-2xl p-5 m-4 shadow-lg">
+    <View className="bg-indigo-700 rounded-2xl p-5 shadow-lg" style={{ width: 320 }}>
       <Text className="text-indigo-200 text-xs font-semibold">
         {date.toUpperCase()}
       </Text>
