@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from "expo-router";
-import { BarChart2, Home, Trophy, User, Users } from "lucide-react-native";
+import { Home, MapPin, Trophy, User, Users } from "lucide-react-native";
 import React from "react";
 import { Animated, TouchableOpacity, View } from "react-native";
 
@@ -65,7 +65,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   // Move Home button to center in array
   const navItems = [
     { name: "Teams", icon: Users, path: `/team/Myteam` },
-    { name: "Activity", icon: BarChart2, path: `/booking/Cricket-booking` },
+    { name: "Grounds", icon: MapPin, path: `/booking/Cricket-booking` },
     { name: "Home", icon: Home, path: `/feed/${type}` }, // center
     { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament` },
     { name: "Profile", icon: User, path: `/dashboard/${role}/${type}` },

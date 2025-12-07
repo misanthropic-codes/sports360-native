@@ -54,7 +54,7 @@ export default function GenerateFixtureScreen({ navigation, route }: any) {
     value: team.id,
   }));
   const groundOptions = grounds.map((ground) => ({
-    label: ground.name,
+    label: ground.name || "Unnamed Ground",
     value: ground.id,
   }));
   const formatOptions = [

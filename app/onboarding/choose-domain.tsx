@@ -2,17 +2,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -108,7 +108,7 @@ const ChooseDomainScreen: React.FC = () => {
     return ["cricket", "marathon"].includes(domain.toLowerCase());
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedDomain) {
       Alert.alert("Selection Required", "Please select a domain to continue.");
       return;
@@ -130,10 +130,28 @@ const ChooseDomainScreen: React.FC = () => {
 
     const normalizedDomain = selectedDomain.toLowerCase();
 
+    // Check if Marathon is selected - show coming soon popup
+    if (normalizedDomain === "marathon") {
+      Alert.alert(
+        "Coming Soon!",
+        "Marathon onboarding will start soon. Please check back later!",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     if (!isValidDomain(normalizedDomain)) {
       console.error("Invalid domain:", normalizedDomain);
       Alert.alert("Error", "Invalid domain selected. Please try again.");
       return;
+    }
+
+    // Store cricket selection in AsyncStorage
+    try {
+      await AsyncStorage.setItem("selectedDomain", normalizedDomain);
+      console.log("Domain saved to AsyncStorage:", normalizedDomain);
+    } catch (error) {
+      console.error("Error saving domain to AsyncStorage:", error);
     }
 
     // Construct the path dynamically

@@ -1,19 +1,23 @@
 // components/Tournament/MatchesTab.tsx
-import { getTeamsByTournament, Team } from "@/api/tournamentApi";
+import { deleteMatch, getTeamsByTournament, Team, updateMatchStatus } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { router } from "expo-router";
 import {
   AlertTriangle,
   Calendar,
+  CheckCircle,
   Clock,
   FileText,
+  Play,
+  Trash2,
   Trophy,
   Zap,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Text,
   TouchableOpacity,
@@ -32,12 +36,14 @@ interface Match {
 }
 
 const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [matches, setMatches] = useState<Match[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [deletingMatchId, setDeletingMatchId] = useState<string | null>(null);
+  const [updatingMatchId, setUpdatingMatchId] = useState<string | null>(null);
 
   const handleCreateSchedule = () => {
     router.push(`/tournament/GenerateFixtures?id=${tournamentId}`);
@@ -79,6 +85,134 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
       .join(" ");
   };
 
+  // Function to handle match deletion
+  const handleDeleteMatch = (matchId: string) => {
+    if (user?.role !== "organizer") {
+      Alert.alert("Unauthorized", "Only organizers can delete matches.");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Match",
+      "Are you sure you want to delete this match? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (!token) {
+                Alert.alert("Error", "You must be logged in to delete matches.");
+                return;
+              }
+
+              setDeletingMatchId(matchId);
+
+              await deleteMatch(tournamentId, matchId, token);
+
+              // Remove match from local state
+              setMatches((prevMatches) =>
+                prevMatches.filter((match) => match.id !== matchId)
+              );
+
+              Alert.alert("Success", "Match deleted successfully");
+            } catch (error: any) {
+              console.error("Delete match error:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to delete match"
+              );
+            } finally {
+              setDeletingMatchId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Function to get next status
+  const getNextStatus = (currentStatus: string): "ongoing" | "completed" | null => {
+    const status = currentStatus.toLowerCase();
+    if (status === "upcoming" || status === "scheduled") return "ongoing";
+    if (status === "ongoing" || status === "live") return "completed";
+    return null;
+  };
+
+  // Function to get status button config
+  const getStatusButtonConfig = (status: string) => {
+    const nextStatus = getNextStatus(status);
+    if (!nextStatus) return null;
+
+    if (nextStatus === "ongoing") {
+      return {
+        text: "Start Match",
+        icon: Play,
+        color: "#3B82F6",
+        bgColor: "#DBEAFE",
+      };
+    }
+    return {
+      text: "Complete Match",
+      icon: CheckCircle,
+      color: "#10B981",
+      bgColor: "#D1FAE5",
+    };
+  };
+
+  // Handle status update
+  const handleStatusUpdate = (matchId: string, currentStatus: string) => {
+    if (user?.role !== "organizer") {
+      Alert.alert("Unauthorized", "Only organizers can update match status.");
+      return;
+    }
+
+    const nextStatus = getNextStatus(currentStatus);
+    if (!nextStatus) return;
+
+    const actionText = nextStatus === "ongoing" ? "start" : "complete";
+    Alert.alert(
+      `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Match`,
+      `Are you sure you want to ${actionText} this match?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: nextStatus === "ongoing" ? "Start" : "Complete",
+          onPress: async () => {
+            try {
+              if (!token) {
+                Alert.alert("Error", "You must be logged in.");
+                return;
+              }
+
+              setUpdatingMatchId(matchId);
+
+              await updateMatchStatus(matchId, tournamentId, nextStatus, token);
+
+              // Update local state
+              setMatches((prevMatches) =>
+                prevMatches.map((match) =>
+                  match.id === matchId ? { ...match, status: nextStatus } : match
+                )
+              );
+
+              Alert.alert("Success", `Match ${nextStatus} successfully`);
+            } catch (error: any) {
+              console.error("Status update error:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to update match status"
+              );
+            } finally {
+              setUpdatingMatchId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!token) return setError("User not authenticated");
@@ -105,9 +239,8 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
         // Fetch teams using your existing API function
         try {
           const teamsData = await getTeamsByTournament(tournamentId, token);
-          // Handle the same structure as in GenerateFixtureScreen
-          const teams = teamsData?.data || teamsData || [];
-          setTeams(Array.isArray(teams) ? teams : []);
+          // getTeamsByTournament returns Team[] directly
+          setTeams(Array.isArray(teamsData) ? teamsData : []);
         } catch (teamsError) {
           console.log("Could not fetch teams data:", teamsError);
           setTeams([]);
@@ -155,17 +288,37 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
 
   const renderMatch = ({ item }: { item: Match }) => {
     const statusInfo = getStatusInfo(item.status);
+    const isDeleting = deletingMatchId === item.id;
+    const isUpdating = updatingMatchId === item.id;
+    const isOrganizer = user?.role === "organizer";
 
     return (
       <View className="bg-white rounded-xl mx-4 mb-4 shadow-sm border border-gray-100">
         {/* Header */}
         <View className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 rounded-t-xl border-b border-gray-100">
           <View className="flex-row justify-between items-center">
-            <Text className="font-semibold text-gray-800 text-sm">
-              Round {item.round} • Match {item.matchNumber}
-            </Text>
-            <View className={`px-2 py-1 rounded-full ${statusInfo.color}`}>
-              <Text className="text-xs font-medium">{statusInfo.text}</Text>
+            <View className="flex-row items-center flex-1">
+              <Text className="font-semibold text-gray-800 text-sm">
+                Round {item.round} • Match {item.matchNumber}
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-2">
+              <View className={`px-2 py-1 rounded-full ${statusInfo.color}`}>
+                <Text className="text-xs font-medium">{statusInfo.text}</Text>
+              </View>
+              {isOrganizer && (
+                <TouchableOpacity
+                  onPress={() => handleDeleteMatch(item.id)}
+                  disabled={isDeleting}
+                  className="ml-2 p-2 bg-red-50 rounded-lg active:bg-red-100"
+                >
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color="#EF4444" />
+                  ) : (
+                    <Trash2 size={16} color="#EF4444" />
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           <Text className="text-purple-600 font-medium text-xs mt-1">
@@ -202,6 +355,45 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
             </Text>
           </View>
         </View>
+
+        {/* Status Update Button - Organizer Only */}
+        {isOrganizer && getStatusButtonConfig(item.status) && (
+          <View className="px-4 pb-3">
+            {(() => {
+              const btnConfig = getStatusButtonConfig(item.status);
+              const StatusIcon = btnConfig!.icon;
+              
+              return (
+                <TouchableOpacity
+                  onPress={() => handleStatusUpdate(item.id, item.status)}
+                  disabled={isUpdating}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: btnConfig!.bgColor,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                    opacity: isUpdating ? 0.6 : 1,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  {isUpdating ? (
+                    <ActivityIndicator size="small" color={btnConfig!.color} />
+                  ) : (
+                    <>
+                      <StatusIcon size={18} color={btnConfig!.color} style={{ marginRight: 8 }} />
+                      <Text style={{ color: btnConfig!.color, fontWeight: "bold", fontSize: 14 }}>
+                        {btnConfig!.text}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            })()}
+          </View>
+        )}
 
         {/* Match Details Footer */}
         <View className="px-4 py-3 bg-gray-50 rounded-b-xl border-t border-gray-100">
@@ -266,44 +458,43 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
                 // Trigger refetch logic here
               }}
             >
-              <Text className="text-red-600 font-medium">Try Again</Text>
+              <Text className="text-red-700 font-semibold">Retry</Text>
             </TouchableOpacity>
           </View>
         ) : matches.length === 0 ? (
           <View className="flex-1 justify-center items-center px-6">
-            <Trophy size={64} color="#6B7280" style={{ marginBottom: 16 }} />
-            <Text className="text-gray-800 font-semibold text-lg mb-2">
+            <View className="bg-gray-100 rounded-full p-6 mb-4">
+              <Trophy size={48} color="#9CA3AF" />
+            </View>
+            <Text className="text-xl font-bold text-gray-900 mb-2">
               No Matches Yet
             </Text>
-            <Text className="text-gray-500 text-center text-sm">
-              Create a schedule to generate matches for this tournament
+            <Text className="text-gray-500 text-center">
+              Click "Create Match Schedule" to generate fixtures for this
+              tournament
             </Text>
           </View>
         ) : (
-          <>
-            {/* Matches Count Header */}
-            <View className="px-4 py-3 bg-white border-b border-gray-100">
+          <View className="flex-1">
+            <View className="px-4 py-3 bg-indigo-50 border-b border-indigo-100">
               <View className="flex-row items-center">
                 <FileText
-                  size={16}
-                  color="#374151"
+                  size={20}
+                  color="#4F46E5"
                   style={{ marginRight: 8 }}
                 />
-                <Text className="text-gray-700 font-medium text-sm">
-                  {matches.length} Match{matches.length !== 1 ? "es" : ""}{" "}
-                  Scheduled
+                <Text className="text-indigo-900 font-semibold">
+                  {matches.length} {matches.length === 1 ? "Match" : "Matches"}
                 </Text>
               </View>
             </View>
-
             <FlatList
               data={matches}
-              renderItem={renderMatch}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingVertical: 16 }}
-              showsVerticalScrollIndicator={false}
+              renderItem={renderMatch}
+              contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
             />
-          </>
+          </View>
         )}
       </View>
     </View>

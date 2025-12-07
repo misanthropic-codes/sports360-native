@@ -3,9 +3,9 @@ import CheckboxItem from "@/components/CheckBoxItem";
 import ReusableDropdown from "@/components/dropdown";
 import SelectionPill from "@/components/SelelctionPill";
 import ReusableTextInput from "@/components/TextInput";
+import { router } from "expo-router";
 import api from "../../../api/api";
 
-import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { FC, useState } from "react";
 import {
   Alert,
@@ -23,18 +23,14 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useAuth } from "@/context/AuthContext"; // ✅ import AuthContext
 
 const CompleteProfileScreen: FC = () => {
-  const { token, user } = useAuth(); // ✅ get token & user
-  const userId = user?.id; // ✅ get user id
+  const { token, user, updateUser } = useAuth();
+  const userId = user?.id;
 
-  const [fullName, setFullName] = useState("");
-  const [dob, setDob] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [battingStyle, setBattingStyle] = useState<string | null>(null);
   const [experience, setExperience] = useState<string | null>(null);
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [date, setDate] = useState(new Date());
   const [playingPosition, setPlayingPosition] = useState<string | null>(null);
   const [bowlingStyle, setBowlingStyle] = useState<string | null>(null);
   const [prefs, setPrefs] = useState({
@@ -43,51 +39,65 @@ const CompleteProfileScreen: FC = () => {
     tournament: true,
   });
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-      const formatted = `${selectedDate.getDate()}/${
-        selectedDate.getMonth() + 1
-      }/${selectedDate.getFullYear()}`;
-      setDob(formatted);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!userId) {
       Alert.alert("Error", "User not logged in");
       return;
     }
 
-    const bowlingStyleMap: Record<string, string> = {
-      Fast: "right_arm_fast",
-      "Medium Pace": "right_arm_medium",
-      Spin: "right_arm_spin",
-      "Left Fast": "left_arm_fast",
-      "Left Spin": "left_arm_spin",
-      "Left Medium": "left_arm_medium",
+    // Validation
+    if (!playingPosition) {
+      Alert.alert("Validation Error", "Please select a playing position");
+      return;
+    }
+
+    if (!experience) {
+      Alert.alert("Validation Error", "Please select your experience level");
+      return;
+    }
+
+    // Map UI values to backend enum values
+    const playingPositionMap: Record<string, string> = {
+      "Batsman": "batsman",
+      "Bowler": "bowler",
+      "All-Rounder": "allrounder",
+      "Wicket Keeper": "wicket_keeper",
     };
 
     const battingStyleMap: Record<string, string> = {
-      "Left hand": "left_handed",
-      "Right hand": "right_handed",
+      "Right Handed": "right_handed",
+      "Left Handed": "left_handed",
     };
 
+    const bowlingStyleMap: Record<string, string> = {
+      "Right Arm Fast": "right_arm_fast",
+      "Right Arm Medium": "right_arm_medium",
+      "Right Arm Spin": "right_arm_spin",
+      "Left Arm Fast": "left_arm_fast",
+      "Left Arm Medium": "left_arm_medium",
+      "Left Arm Spin": "left_arm_spin",
+    };
+
+    const experienceLevelMap: Record<string, string> = {
+      "Beginner": "beginner",
+      "Intermediate": "intermediate",
+      "Professional": "professional",
+    };
+
+    // Prepare payload with properly mapped values
     const payload = {
-      userId: userId,
-      bowlerType: bowlingStyle, // optional, can keep as original for your UI
-      batsmanType: battingStyle, // optional, can keep as original for your UI
-      playingPosition: playingPosition?.toLowerCase(),
-      bowlingStyle: bowlingStyle ? bowlingStyleMap[bowlingStyle] : null,
-      battingStyle: battingStyle ? battingStyleMap[battingStyle] : null,
-      experienceLevel: experience,
+      playingPosition: playingPositionMap[playingPosition] || playingPosition.toLowerCase(),
+      bowlingStyle: bowlingStyle ? bowlingStyleMap[bowlingStyle] : "",
+      battingStyle: battingStyle ? battingStyleMap[battingStyle] : "",
+      experienceLevel: experienceLevelMap[experience] || experience.toLowerCase(),
       location: location,
       bio: bio,
       availableForTeamSelection: prefs.team,
       availableForCaptain: prefs.captain,
       receiveTournamentNotifications: prefs.tournament,
     };
+
+    console.log("📤 Submitting cricket profile:", payload);
 
     try {
       const response = await api.post("/user/cricket-profile", payload, {
@@ -97,10 +107,25 @@ const CompleteProfileScreen: FC = () => {
       });
 
       if (response.status >= 200 && response.status < 300) {
-        Alert.alert("Success", "Profile submitted successfully!");
+        // Update user object with cricket domain
+        await updateUser({ domains: ["cricket"] });
+
+        Alert.alert(
+          "Success", 
+          "Profile created successfully!",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Navigate to cricket dashboard
+                router.replace("/dashboard/player/cricket" as any);
+              }
+            }
+          ]
+        );
       }
     } catch (error) {
-      console.error(error);
+      console.error("❌ Cricket profile error:", error);
       Alert.alert("Error", "Something went wrong while submitting profile");
     }
   };
@@ -153,48 +178,22 @@ const CompleteProfileScreen: FC = () => {
         </View>
 
         <View className="px-4 space-y-5">
-          <ReusableTextInput
-            label="Enter full name *"
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="e.g. John Doe"
-          />
-
           <View>
-            <ReusableTextInput
-              label="Date of Birth *"
-              value={dob}
-              placeholder="DD/MM/YYYY"
+            <Text className="text-gray-600 text-sm mb-2">
+              Playing Position *
+            </Text>
+            <ReusableDropdown
+              selectedValue={playingPosition}
+              onValueChange={setPlayingPosition}
+              placeholder="Select Position"
+              options={["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"]}
             />
-            <Pressable
-              style={{ position: "absolute", right: 0, top: 32, padding: 8 }}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Ionicons name="calendar" size={24} color="#9CA3AF" />
-            </Pressable>
           </View>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-            />
-          )}
-
-          <ReusableDropdown
-            label="Playing Position"
-            selectedValue={playingPosition}
-            onValueChange={setPlayingPosition}
-            placeholder="Select Position"
-            options={["Batsman", "Bowler", "All-Rounder", "Wicket Keeper"]}
-          />
 
           <View>
             <Text className="text-gray-600 text-sm mb-2">Batting Style</Text>
             <View className="flex-row flex-wrap gap-2">
-              {["Left hand", "Right hand"].map((style) => (
+              {["Right Handed", "Left Handed"].map((style) => (
                 <SelectionPill
                   key={style}
                   label={style}
@@ -205,18 +204,29 @@ const CompleteProfileScreen: FC = () => {
             </View>
           </View>
 
-          <ReusableDropdown
-            label="Bowling Style"
-            selectedValue={bowlingStyle}
-            onValueChange={setBowlingStyle}
-            placeholder="Select Bowling Style"
-            options={["Fast", "Medium Pace", "Spin"]}
-          />
+          <View>
+            <Text className="text-gray-600 text-sm mb-2">
+              Bowling Style
+            </Text>
+            <ReusableDropdown
+              selectedValue={bowlingStyle}
+              onValueChange={setBowlingStyle}
+              placeholder="Select Bowling Style"
+              options={[
+                "Right Arm Fast",
+                "Right Arm Medium",
+                "Right Arm Spin",
+                "Left Arm Fast",
+                "Left Arm Medium",
+                "Left Arm Spin"
+              ]}
+            />
+          </View>
 
           <View>
-            <Text className="text-gray-600 text-sm mb-2">Experience Level</Text>
+            <Text className="text-gray-600 text-sm mb-2">Experience Level *</Text>
             <View className="flex-row flex-wrap gap-2">
-              {["Beginner", "Intermediate", "Advanced"].map((level) => (
+              {["Beginner", "Intermediate", "Professional"].map((level) => (
                 <SelectionPill
                   key={level}
                   label={level}
@@ -231,7 +241,7 @@ const CompleteProfileScreen: FC = () => {
             label="Location"
             value={location}
             onChangeText={setLocation}
-            placeholder="e.g. New Delhi"
+            placeholder="e.g. Mumbai, India"
           />
 
           <ReusableTextInput

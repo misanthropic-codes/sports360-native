@@ -8,8 +8,30 @@ export interface Team {
 
 export interface Ground {
   id: string;
-  name: string;
-  location?: string;
+  userId: string;
+  groundOwnerName: string;
+  ownerName: string;
+  groundType: string;
+  yearsOfOperation: string;
+  primaryLocation: string;
+  facilityAvailable: string;
+  bookingFrequency: string;
+  groundDescription: string;
+  imageUrls: string;
+  acceptOnlineBookings: boolean;
+  allowTournamentsBookings: boolean;
+  receiveGroundAvailabilityNotifications: boolean;
+  name?: string | null;
+  location?: string | null;
+  address?: string;
+  coordinates?: string;
+  facilities?: string | null;
+  pricePerHour?: number;
+  tournamentPrice?: number;
+  capacity?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GenerateFixturePayload {
@@ -86,6 +108,20 @@ export const getMyTeams = async (token: string): Promise<Team[]> => {
   return res.data?.data || [];
 };
 
+// Update Tournament
+export const updateTournament = async (
+  id: string,
+  data: any,
+  token: string
+): Promise<any> => {
+  const res = await api.put(
+    `/tournament/update/${id}`,
+    data,
+    withAuthHeaders(token)
+  );
+  return res.data?.data || null;
+};
+
 export const deleteTournament = async (id: string, token: string) => {
   const res = await api.delete(
     `/tournament/delete/${id}`,
@@ -120,7 +156,7 @@ export const joinTournament = async (
 // 🔹 Ground API
 export const getGrounds = async (token: string): Promise<Ground[]> => {
   const res = await api.get(
-    "/ground-owner/all-grounds",
+    "/ground-owner/my-grounds",
     withAuthHeaders(token)
   );
   return res.data?.data || [];
@@ -145,4 +181,34 @@ export const getMatchById = async (
 ): Promise<Match | null> => {
   const res = await api.get(`/matches/${id}`, withAuthHeaders(token));
   return res.data?.match || null;
+};
+
+export const deleteMatch = async (
+  tournamentId: string,
+  matchId: string,
+  token: string
+) => {
+  const res = await api.delete(
+    `/organizer-profile/tournament/${tournamentId}/match/${matchId}`,
+    withAuthHeaders(token)
+  );
+  return res.data;
+};
+
+/**
+ * Update Match Status
+ * PATCH /matches/:matchId/status
+ */
+export const updateMatchStatus = async (
+  matchId: string,
+  tournamentId: string,
+  status: "upcoming" | "ongoing" | "completed",
+  token: string
+) => {
+  const res = await api.patch(
+    `/matches/${matchId}/status`,
+    { tournamentId, status },
+    withAuthHeaders(token)
+  );
+  return res.data;
 };

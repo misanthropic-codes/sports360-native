@@ -32,7 +32,8 @@ const RunningHomeScreen: React.FC = () => {
         {/* Upcoming Activity Section */}
         <SectionHeader title="Upcoming Activity" />
         <ActivityCard
-          icon={Users}
+          layoutType="detailed"
+          icon={<Users size={24} color="#3B82F6" />}
           title="Mumbai Marathon"
           subtitle="Full Marathon - 42 kms"
           tag="Full Marathon"
@@ -41,7 +42,8 @@ const RunningHomeScreen: React.FC = () => {
           location="Marine Drive"
         />
         <ActivityCard
-          icon={Users}
+          layoutType="detailed"
+          icon={<Users size={24} color="#3B82F6" />}
           title="Delhi Half Marathon"
           subtitle="Half Marathon - 21 kms"
           tag="Registration Open"
@@ -53,13 +55,15 @@ const RunningHomeScreen: React.FC = () => {
         {/* Recent Activity Section */}
         <SectionHeader title="Recent Activity" />
         <ActivityCard
-          icon={Users}
-          title="City Sprint Challenge race report now available"
+          layoutType="simple"
+          icon={<Users size={24} color="#3B82F6" />}
+          description="City Sprint Challenge race report now available"
           timestamp="2 hours ago"
         />
         <ActivityCard
-          icon={Users}
-          title="Register for Bangalore Marathon 2024"
+          layoutType="simple"
+          icon={<Users size={24} color="#3B82F6" />}
+          description="Register for Bangalore Marathon 2024"
           timestamp="1 day ago"
         />
 

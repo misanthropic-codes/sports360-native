@@ -1,31 +1,28 @@
+import { getTournamentById, updateTournament } from "@/api/tournamentApi";
 import FormDropdown from "@/components/FormDropdown";
 import FormInput from "@/components/FormInput";
 import FormSection from "@/components/FormSection";
 import Header from "@/components/Header";
 import ReusableButton from "@/components/button";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
-import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
-    Modal,
     Platform,
     SafeAreaView,
     ScrollView,
     StatusBar,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
-// @ts-ignore - DateTimePicker types might not be available
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { useNavigation } from "@react-navigation/native";
-import { router } from "expo-router";
 
 type DateTimePickerEvent = any;
 
 const statusOptions = ["upcoming", "ongoing", "completed"];
-const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
 
 interface FormData {
   name: string;
@@ -40,7 +37,8 @@ interface FormData {
   endDate: Date;
 }
 
-const CreateTournament: React.FC = () => {
+const EditTournament: React.FC = () => {
+  const { tournamentId } = useLocalSearchParams();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
 
@@ -58,6 +56,7 @@ const CreateTournament: React.FC = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
 
   const [showStartDatePicker, setShowStartDatePicker] =
     useState<boolean>(false);
@@ -65,6 +64,38 @@ const CreateTournament: React.FC = () => {
     useState<boolean>(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState<boolean>(false);
+
+  // Fetch tournament data
+  useEffect(() => {
+    const fetchTournament = async () => {
+      if (!tournamentId) return;
+
+      try {
+        const tournament = await getTournamentById(tournamentId as string);
+        if (tournament) {
+          setFormData({
+            name: tournament.name || "",
+            description: tournament.description || "",
+            location: tournament.location || "",
+            bannerImageUrl: tournament.bannerImageUrl || "",
+            teamSize: tournament.teamSize?.toString() || "",
+            teamCount: tournament.teamCount?.toString() || "",
+            prizePool: tournament.prizePool?.toString() || "",
+            status: tournament.status || "upcoming",
+            startDate: tournament.startDate ? new Date(tournament.startDate) : new Date(),
+            endDate: tournament.endDate ? new Date(tournament.endDate) : new Date(),
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch tournament:", error);
+        Alert.alert("Error", "Failed to load tournament data");
+      } finally {
+        setFetchingData(false);
+      }
+    };
+
+    fetchTournament();
+  }, [tournamentId]);
 
   const handleInputChange = (
     field: keyof FormData,
@@ -179,10 +210,8 @@ const CreateTournament: React.FC = () => {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (loading) return; // prevent double click
+    if (loading) return;
     setLoading(true);
-
-    console.log("▶️ handleSubmit called");
 
     const error = validateForm();
     if (error) {
@@ -202,39 +231,21 @@ const CreateTournament: React.FC = () => {
 
     try {
       if (!user?.token) {
-        Alert.alert("Error", "You must be logged in to create a tournament");
+        Alert.alert("Error", "You must be logged in to edit a tournament");
         setLoading(false);
         return;
       }
 
-      if (!BASE_URL) {
-        Alert.alert("Error", "BASE_URL is not defined in .env");
+      if (!tournamentId) {
+        Alert.alert("Error", "Tournament ID is missing");
         setLoading(false);
         return;
       }
 
-      console.log("🌍 BASE_URL:", BASE_URL);
-      console.log("📤 Payload:", payload);
+      await updateTournament(tournamentId as string, payload, user.token);
 
-      const response = await axios.post(
-        `${BASE_URL}/api/v1/tournament/create`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-
-      console.log("✅ API Response:", response.data);
-      Alert.alert("Success", "Tournament Created Successfully!");
-
-      // ✅ navigate using expo-router
-      router.push({
-        pathname: "/tournament/ViewTournament",
-        params: { tournamentId: response.data?.id },
-      });
+      Alert.alert("Success", "Tournament Updated Successfully!");
+      router.back();
     } catch (err: unknown) {
       const error = err as any;
       console.error(
@@ -251,9 +262,17 @@ const CreateTournament: React.FC = () => {
   };
 
   const handleBackPress = (): void => {
-    console.log("Back Pressed");
     navigation.goBack();
   };
+
+  if (fetchingData) {
+    return (
+      <SafeAreaView className="flex-1 bg-slate-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#6366f1" />
+        <Text className="mt-4 text-gray-600">Loading tournament...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <>
@@ -271,7 +290,7 @@ const CreateTournament: React.FC = () => {
         }}
       >
         <Header
-          title="Create Tournament"
+          title="Edit Tournament"
           showBackButton={true}
           onBackPress={handleBackPress}
           rightComponent={
@@ -308,7 +327,7 @@ const CreateTournament: React.FC = () => {
 
           <FormSection title="Schedule" />
 
-          {/* Start Date Row */}
+          {/* Date Time Pickers - Same as Create */}
           <View className="mb-4">
             <Text className="text-gray-700 font-medium mb-2">Start Date *</Text>
             <View className="flex-row justify-between">
@@ -334,7 +353,6 @@ const CreateTournament: React.FC = () => {
             </View>
           </View>
 
-          {/* End Date Row */}
           <View className="mb-4">
             <Text className="text-gray-700 font-medium mb-2">End Date *</Text>
             <View className="flex-row justify-between">
@@ -420,157 +438,16 @@ const CreateTournament: React.FC = () => {
           />
 
           <ReusableButton
-            title={loading ? "Creating..." : "Create Tournament"}
+            title={loading ? "Updating..." : "Update Tournament"}
             onPress={handleSubmit}
             role="organizer"
             className="my-4"
             disabled={loading}
           />
         </ScrollView>
-
-        {/* Date Time Pickers */}
-        {/* Start Date Picker */}
-        {Platform.OS === "ios" && showStartDatePicker && (
-          <Modal transparent={true} animationType="slide" visible={showStartDatePicker}>
-            <View className="flex-1 justify-end bg-black/50">
-              <View className="bg-white rounded-t-3xl">
-                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
-                  <Text className="font-semibold text-lg text-gray-800">Select Start Date</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowStartDatePicker(false)}
-                    className="bg-purple-600 px-4 py-2 rounded-full"
-                  >
-                    <Text className="text-white font-semibold">Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={formData.startDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={onStartDateChange}
-                  minimumDate={new Date()}
-                  textColor="#000000"
-                />
-              </View>
-            </View>
-          </Modal>
-        )}
-        {Platform.OS === "android" && showStartDatePicker && (
-          <DateTimePicker
-            value={formData.startDate}
-            mode="date"
-            display="default"
-            onChange={onStartDateChange}
-            minimumDate={new Date()}
-          />
-        )}
-
-        {/* Start Time Picker */}
-        {Platform.OS === "ios" && showStartTimePicker && (
-          <Modal transparent={true} animationType="slide" visible={showStartTimePicker}>
-            <View className="flex-1 justify-end bg-black/50">
-              <View className="bg-white rounded-t-3xl">
-                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
-                  <Text className="font-semibold text-lg text-gray-800">Select Start Time</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowStartTimePicker(false)}
-                    className="bg-purple-600 px-4 py-2 rounded-full"
-                  >
-                    <Text className="text-white font-semibold">Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={formData.startDate}
-                  mode="time"
-                  display="spinner"
-                  onChange={onStartTimeChange}
-                  textColor="#000000"
-                />
-              </View>
-            </View>
-          </Modal>
-        )}
-        {Platform.OS === "android" && showStartTimePicker && (
-          <DateTimePicker
-            value={formData.startDate}
-            mode="time"
-            display="default"
-            onChange={onStartTimeChange}
-          />
-        )}
-
-        {/* End Date Picker */}
-        {Platform.OS === "ios" && showEndDatePicker && (
-          <Modal transparent={true} animationType="slide" visible={showEndDatePicker}>
-            <View className="flex-1 justify-end bg-black/50">
-              <View className="bg-white rounded-t-3xl">
-                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
-                  <Text className="font-semibold text-lg text-gray-800">Select End Date</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowEndDatePicker(false)}
-                    className="bg-purple-600 px-4 py-2 rounded-full"
-                  >
-                    <Text className="text-white font-semibold">Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={formData.endDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={onEndDateChange}
-                  minimumDate={formData.startDate}
-                  textColor="#000000"
-                />
-              </View>
-            </View>
-          </Modal>
-        )}
-        {Platform.OS === "android" && showEndDatePicker && (
-          <DateTimePicker
-            value={formData.endDate}
-            mode="date"
-            display="default"
-            onChange={onEndDateChange}
-            minimumDate={formData.startDate}
-          />
-        )}
-
-        {/* End Time Picker */}
-        {Platform.OS === "ios" && showEndTimePicker && (
-          <Modal transparent={true} animationType="slide" visible={showEndTimePicker}>
-            <View className="flex-1 justify-end bg-black/50">
-              <View className="bg-white rounded-t-3xl">
-                <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
-                  <Text className="font-semibold text-lg text-gray-800">Select End Time</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowEndTimePicker(false)}
-                    className="bg-purple-600 px-4 py-2 rounded-full"
-                  >
-                    <Text className="text-white font-semibold">Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={formData.endDate}
-                  mode="time"
-                  display="spinner"
-                  onChange={onEndTimeChange}
-                  textColor="#000000"
-                />
-              </View>
-            </View>
-          </Modal>
-        )}
-        {Platform.OS === "android" && showEndTimePicker && (
-          <DateTimePicker
-            value={formData.endDate}
-            mode="time"
-            display="default"
-            onChange={onEndTimeChange}
-          />
-        )}
       </SafeAreaView>
     </>
   );
 };
 
-export default CreateTournament;
+export default EditTournament;

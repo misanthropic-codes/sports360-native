@@ -1,10 +1,10 @@
 import { usePathname, useRouter } from "expo-router";
 import {
-  BarChart3,
-  Calendar,
-  ClipboardList,
-  Home,
-  MapPin,
+    BarChart3,
+    Calendar,
+    ClipboardList,
+    Home,
+    MapPin,
 } from "lucide-react-native";
 import React from "react";
 import { Animated, TouchableOpacity, View } from "react-native";
@@ -65,7 +65,7 @@ const BottomNavBar: React.FC = () => {
 
   const navItems = [
     { name: "Home", icon: Home, path: `/dashboard/ground_owner` },
-    { name: "Grounds", icon: MapPin, path: `/ground_owner/ViewAllGrounds` },
+    { name: "Grounds", icon: MapPin, path: `/ground_owner/myGrounds` },
     {
       name: "Bookings",
       icon: ClipboardList,

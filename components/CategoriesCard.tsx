@@ -19,7 +19,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   notificationColor = "#000",
 }) => {
   return (
-    <TouchableOpacity className="bg-white p-4 rounded-2xl border border-slate-200 items-center flex-1 shadow-sm">
+    <TouchableOpacity className="bg-white p-4 pb-5 rounded-2xl border border-slate-200 items-center flex-1 shadow-sm min-w-[140px]">
       <View
         className="w-16 h-16 rounded-full items-center justify-center"
         style={{ backgroundColor: color }}
@@ -30,7 +30,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       <Text className="text-slate-500 text-xs mt-1">{eventCount} Events</Text>
       {notificationCount > 0 && (
         <View
-          className="absolute bottom-2 right-2 w-5 h-5 rounded-full items-center justify-center border-2 border-white"
+          className="absolute bottom-3 right-3 w-5 h-5 rounded-full items-center justify-center border-2 border-white"
           style={{ backgroundColor: notificationColor }}
         >
           <Text className="text-white text-xs font-bold">

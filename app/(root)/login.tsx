@@ -3,16 +3,16 @@ import { useNavigation } from "@react-navigation/native";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -23,7 +23,13 @@ interface UserData {
   id: string;
   fullName: string;
   email: string;
+  dateOfBirth: string;
+  profilePicUrl?: string;
+  phone: string;
+  passwordHash?: string;
   role: string;
+  isVerified: string;
+  createdAt: string;
   domains?: string[];
   token: string;
 }
@@ -70,15 +76,8 @@ const LoginScreen = () => {
       if (response.data && response.data.success) {
         const userData: UserData = response.data.data;
 
-        // Save user to context
-        await login({
-          id: userData.id,
-          fullName: userData.fullName,
-          email: userData.email,
-          role: userData.role,
-          domains: userData.domains || [],
-          token: userData.token,
-        });
+        // Save complete user object to context
+        await login(userData as any);
 
         // Store role in AsyncStorage
         await AsyncStorage.setItem("userRole", userData.role);

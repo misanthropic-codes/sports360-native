@@ -8,6 +8,7 @@ interface FeaturedEventCardProps {
   description: string;
   location: string;
   type: string;
+  onJoinPress?: () => void;
 }
 
 const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
@@ -16,9 +17,10 @@ const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
   description,
   location,
   type,
+  onJoinPress,
 }) => {
   return (
-    <View className="bg-indigo-700 rounded-2xl p-5 m-4 shadow-lg">
+    <View className="bg-indigo-700 rounded-2xl p-5 shadow-lg" style={{ width: 320 }}>
       <Text className="text-indigo-200 text-xs font-semibold">
         {date.toUpperCase()}
       </Text>
@@ -34,7 +36,10 @@ const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
             <Text className="text-white text-xs font-bold">{type}</Text>
           </View>
         </View>
-        <TouchableOpacity className="bg-white px-8 py-3 rounded-full">
+        <TouchableOpacity 
+          className="bg-white px-8 py-3 rounded-full"
+          onPress={onJoinPress}
+        >
           <Text className="text-indigo-700 font-bold">Join Now</Text>
         </TouchableOpacity>
       </View>

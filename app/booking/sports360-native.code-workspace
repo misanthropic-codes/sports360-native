@@ -1,0 +1,14 @@
+{
+  "folders": [
+	{
+		"path": "../.."
+	},
+	{
+		"path": "../../../sport360-services-ranaayuhsmanBranch"
+	},
+	{
+		"path": "../../../sport360-services-canary"
+	}
+],
+  "settings": {}
+}

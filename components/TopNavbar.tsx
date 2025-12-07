@@ -1,4 +1,4 @@
-import { ArrowLeft, Search, SlidersHorizontal } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -29,15 +29,8 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
         <Text className="text-2xl font-bold text-slate-800">{title}</Text>
       </View>
 
-      {/* Right section */}
-      <View className="flex-row items-center justify-end gap-4">
-        <TouchableOpacity className="p-2">
-          <SlidersHorizontal size={26} color="#334155" />
-        </TouchableOpacity>
-        <TouchableOpacity className="p-2">
-          <Search size={26} color="#334155" />
-        </TouchableOpacity>
-      </View>
+      {/* Right section - spacer for layout balance */}
+      <View className="flex-row items-center justify-end" style={{ width: 40 }} />
     </View>
   );
 };

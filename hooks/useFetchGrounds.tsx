@@ -1,18 +1,25 @@
 // src/hooks/useFetchGrounds.ts
-import { useEffect, useState } from "react";
 import { getGrounds, Ground } from "@/api/tournamentApi";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
 
 export const useFetchGrounds = () => {
+  const { token } = useAuth();
   const [grounds, setGrounds] = useState<Ground[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchGrounds = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
-        const data = await getGrounds();
+        const data = await getGrounds(token);
         setGrounds(data);
       } catch (err) {
         setError(
@@ -24,7 +31,7 @@ export const useFetchGrounds = () => {
     };
 
     fetchGrounds();
-  }, []);
+  }, [token]);
 
   return { grounds, loading, error };
 };

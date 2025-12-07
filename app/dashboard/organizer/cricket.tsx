@@ -1,10 +1,11 @@
 import BottomNavBar from "@/components/BottomNavBar";
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useOrganizerStore } from "@/store/organizerAnalyticsStore";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Modal,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -15,317 +16,146 @@ import {
   View,
 } from "react-native";
 
-// Type definitions
-interface TournamentCardProps {
-  title: string;
-  subtitle: string;
-  teams: string;
-  matches: string;
-  prize: string;
-  bgColor: string;
-  iconColor: string;
-}
+// Tournament Modal
+const TournamentModal = ({ visible, onClose, tournament }: any) => {
+  if (!tournament) return null;
 
-interface SectionHeaderProps {
-  title: string;
-  showViewAll?: boolean;
-}
+  const handleManageTournament = () => {
+    onClose();
+    setTimeout(() => {
+      router.push(`/tournament/ManageTournament?id=${tournament.tournamentId}`);
+    }, 300);
+  };
 
-interface RegistrationCardProps {
-  title: string;
-  subtitle: string;
-}
-
-interface MatchCardProps {
-  team1: string;
-  team2: string;
-  team1Logo: string;
-  team2Logo: string;
-  status?: string;
-}
-
-// Stats Cards Component with improved spacing
-const StatsCards: React.FC = () => {
   return (
-    <View className="px-4 py-4 mb-2">
-      <View className="flex-row space-x-3">
-        <View className="flex-1 bg-green-50 border border-green-200 rounded-2xl p-4 shadow-sm">
-          <View className="items-center">
-            <Text className="text-green-800 text-2xl font-bold mb-1">12</Text>
-            <Text className="text-green-700 text-sm font-medium text-center">
-              Matches Won
-            </Text>
-          </View>
-        </View>
-        <View className="flex-1 bg-blue-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
-          <View className="items-center">
-            <Text className="text-blue-800 text-2xl font-bold mb-1">84</Text>
-            <Text className="text-blue-700 text-sm font-medium text-center">
-              Matches Played
-            </Text>
-          </View>
-        </View>
-        <View className="flex-1 bg-red-50 border border-red-200 rounded-2xl p-4 shadow-sm">
-          <View className="items-center">
-            <Text className="text-red-800 text-2xl font-bold mb-1">17</Text>
-            <Text className="text-red-700 text-sm font-medium text-center">
-              Matches Lost
-            </Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-};
-
-// Tournament Card Component
-const TournamentCard: React.FC<TournamentCardProps> = ({
-  title,
-  subtitle,
-  teams,
-  matches,
-  prize,
-  bgColor,
-  iconColor,
-}) => {
-  return (
-    <View className={`mx-4 mb-4 ${bgColor} rounded-2xl p-4`}>
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center">
-          <View
-            className={`w-8 h-8 ${iconColor} rounded-lg items-center justify-center mr-3`}
-          >
-            <MaterialCommunityIcons name="trophy" size={18} color="white" />
-          </View>
-          <View>
-            <Text className="text-gray-900 font-semibold text-base">
-              {title}
-            </Text>
-            <Text className="text-gray-600 text-sm">{subtitle}</Text>
-          </View>
-        </View>
-        <View className="bg-green-500 px-3 py-1 rounded-full">
-          <Text className="text-white text-xs font-medium">LIVE</Text>
-        </View>
-      </View>
-
-      <View className="flex-row justify-between items-center mb-4">
-        <View className="items-center">
-          <Text className="text-gray-900 text-xl font-bold">{teams}</Text>
-          <Text className="text-gray-600 text-xs">Teams</Text>
-        </View>
-        <View className="items-center">
-          <Text className="text-gray-900 text-xl font-bold">{matches}</Text>
-          <Text className="text-gray-600 text-xs">Matches</Text>
-        </View>
-        <View className="items-center">
-          <Text className="text-gray-900 text-xl font-bold">{prize}</Text>
-          <Text className="text-gray-600 text-xs">Prize Pool</Text>
-        </View>
-      </View>
-
-      <View className="flex-row justify-between items-center">
-        <Text className="text-gray-600 text-sm">Closes 05 : March 05</Text>
-        <TouchableOpacity className="bg-purple-600 px-6 py-2 rounded-full">
-          <Text className="text-white font-medium">Join now</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-// Section Header Component
-const SectionHeader: React.FC<SectionHeaderProps> = ({
-  title,
-  showViewAll = true,
-}) => {
-  return (
-    <View className="flex-row items-center justify-between px-4 py-3">
-      <Text className="text-gray-900 font-semibold text-lg">{title}</Text>
-      {showViewAll && (
-        <TouchableOpacity>
-          <Text className="text-purple-600 font-medium">View All</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
-
-// Registration Card Component
-const RegistrationCard: React.FC<RegistrationCardProps> = ({
-  title,
-  subtitle,
-}) => {
-  return (
-    <View className="mx-4 mb-3 bg-white border border-gray-200 rounded-2xl p-4 flex-row items-center justify-between">
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 bg-purple-600 rounded-lg items-center justify-center mr-3">
-          <Text className="text-white font-bold">RC</Text>
-        </View>
-        <View>
-          <Text className="text-gray-900 font-semibold text-base">{title}</Text>
-          <Text className="text-gray-500 text-sm">{subtitle}</Text>
-        </View>
-      </View>
-      <View className="bg-yellow-400 px-3 py-1 rounded-full">
-        <Text className="text-gray-900 text-xs font-medium">Pending</Text>
-      </View>
-    </View>
-  );
-};
-
-// Match Card Component
-const MatchCard: React.FC<MatchCardProps> = ({
-  team1,
-  team2,
-  team1Logo,
-  team2Logo,
-  status,
-}) => {
-  return (
-    <View className="mx-4 mb-3 bg-white border border-gray-200 rounded-2xl p-4">
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center">
-          <View className="w-8 h-8 bg-blue-600 rounded-full items-center justify-center mr-2">
-            <Text className="text-white font-bold text-xs">{team1Logo}</Text>
-          </View>
-          <Text className="text-gray-900 font-medium mr-4">{team1}</Text>
-          <Text className="text-gray-500 text-lg">vs</Text>
-          <Text className="text-gray-900 font-medium ml-4">{team2}</Text>
-          <View className="w-8 h-8 bg-red-600 rounded-full items-center justify-center ml-2">
-            <Text className="text-white font-bold text-xs">{team2Logo}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View className="flex-row justify-between items-center">
-        <Text className="text-gray-500 text-sm">Today at 7:00 PM</Text>
-        <TouchableOpacity className="bg-purple-600 px-4 py-2 rounded-full">
-          <Text className="text-white font-medium text-sm">Join now</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
-// Revenue Summary Component with improved design and spacing
-const RevenueSummary: React.FC = () => {
-  return (
-    <View className="mx-4 mb-6 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-      <Text className="text-gray-900 font-semibold text-xl mb-5">
-        Revenue Summary
-      </Text>
-
-      <View className="flex-row space-x-4 mb-6">
-        <View className="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5">
-          <View className="flex-row items-center justify-between mb-2">
-            <MaterialCommunityIcons
-              name="trending-up"
-              size={20}
-              color="white"
-            />
-            <View className="bg-blue-400 bg-opacity-30 px-2 py-1 rounded-full">
-              <Text className="text-white text-xs font-medium">+12%</Text>
-            </View>
-          </View>
-          <Text className="text-blue-100 text-sm font-medium mb-1">
-            This Month
-          </Text>
-          <Text className="text-white text-2xl font-bold">₹2.5 L</Text>
-        </View>
-
-        <View className="flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-5">
-          <View className="flex-row items-center justify-between mb-2">
-            <MaterialCommunityIcons name="wallet" size={20} color="white" />
-            <View className="bg-green-400 bg-opacity-30 px-2 py-1 rounded-full">
-              <Text className="text-white text-xs font-medium">Total</Text>
-            </View>
-          </View>
-          <Text className="text-green-100 text-sm font-medium mb-1">
-            Total Earned
-          </Text>
-          <Text className="text-white text-2xl font-bold">₹8.5 L</Text>
-        </View>
-      </View>
-
-      <View className="border-t border-gray-100 pt-4">
-        <Text className="text-gray-700 font-medium text-base mb-4">
-          Recent Tournaments
-        </Text>
-
-        <View className="space-y-4">
-          <View className="flex-row justify-between items-center p-3 bg-gray-50 rounded-xl">
-            <View className="flex-row items-center">
-              <View className="w-10 h-10 bg-purple-100 rounded-lg items-center justify-center mr-3">
-                <MaterialCommunityIcons
-                  name="trophy"
-                  size={20}
-                  color="#7C3AED"
-                />
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{tournament.tournamentName}</Text>
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>{tournament.status}</Text>
               </View>
-              <View>
-                <Text className="text-gray-900 font-medium text-base">
-                  Mumbai Premier League
-                </Text>
-                <Text className="text-gray-500 text-sm">
-                  Completed • 16 Teams
+              <View style={styles.ratingContainer}>
+                <Text style={styles.ratingIcon}>★</Text>
+                <Text style={styles.ratingValue}>{tournament.rating}</Text>
+                <Text style={styles.ratingCount}>
+                  ({tournament.totalRatings})
                 </Text>
               </View>
             </View>
-            <View className="items-end">
-              <Text className="text-gray-900 font-semibold text-lg">
-                ₹80,000
-              </Text>
-              <Text className="text-green-600 text-xs font-medium">
-                +15% profit
-              </Text>
-            </View>
           </View>
 
-          <View className="flex-row justify-between items-center p-3 bg-gray-50 rounded-xl">
-            <View className="flex-row items-center">
-              <View className="w-10 h-10 bg-blue-100 rounded-lg items-center justify-center mr-3">
-                <MaterialCommunityIcons
-                  name="trophy"
-                  size={20}
-                  color="#3B82F6"
-                />
+          <ScrollView style={styles.modalBody}>
+            <View style={styles.detailsCard}>
+              <Text style={styles.sectionLabel}>TOURNAMENT DETAILS</Text>
+              <View style={styles.statsGrid}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Teams</Text>
+                  <Text style={styles.statValue}>
+                    {tournament.teamCount}/{tournament.maxTeams}
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Matches</Text>
+                  <Text style={styles.statValue}>
+                    {tournament.matchesCount}
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}>Registrations</Text>
+                  <Text style={styles.statValue}>
+                    {tournament.registrations}
+                  </Text>
+                </View>
               </View>
-              <View>
-                <Text className="text-gray-900 font-medium text-base">
-                  Champions Cup
+            </View>
+
+            <View style={styles.financialCard}>
+              <Text style={styles.financialLabel}>FINANCIAL OVERVIEW</Text>
+              <View style={styles.financialRow}>
+                <Text style={styles.financialItemLabel}>Entry Fee</Text>
+                <Text style={styles.financialItemValue}>
+                  ₹{tournament.entryFee}
                 </Text>
-                <Text className="text-gray-500 text-sm">
-                  Completed • 12 Teams
+              </View>
+              <View style={[styles.financialRow, styles.financialRowBorder]}>
+                <Text style={styles.financialItemLabel}>Total Revenue</Text>
+                <Text style={styles.financialItemValue}>
+                  ₹{tournament.revenue}
+                </Text>
+              </View>
+              <View style={[styles.financialRow, styles.financialRowBorder]}>
+                <Text style={styles.financialItemLabel}>Expenses</Text>
+                <Text style={styles.financialItemValue}>
+                  ₹{tournament.expenses}
+                </Text>
+              </View>
+              <View style={[styles.financialRow, styles.financialRowBorder]}>
+                <Text style={styles.financialItemLabel}>Prize Pool</Text>
+                <Text style={styles.financialItemValue}>
+                  ₹{tournament.prizePool}
+                </Text>
+              </View>
+              <View style={[styles.financialRow, styles.financialRowTotal]}>
+                <Text style={styles.financialTotalLabel}>Net Profit</Text>
+                <Text style={styles.financialTotalValue}>
+                  ₹{tournament.profit}
                 </Text>
               </View>
             </View>
-            <View className="items-end">
-              <Text className="text-gray-900 font-semibold text-lg">
-                ₹65,000
-              </Text>
-              <Text className="text-green-600 text-xs font-medium">
-                +12% profit
-              </Text>
+
+            <View style={styles.scheduleCard}>
+              <Text style={styles.sectionLabel}>SCHEDULE</Text>
+              <View style={styles.scheduleItem}>
+                <Text style={styles.statLabel}>Start Date</Text>
+                <Text style={styles.scheduleValue}>
+                  {new Date(tournament.startDate).toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.scheduleItem}>
+                <Text style={styles.statLabel}>End Date</Text>
+                <Text style={styles.scheduleValue}>
+                  {new Date(tournament.endDate).toLocaleString()}
+                </Text>
+              </View>
             </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.manageButton}
+              onPress={handleManageTournament}
+            >
+              <Text style={styles.manageButtonText}>Manage Tournament</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
-
-      <TouchableOpacity className="mt-5 bg-purple-600 rounded-xl py-3 px-4 flex-row items-center justify-center">
-        <MaterialCommunityIcons name="chart-line" size={20} color="white" />
-        <Text className="text-white font-medium ml-2">
-          View Detailed Analytics
-        </Text>
-      </TouchableOpacity>
-    </View>
+    </Modal>
   );
 };
 
-// Main Dashboard Component
 const CricketDashboard: React.FC = () => {
   const { user } = useAuth();
   const name = user?.fullName || "Player";
+  const { summary, tournaments, fetchAnalytics } = useOrganizerStore();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedTournament, setSelectedTournament] = useState<any>(null);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      const token = user?.token || "";
+      if (token) {
+        await fetchAnalytics(token);
+      }
+    };
+    loadAnalytics();
+  }, [user]);
 
   return (
     <SafeAreaView
@@ -336,8 +166,7 @@ const CricketDashboard: React.FC = () => {
           : {},
       ]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
-
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <Header
         type="welcome"
         name={name}
@@ -346,61 +175,232 @@ const CricketDashboard: React.FC = () => {
         onProfilePress={() => router.push("/profile")}
       />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <StatsCards />
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {summary && (
+          <>
+            {/* Quick Stats Row */}
+            <View style={styles.quickStatsContainer}>
+              <View style={styles.quickStatsRow}>
+                <View style={styles.quickStatWrapper}>
+                  <View style={styles.quickStatActive}>
+                    <Text style={styles.quickStatLabelActive}>Active</Text>
+                    <Text style={styles.quickStatValueActive}>
+                      {summary.activeTournaments}
+                    </Text>
+                    <Text style={styles.quickStatSubActive}>Tournaments</Text>
+                  </View>
+                </View>
+                <View style={styles.quickStatWrapper}>
+                  <View style={styles.quickStat}>
+                    <Text style={styles.quickStatLabel}>Total Teams</Text>
+                    <Text style={styles.quickStatValue}>
+                      {summary.totalTournamentsCreated * 8}
+                    </Text>
+                    <Text style={styles.quickStatSub}>Registered</Text>
+                  </View>
+                </View>
+                <View style={styles.quickStatWrapper}>
+                  <View style={styles.quickStat}>
+                    <Text style={styles.quickStatLabel}>Rating</Text>
+                    <View style={styles.ratingRow}>
+                      <Text style={styles.quickStatValue}>
+                        {summary.overallRating.toFixed(1)}
+                      </Text>
+                      <Text style={styles.ratingStarSmall}>★</Text>
+                    </View>
+                    <Text style={styles.quickStatSub}>
+                      {summary.totalRatingsReceived} reviews
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
 
-        <SectionHeader title="Tournament Overview" />
-        <TournamentCard
-          title="Mumbai Premier League"
-          subtitle="Premier cricket tournament"
-          teams="16"
-          matches="5"
-          prize="Rs 80K"
-          bgColor="bg-purple-50"
-          iconColor="bg-purple-600"
-        />
-        <TournamentCard
-          title="Mumbai Premier League"
-          subtitle="Premier cricket tournament"
-          teams="16"
-          matches="5"
-          prize="Rs 80K"
-          bgColor="bg-purple-50"
-          iconColor="bg-purple-600"
-        />
+            {/* Main Metrics Grid */}
+            <View style={styles.metricsContainer}>
+              <Text style={styles.sectionTitle}>Performance Metrics</Text>
+              <View style={styles.metricsCard}>
+                {/* Row 1 */}
+                <View style={styles.metricsRowBorder}>
+                  <View style={styles.metricHalfBorder}>
+                    <Text style={styles.metricLabel}>Total Tournaments</Text>
+                    <Text style={styles.metricValue}>
+                      {summary.totalTournamentsCreated}
+                    </Text>
+                    <View style={styles.metricSubRow}>
+                      <View style={styles.metricSubItem}>
+                        <Text style={styles.metricSubLabel}>Completed</Text>
+                        <Text style={styles.metricSubValue}>
+                          {summary.completedTournaments}
+                        </Text>
+                      </View>
+                      <View style={styles.metricSubItem}>
+                        <Text style={styles.metricSubLabel}>Active</Text>
+                        <Text style={styles.metricSubValuePurple}>
+                          {summary.activeTournaments}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.metricHalf}>
+                    <Text style={styles.metricLabel}>Matches Organized</Text>
+                    <Text style={styles.metricValue}>
+                      {summary.totalMatchesOrganized}
+                    </Text>
+                    <Text style={styles.metricSubText}>
+                      Total matches conducted
+                    </Text>
+                  </View>
+                </View>
 
-        <SectionHeader title="Recent Registrations" />
-        <RegistrationCard
-          title="Royal Challengers"
-          subtitle="Mumbai Premier League"
-        />
-        <RegistrationCard
-          title="Royal Challengers"
-          subtitle="Mumbai Premier League"
-        />
-        <RegistrationCard
-          title="Royal Challengers"
-          subtitle="Mumbai Premier League"
-        />
+                {/* Row 2 */}
+                <View style={styles.metricsRowBorder}>
+                  <View style={styles.metricHalfBorder}>
+                    <Text style={styles.metricLabel}>Total Registrations</Text>
+                    <Text style={styles.metricValue}>
+                      {summary.totalRegistrations}
+                    </Text>
+                    <Text style={styles.metricSubText}>
+                      Avg {summary.averageRegistrationsPerTournament}/tournament
+                    </Text>
+                  </View>
+                  <View style={styles.metricHalf}>
+                    <Text style={styles.metricLabel}>Avg Revenue</Text>
+                    <Text style={styles.metricValue}>
+                      ₹{summary.averageRevenuePerTournament}
+                    </Text>
+                    <Text style={styles.metricSubText}>Per tournament</Text>
+                  </View>
+                </View>
 
-        <SectionHeader title="Upcoming Matches" />
-        <MatchCard
-          team1="Mumbai Indians"
-          team2="Chennai Super"
-          team1Logo="MI"
-          team2Logo="CS"
-        />
-        <MatchCard
-          team1="Delhi Capitals"
-          team2="Royal Challengers"
-          team1Logo="DC"
-          team2Logo="RC"
-        />
+                {/* Row 3 - Financial */}
+                <View style={styles.financialMetrics}>
+                  <View style={styles.financialMetricsRow}>
+                    <View style={styles.financialMetricHalfBorder}>
+                      <Text style={styles.financialMetricLabel}>
+                        Total Revenue
+                      </Text>
+                      <Text style={styles.financialMetricValue}>
+                        ₹{summary.totalRevenue}
+                      </Text>
+                      <Text style={styles.financialMetricSub}>
+                        Expenses: ₹{summary.totalExpenses}
+                      </Text>
+                    </View>
+                    <View style={styles.financialMetricHalf}>
+                      <Text style={styles.financialMetricLabel}>
+                        Net Profit
+                      </Text>
+                      <Text style={styles.financialMetricValue}>
+                        ₹{summary.netProfit}
+                      </Text>
+                      <Text style={styles.financialMetricSub}>
+                        Avg ₹{summary.averageProfitPerTournament}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
 
-        <RevenueSummary />
+            {/* Tournament List */}
+            <View style={styles.tournamentSection}>
+              <View style={styles.tournamentHeader}>
+                <Text style={styles.sectionTitle}>Your Tournaments</Text>
+                <TouchableOpacity style={styles.viewAllButton}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
 
-        {/* Bottom spacing for better scrolling experience */}
-        <View className="h-8" />
+              {tournaments && tournaments.length > 0 ? (
+                <View>
+                  {tournaments.slice(0, 3).map((item) => (
+                    <TouchableOpacity
+                      key={item.tournamentId}
+                      onPress={() => {
+                        setSelectedTournament(item);
+                        setModalVisible(true);
+                      }}
+                      style={styles.tournamentCard}
+                    >
+                      <View style={styles.tournamentCardHeader}>
+                        <View style={styles.tournamentCardTitle}>
+                          <Text style={styles.tournamentName} numberOfLines={1}>
+                            {item.tournamentName}
+                          </Text>
+                          <View style={styles.tournamentMeta}>
+                            <View style={styles.tournamentStatusBadge}>
+                              <Text style={styles.tournamentStatusText}>
+                                {item.status}
+                              </Text>
+                            </View>
+                            <Text style={styles.tournamentTeams}>
+                              {item.teamCount}/{item.maxTeams} Teams
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.tournamentPrize}>
+                          <Text style={styles.prizeAmount}>
+                            ₹{item.prizePool}
+                          </Text>
+                          <Text style={styles.prizeLabel}>Prize Pool</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.tournamentStats}>
+                        <View style={styles.tournamentStatItem}>
+                          <Text style={styles.tournamentStatLabel}>
+                            Matches
+                          </Text>
+                          <Text style={styles.tournamentStatValue}>
+                            {item.matchesCount}
+                          </Text>
+                        </View>
+                        <View style={styles.tournamentStatItem}>
+                          <Text style={styles.tournamentStatLabel}>
+                            Revenue
+                          </Text>
+                          <Text style={styles.tournamentStatValue}>
+                            ₹{item.revenue}
+                          </Text>
+                        </View>
+                        <View style={styles.tournamentStatItem}>
+                          <Text style={styles.tournamentStatLabel}>Profit</Text>
+                          <Text style={styles.tournamentStatValuePurple}>
+                            ₹{item.profit}
+                          </Text>
+                        </View>
+                        <View style={styles.tournamentStatItemEnd}>
+                          <Text style={styles.tournamentStatLabel}>Rating</Text>
+                          <View style={styles.tournamentRating}>
+                            <Text style={styles.tournamentStatValue}>
+                              {item.rating}
+                            </Text>
+                            <Text style={styles.tournamentRatingStar}>★</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>No tournaments yet</Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
+        <TournamentModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          tournament={selectedTournament}
+        />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       <BottomNavBar role="organizer" type="cricket" />
@@ -411,7 +411,480 @@ const CricketDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  // Quick Stats Styles
+  quickStatsContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  quickStatsRow: {
+    flexDirection: "row",
+    marginHorizontal: -6,
+  },
+  quickStatWrapper: {
+    flex: 1,
+    paddingHorizontal: 6,
+  },
+  quickStatActive: {
+    backgroundColor: "#F3E8FF",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
+  },
+  quickStatLabelActive: {
+    color: "#9333EA",
+    fontSize: 10,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  quickStatValueActive: {
+    color: "#7E22CE",
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  quickStatSubActive: {
+    color: "#C084FC",
+    fontSize: 10,
+    marginTop: 2,
+  },
+  quickStat: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  quickStatLabel: {
+    color: "#6B7280",
+    fontSize: 10,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  quickStatValue: {
+    color: "#111827",
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  quickStatSub: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginTop: 2,
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  ratingStarSmall: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  // Metrics Styles
+  metricsContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  sectionTitle: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 18,
+    marginBottom: 12,
+  },
+  metricsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    overflow: "hidden",
+  },
+  metricsRowBorder: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  metricHalfBorder: {
+    flex: 1,
+    padding: 16,
+    borderRightWidth: 1,
+    borderRightColor: "#E5E7EB",
+  },
+  metricHalf: {
+    flex: 1,
+    padding: 16,
+  },
+  metricLabel: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginBottom: 8,
+  },
+  metricValue: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 24,
+  },
+  metricSubRow: {
+    flexDirection: "row",
+    marginTop: 8,
+  },
+  metricSubItem: {
+    marginRight: 16,
+  },
+  metricSubLabel: {
+    color: "#9CA3AF",
+    fontSize: 10,
+  },
+  metricSubValue: {
+    color: "#4B5563",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  metricSubValuePurple: {
+    color: "#9333EA",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  metricSubText: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginTop: 8,
+  },
+  financialMetrics: {
+    backgroundColor: "#F3E8FF",
+  },
+  financialMetricsRow: {
+    flexDirection: "row",
+  },
+  financialMetricHalfBorder: {
+    flex: 1,
+    padding: 16,
+    borderRightWidth: 1,
+    borderRightColor: "#E9D5FF",
+  },
+  financialMetricHalf: {
+    flex: 1,
+    padding: 16,
+  },
+  financialMetricLabel: {
+    color: "#9333EA",
+    fontSize: 10,
+    marginBottom: 8,
+  },
+  financialMetricValue: {
+    color: "#7E22CE",
+    fontWeight: "700",
+    fontSize: 24,
+  },
+  financialMetricSub: {
+    color: "#C084FC",
+    fontSize: 10,
+    marginTop: 8,
+  },
+  // Tournament List Styles
+  tournamentSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  tournamentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  viewAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  viewAllText: {
+    color: "#9333EA",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  tournamentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 16,
+    marginBottom: 12,
+  },
+  tournamentCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  tournamentCardTitle: {
+    flex: 1,
+    marginRight: 12,
+  },
+  tournamentName: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  tournamentMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  tournamentStatusBadge: {
+    backgroundColor: "#F3E8FF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  tournamentStatusText: {
+    color: "#7E22CE",
+    fontWeight: "600",
+    fontSize: 10,
+  },
+  tournamentTeams: {
+    color: "#9CA3AF",
+    fontSize: 10,
+  },
+  tournamentPrize: {
+    alignItems: "flex-end",
+  },
+  prizeAmount: {
+    color: "#7E22CE",
+    fontWeight: "700",
+    fontSize: 20,
+  },
+  prizeLabel: {
+    color: "#9CA3AF",
+    fontSize: 10,
+  },
+  tournamentStats: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    paddingTop: 12,
+  },
+  tournamentStatItem: {
+    flex: 1,
+  },
+  tournamentStatItemEnd: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  tournamentStatLabel: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginBottom: 4,
+  },
+  tournamentStatValue: {
+    color: "#111827",
+    fontWeight: "600",
+  },
+  tournamentStatValuePurple: {
+    color: "#9333EA",
+    fontWeight: "600",
+  },
+  tournamentRating: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tournamentRatingStar: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginLeft: 4,
+  },
+  emptyState: {
     backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+  },
+  emptyStateText: {
+    color: "#9CA3AF",
+    fontSize: 14,
+  },
+  bottomSpacer: {
+    height: 32,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
+  },
+  modalHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  modalHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  statusBadge: {
+    backgroundColor: "#F3E8FF",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginRight: 12,
+  },
+  statusText: {
+    color: "#7E22CE",
+    fontWeight: "600",
+    fontSize: 10,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingIcon: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginRight: 4,
+  },
+  ratingValue: {
+    color: "#374151",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  ratingCount: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginLeft: 4,
+  },
+  modalBody: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  detailsCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    color: "#6B7280",
+    fontSize: 10,
+    fontWeight: "500",
+    marginBottom: 12,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  statItem: {
+    width: "33.33%",
+    marginBottom: 16,
+  },
+  statLabel: {
+    color: "#9CA3AF",
+    fontSize: 10,
+    marginBottom: 4,
+  },
+  statValue: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 18,
+  },
+  financialCard: {
+    backgroundColor: "#F3E8FF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  financialLabel: {
+    color: "#7E22CE",
+    fontSize: 10,
+    fontWeight: "500",
+    marginBottom: 12,
+  },
+  financialRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
+  financialRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: "#E9D5FF",
+  },
+  financialRowTotal: {
+    borderTopWidth: 2,
+    borderTopColor: "#DDD6FE",
+    paddingVertical: 12,
+  },
+  financialItemLabel: {
+    color: "#4B5563",
+    fontSize: 14,
+  },
+  financialItemValue: {
+    color: "#111827",
+    fontWeight: "600",
+  },
+  financialTotalLabel: {
+    color: "#7E22CE",
+    fontWeight: "700",
+  },
+  financialTotalValue: {
+    color: "#7E22CE",
+    fontWeight: "700",
+    fontSize: 18,
+  },
+  scheduleCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  scheduleItem: {
+    marginBottom: 12,
+  },
+  scheduleValue: {
+    color: "#111827",
+    fontWeight: "600",
+  },
+  modalFooter: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  manageButton: {
+    backgroundColor: "#9333EA",
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  manageButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  closeButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  closeButtonText: {
+    color: "#6B7280",
+    fontWeight: "600",
   },
 });
 

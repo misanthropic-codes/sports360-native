@@ -10,6 +10,7 @@ interface UpcomingEventCardProps {
   date: string;
   location: string;
   participants: number;
+  onJoinPress?: () => void;
 }
 
 const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
@@ -20,6 +21,7 @@ const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
   date,
   location,
   participants,
+  onJoinPress,
 }) => {
   return (
     <View className="bg-white p-4 rounded-2xl border border-slate-200 mx-4 mb-3 shadow-sm">
@@ -82,7 +84,10 @@ const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
         </View>
 
         {/* Join Button (safe padding to avoid overflow) */}
-        <TouchableOpacity className="bg-indigo-600 px-4 py-2 rounded-lg min-w-[80px] items-center">
+        <TouchableOpacity 
+          className="bg-indigo-600 px-4 py-2 rounded-lg min-w-[80px] items-center"
+          onPress={onJoinPress}
+        >
           <Text className="text-white font-bold text-sm">Join Now</Text>
         </TouchableOpacity>
       </View>

@@ -1,0 +1,501 @@
+import { benchMember, unbenchMember } from "@/api/teamApi";
+import BottomNavBar from "@/components/BottomNavBar";
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Calendar, MoreVertical, Trophy, Users } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
+
+type Member = {
+  teamId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  isActive: boolean;
+  addedAt: string;
+  addedBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  removedAt: string | null;
+  removedBy: string | null;
+  fullName: string;
+  email: string;
+  profilePicUrl: string | null;
+  playingPosition: string;
+  battingStyle: string;
+  bowlingStyle: string;
+  batsmanType: string | null;
+  isBenched?: boolean;
+};
+
+type Tournament = {
+  id: string;
+  name: string;
+  startDate: string;
+};
+
+type Match = {
+  id: string;
+  opponentTeam: string;
+  date: string;
+  result?: string | null;
+};
+
+const TeamScreen: React.FC = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { teamId } = useLocalSearchParams();
+
+  const [activeTab, setActiveTab] = useState<
+    "members" | "tournaments" | "matches"
+  >("members");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [benchingMemberId, setBenchingMemberId] = useState<string | null>(null);
+
+  const baseURL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+
+  const fetchTeamData = async () => {
+    if (!user?.token || !teamId) return;
+
+    setLoading(true);
+    const headers = { Authorization: `Bearer ${user.token}` };
+
+    try {
+      // Members
+      const membersRes = await axios.get(`${baseURL}/team/${teamId}/members`, {
+        headers,
+      });
+      if (membersRes.data?.success) setMembers(membersRes.data.data);
+
+      // Tournaments
+      const tournamentsRes = await axios.get(
+        `${baseURL}/team/${teamId}/tournaments`,
+        { headers }
+      );
+      if (tournamentsRes.data?.success) {
+        const tournamentData = tournamentsRes.data.data.tournaments.map(
+          (item: any) => item.tournament
+        );
+        setTournaments(tournamentData);
+      }
+
+      // Matches
+      const matchesRes = await axios.get(`${baseURL}/team/${teamId}/matches`, {
+        headers,
+      });
+      if (matchesRes.data?.success) {
+        const matchesData = matchesRes.data.data.matches.map((m: any) => ({
+          id: m.id,
+          opponentTeam: m.opponentTeamName || "Unknown",
+          date: m.matchTime,
+          result: m.result,
+        }));
+        setMatches(matchesData);
+      }
+    } catch (err: any) {
+      console.error("❌ Error fetching team data:", err.response?.data || err);
+      Alert.alert("Error", "Could not fetch team data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeamData();
+  }, [teamId, user?.token]);
+
+  const TabButton = ({
+    label,
+    Icon,
+    tab,
+  }: {
+    label: string;
+    Icon?: React.ComponentType<any>;
+    tab: typeof activeTab;
+  }) => (
+    <TouchableOpacity
+      onPress={() => setActiveTab(tab)}
+      className={`flex-1 py-3 mx-1 rounded-lg flex-row justify-center items-center ${
+        activeTab === tab ? "bg-purple-600" : "bg-purple-100"
+      }`}
+    >
+      {Icon && (
+        <Icon
+          size={20}
+          color={activeTab === tab ? "white" : "#6b21a8"}
+          className="mr-2"
+        />
+      )}
+      <Text
+        className={`font-semibold ${activeTab === tab ? "text-white" : "text-purple-800"}`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  // Check if current user is captain
+  const isCaptain = members.some(
+    (m) => m.userId === user?.id && m.role.toLowerCase() === "captain"
+  );
+
+  // Debug logging
+  useEffect(() => {
+    console.log("🔍 Captain Check Debug:");
+    console.log("  Current User ID:", user?.id);
+    console.log("  Is Captain:", isCaptain);
+    console.log("  Members:", members.map(m => ({ 
+      userId: m.userId, 
+      role: m.role, 
+      name: m.fullName 
+    })));
+  }, [isCaptain, members, user?.id]);
+
+  // Handle bench/unbench member
+  const handleBenchMember = (memberId: string, currentlyBenched: boolean) => {
+    if (!isCaptain) {
+      Alert.alert("Unauthorized", "Only team captains can bench/unbench members.");
+      return;
+    }
+
+    const action = currentlyBenched ? "Unbench" : "Bench";
+    Alert.alert(
+      `${action} Member`,
+      `Are you sure you want to ${action.toLowerCase()} this member?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: action,
+          style: currentlyBenched ? "default" : "destructive",
+          onPress: async () => {
+            try {
+              if (!user?.token || !teamId) {
+                Alert.alert("Error", "Missing authentication or team information.");
+                return;
+              }
+
+              setBenchingMemberId(memberId);
+              setOpenMenuId(null);
+
+              if (currentlyBenched) {
+                await unbenchMember(
+                  teamId as string,
+                  memberId,
+                  user.token
+                );
+              } else {
+                await benchMember(
+                  teamId as string,
+                  memberId,
+                  user.token
+                );
+              }
+
+              // Update local state
+              setMembers((prevMembers) =>
+                prevMembers.map((m) =>
+                  m.userId === memberId
+                    ? { ...m, isBenched: !currentlyBenched }
+                    : m
+                )
+              );
+
+              Alert.alert(
+                "Success",
+                `Member ${currentlyBenched ? "unbenched" : "benched"} successfully`
+              );
+            } catch (error: any) {
+              console.error("Bench/Unbench error:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message ||
+                  `Failed to ${action.toLowerCase()} member`
+              );
+            } finally {
+              setBenchingMemberId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderMembers = () => (
+    <FlatList
+      data={members}
+      keyExtractor={(item) => item.userId}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 150 }}
+      renderItem={({ item }) => {
+        const isProcessing = benchingMemberId === item.userId;
+        const showMenu = openMenuId === item.userId;
+
+        return (
+          <View className="bg-white rounded-xl p-5 mb-4 shadow-md border border-purple-200">
+            {/* Header with Name, Status, and Menu */}
+            <View className="flex-row justify-between items-start mb-3">
+              <View className="flex-1">
+                <Text className="text-purple-900 font-bold text-xl mb-1">
+                  {item.fullName}
+                </Text>
+                <Text className="text-purple-600 text-sm">{item.email}</Text>
+              </View>
+              <View className="flex-row items-start">
+                <View
+                  className={`px-3 py-1 rounded-full ${
+                    item.isActive ? "bg-green-100" : "bg-gray-100"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      item.isActive ? "text-green-700" : "text-gray-600"
+                    }`}
+                  >
+                    {item.isActive ? "Active" : "Inactive"}
+                  </Text>
+                </View>
+                {/* Three-Dot Menu - Captain Only */}
+                {isCaptain && (
+                  <View style={{ marginLeft: 8, zIndex: 1000 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        console.log("🎯 Three-dot menu CLICKED for:", item.fullName);
+                        console.log("Current showMenu state:", showMenu);
+                        setOpenMenuId(showMenu ? null : item.userId);
+                      }}
+                      style={{
+                        padding: 8,
+                        backgroundColor: "#f3e8ff",
+                        borderRadius: 8,
+                        elevation: 2,
+                      }}
+                      disabled={isProcessing}
+                      activeOpacity={0.7}
+                    >
+                      <MoreVertical size={20} color="#6b21a8" />
+                    </TouchableOpacity>
+                    {showMenu && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 48,
+                          right: 0,
+                          backgroundColor: "white",
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: "#e5e7eb",
+                          minWidth: 160,
+                          zIndex: 2000,
+                          elevation: 5,
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.84,
+                        }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => {
+                            console.log("Bench/Unbench option clicked");
+                            handleBenchMember(item.userId, item.isBenched || false);
+                          }}
+                          style={{
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "500",
+                              color: item.isBenched ? "#16a34a" : "#dc2626",
+                            }}
+                          >
+                            {item.isBenched ? "Unbench Member" : "Bench Member"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Role Badge and Benched Badge */}
+            <View className="mb-3 flex-row gap-2">
+              <View
+                className={`px-4 py-2 rounded-lg ${
+                  item.role.toLowerCase() === "captain"
+                    ? "bg-amber-100 border border-amber-300"
+                    : "bg-purple-100 border border-purple-300"
+                }`}
+              >
+                <Text
+                  className={`font-bold text-sm ${
+                    item.role.toLowerCase() === "captain"
+                      ? "text-amber-800"
+                      : "text-purple-800"
+                  }`}
+                >
+                  {item.role.toUpperCase()}
+                </Text>
+              </View>
+              {item.isBenched && (
+                <View className="px-4 py-2 rounded-lg bg-red-100 border border-red-300">
+                  <Text className="font-bold text-sm text-red-800">
+                    BENCHED
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Player Stats */}
+            <View className="bg-purple-50 rounded-lg p-3 mb-3">
+              <Text className="text-purple-900 font-semibold text-sm mb-2">
+                Player Profile
+              </Text>
+              <View className="space-y-1">
+                <View className="flex-row">
+                  <Text className="text-purple-700 font-medium text-sm w-32">
+                    Position:
+                  </Text>
+                  <Text className="text-purple-900 text-sm flex-1 capitalize">
+                    {item.playingPosition}
+                  </Text>
+                </View>
+                <View className="flex-row">
+                  <Text className="text-purple-700 font-medium text-sm w-32">
+                    Batting Style:
+                  </Text>
+                  <Text className="text-purple-900 text-sm flex-1 capitalize">
+                    {item.battingStyle.replace("_", " ")}
+                  </Text>
+                </View>
+                <View className="flex-row">
+                  <Text className="text-purple-700 font-medium text-sm w-32">
+                    Bowling Style:
+                  </Text>
+                  <Text className="text-purple-900 text-sm flex-1 capitalize">
+                    {item.bowlingStyle.replace(/_/g, " ")}
+                  </Text>
+                </View>
+                {item.batsmanType && (
+                  <View className="flex-row">
+                    <Text className="text-purple-700 font-medium text-sm w-32">
+                      Batsman Type:
+                    </Text>
+                    <Text className="text-purple-900 text-sm flex-1 capitalize">
+                      {item.batsmanType}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Join Date */}
+            <View className="border-t border-purple-100 pt-3">
+              <Text className="text-purple-600 text-xs">
+                Joined{" "}
+                {new Date(item.joinedAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+          </View>
+        );
+      }}
+    />
+  );
+
+  const renderTournaments = () => (
+    <FlatList
+      data={tournaments}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 150 }}
+      renderItem={({ item }) => (
+        <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-purple-100">
+          <Text className="text-purple-800 font-bold text-lg">{item.name}</Text>
+          <Text className="text-purple-700">
+            Start Date: {new Date(item.startDate).toLocaleDateString()}
+          </Text>
+        </View>
+      )}
+    />
+  );
+
+  const renderMatches = () => (
+    <FlatList
+      data={matches}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 150 }}
+      renderItem={({ item }) => (
+        <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-purple-100">
+          <Text className="text-purple-800 font-bold text-lg">
+            Opponent: {item.opponentTeam}
+          </Text>
+          <Text className="text-purple-700">
+            Date: {new Date(item.date).toLocaleString()}
+          </Text>
+          {item.result && (
+            <Text className="text-purple-700">Result: {item.result}</Text>
+          )}
+        </View>
+      )}
+    />
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-purple-50">
+      {/* Tabs */}
+      <View className="flex-row p-2 bg-white shadow-md rounded-xl mx-4 my-4">
+        <TabButton label="Members" Icon={Users} tab="members" />
+        <TabButton label="Tournaments" Icon={Trophy} tab="tournaments" />
+        <TabButton label="Matches" Icon={Calendar} tab="matches" />
+      </View>
+
+      {/* Content */}
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#6b21a8" />
+        </View>
+      ) : (
+        <>
+          {activeTab === "members" && renderMembers()}
+          {activeTab === "tournaments" && renderTournaments()}
+          {activeTab === "matches" && renderMatches()}
+        </>
+      )}
+
+      {/* Bottom Button */}
+      <View className="bg-white p-4 border-t border-purple-200 mb-4">
+        <TouchableOpacity
+          onPress={() => router.push(`/tournament/InviteTeam?teamId=${teamId}`)}
+          className="bg-purple-600 py-4 rounded-2xl shadow-lg"
+          activeOpacity={0.8}
+        >
+          <Text className="text-white text-center font-bold text-lg">
+            Invite Team for Tournament
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <BottomNavBar role="player" type="cricket" />
+    </SafeAreaView>
+  );
+};
+
+export default TeamScreen;
