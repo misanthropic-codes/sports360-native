@@ -51,6 +51,9 @@ const GroundDetailsScreen: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
   const [showTournamentPicker, setShowTournamentPicker] = useState(false);
+  const [showPurposePicker, setShowPurposePicker] = useState(false);
+
+  const purposeOptions = ["Practice", "Match", "Tournament"];
 
   const [purpose, setPurpose] = useState("");
   const [message, setMessage] = useState("");
@@ -199,7 +202,7 @@ const GroundDetailsScreen: React.FC = () => {
           groundId: finalGroundId,
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString(),
-          purpose: purpose.trim(),
+          purpose: purpose.trim().toLowerCase(), // Convert to lowercase for backend
           tournamentId: selectedTournamentId,
           message: message.trim(),
         },
@@ -207,7 +210,7 @@ const GroundDetailsScreen: React.FC = () => {
       );
 
       alert("✅ Booking request sent successfully!");
-      router.push("/booking/ViewAllBookings");
+      router.push("/booking/MyBookings");
     } catch (error: any) {
       console.error("Booking failed:", error.response?.data || error);
       alert("❌ Booking failed. Please try again.");
@@ -230,16 +233,16 @@ const GroundDetailsScreen: React.FC = () => {
     <TouchableOpacity
       onPress={onPress}
       style={{
-        borderColor: theme.primaryBorder,
-        backgroundColor: theme.primaryBg,
+        borderColor: theme.primary,
+        borderWidth: 2,
       }}
-      className="border-2 p-4 rounded-xl my-2"
+      className="p-4 rounded-xl my-2 bg-white"
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
-          <Text className="text-gray-600 text-sm mb-1">{label}</Text>
-          <Text className="text-base font-semibold text-gray-900">
-            {formatDate(date)} • {formatTime(date)}
+          <Text className="text-gray-500 text-xs mb-1">{label}</Text>
+          <Text className="text-lg font-bold text-gray-900">
+            {label === "Date" ? formatDate(date) : formatTime(date)}
           </Text>
         </View>
         <Icon size={24} color={theme.primary} />
@@ -510,17 +513,19 @@ const GroundDetailsScreen: React.FC = () => {
             <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
               Purpose
             </Text>
-            <TextInput
-              placeholder="Enter purpose of booking"
-              placeholderTextColor="#9ca3af"
-              value={purpose}
-              onChangeText={setPurpose}
+            <TouchableOpacity
+              onPress={() => setShowPurposePicker(true)}
               style={{
-                borderColor: theme.primaryBorder,
-                backgroundColor: theme.primaryBg,
+                borderColor: theme.primary,
+                borderWidth: 2,
               }}
-              className="border-2 p-4 rounded-xl text-base text-gray-900"
-            />
+              className="p-4 rounded-xl bg-white flex-row justify-between items-center"
+            >
+              <Text className="text-base font-medium text-gray-900 flex-1">
+                {purpose || "Select purpose"}
+              </Text>
+              <ChevronDown size={24} color={theme.primary} />
+            </TouchableOpacity>
 
             {/* Message */}
             <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
@@ -625,6 +630,65 @@ const GroundDetailsScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Purpose Picker */}
+      <Modal transparent animationType="slide" visible={showPurposePicker}>
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white rounded-t-3xl">
+            <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+              <TouchableOpacity onPress={() => setShowPurposePicker(false)}>
+                <Text
+                  style={{ color: theme.primary }}
+                  className="text-base font-semibold"
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-bold text-gray-900">
+                Select Purpose
+              </Text>
+              <TouchableOpacity onPress={() => setShowPurposePicker(false)}>
+                <Text
+                  style={{ color: theme.primary }}
+                  className="text-base font-semibold"
+                >
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {purposeOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  onPress={() => {
+                    setPurpose(option);
+                    setShowPurposePicker(false);
+                  }}
+                  className="p-4 border-b border-gray-100"
+                  style={{
+                    backgroundColor:
+                      purpose === option
+                        ? theme.primaryBg
+                        : "white",
+                  }}
+                >
+                  <Text
+                    className="text-base font-medium"
+                    style={{
+                      color:
+                        purpose === option
+                          ? theme.primary
+                          : "#111827",
+                    }}
+                  >
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* iOS DateTime Picker */}
       {Platform.OS === "ios" && pickerState.show && (
         <Modal transparent animationType="slide" visible={pickerState.show}>
@@ -651,15 +715,19 @@ const GroundDetailsScreen: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <DateTimePicker
-                value={
-                  pickerState.type === "start" ? startDateTime : endDateTime
-                }
-                mode={pickerState.mode}
-                is24Hour
-                display="spinner"
-                onChange={onDateTimeChange}
-              />
+              <View className="bg-white py-4">
+                <DateTimePicker
+                  value={
+                    pickerState.type === "start" ? startDateTime : endDateTime
+                  }
+                  mode={pickerState.mode}
+                  is24Hour
+                  display="spinner"
+                  onChange={onDateTimeChange}
+                  textColor="#000000"
+                  style={{ backgroundColor: "white" }}
+                />
+              </View>
             </View>
           </View>
         </Modal>
@@ -673,6 +741,7 @@ const GroundDetailsScreen: React.FC = () => {
           is24Hour
           display="default"
           onChange={onDateTimeChange}
+          textColor="#000000"
         />
       )}
     </SafeAreaView>
