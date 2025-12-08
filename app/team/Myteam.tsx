@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
-import { PersonStanding, Trophy } from "lucide-react-native";
-import React, { useEffect } from "react";
+import { Calendar, Trophy } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StatusBar,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StatusBar,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,12 +21,22 @@ import TeamCard from "../../components/TeamCard";
 import { useAuth } from "../../context/AuthContext";
 import { useTeamStore } from "../../store/teamStore";
 
+type ActivityItem = {
+  icon: React.ReactNode;
+  description: string;
+  timestamp: string;
+  date: Date;
+};
+
 const MyTeamScreen: React.FC = () => {
   const { user } = useAuth();
   const router = useRouter();
 
   const { myTeams, allTeams, loading, fetchTeams, addToMyTeams } =
     useTeamStore();
+
+  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
   const role = user?.role?.toLowerCase() || "player";
@@ -37,6 +47,11 @@ const MyTeamScreen: React.FC = () => {
   useEffect(() => {
     if (user?.token && baseURL) fetchTeams(user.token, baseURL);
   }, [user?.token]);
+
+  // Calculate team statistics
+  const myTeamsCount = myTeams.length;
+  const activeCount = myTeams.filter((team) => team.isActive === true).length;
+  const pendingCount = myTeams.filter((team) => team.isActive === false).length;
 
   const handleJoinTeam = (teamId: string, teamName: string) => {
     if (!user?.token || !baseURL) return;
@@ -93,23 +108,109 @@ const MyTeamScreen: React.FC = () => {
         )
       : allTeams;
 
-  const recentActivities = [
-    {
-      icon: <PersonStanding size={24} color="#3B82F6" />,
-      description: "Delhi Warriors won against Kolkata Knights",
-      timestamp: "2 hours ago",
-    },
-    {
-      icon: <Trophy size={24} color="#3B82F6" />,
-      description: "New player joined Mumbai Tigers",
-      timestamp: "1 day ago",
-    },
-    {
-      icon: <Trophy size={24} color="#3B82F6" />,
-      description: "Match scheduled for Delhi Warriors",
-      timestamp: "1 day ago",
-    },
-  ];
+  // Fetch recent activity from user's teams
+  const fetchRecentActivity = async () => {
+    if (!user?.token || !baseURL || myTeams.length === 0) {
+      setRecentActivities([]);
+      return;
+    }
+
+    setActivityLoading(true);
+    try {
+      const activities: ActivityItem[] = [];
+      const headers = { Authorization: `Bearer ${user.token}` };
+
+      // Fetch matches and tournaments for each team
+      for (const team of myTeams.slice(0, 3)) { // Limit to first 3 teams for performance
+        try {
+          // Fetch team matches
+          const matchesRes = await axios.get(
+            `${baseURL}/api/v1/team/${team.id}/matches`,
+            { headers }
+          );
+          if (matchesRes.data?.success) {
+            const matches = matchesRes.data.data.matches || [];
+            matches.slice(0, 3).forEach((match: any) => {
+              const matchDate = new Date(match.matchTime);
+              const icon = <Calendar size={24} color="#3B82F6" />;
+              let description = `Match scheduled for ${team.name}`;
+              
+              if (match.opponentTeamName) {
+                description = `${team.name} vs ${match.opponentTeamName}`;
+              }
+              
+              if (match.result) {
+                description = `${team.name} ${match.result} against ${match.opponentTeamName || 'opponent'}`;
+              }
+
+              activities.push({
+                icon,
+                description,
+                timestamp: getRelativeTime(matchDate),
+                date: matchDate,
+              });
+            });
+          }
+
+          // Fetch team tournaments
+          const tournamentsRes = await axios.get(
+            `${baseURL}/api/v1/team/${team.id}/tournaments`,
+            { headers }
+          );
+          if (tournamentsRes.data?.success) {
+            const tournaments = tournamentsRes.data.data.tournaments || [];
+            tournaments.slice(0, 2).forEach((item: any) => {
+              const tournament = item.tournament;
+              const tournamentDate = new Date(tournament.startDate);
+              activities.push({
+                icon: <Trophy size={24} color="#3B82F6" />,
+                description: `${team.name} joined ${tournament.name}`,
+                timestamp: getRelativeTime(tournamentDate),
+                date: tournamentDate,
+              });
+            });
+          }
+        } catch (err) {
+          console.error(`Error fetching activity for team ${team.id}:`, err);
+        }
+      }
+
+      // Sort by date (most recent first) and limit to 10 items
+      activities.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setRecentActivities(activities.slice(0, 10));
+    } catch (err) {
+      console.error("Error fetching recent activity:", err);
+      setRecentActivities([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  // Helper function to get relative time
+  const getRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) {
+      return diffMins <= 1 ? "Just now" : `${diffMins} minutes ago`;
+    } else if (diffHours < 24) {
+      return diffHours === 1 ? "1 hour ago" : `${diffHours} hours ago`;
+    } else if (diffDays < 7) {
+      return diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  // Fetch recent activity when teams are loaded
+  useEffect(() => {
+    if (!loading && myTeams.length > 0) {
+      fetchRecentActivity();
+    }
+  }, [myTeams, loading]);
 
   return (
     <SafeAreaView
@@ -136,7 +237,11 @@ const MyTeamScreen: React.FC = () => {
           />
         )}
 
-        <StatPillBar />
+        <StatPillBar
+          myTeamsCount={myTeamsCount}
+          activeCount={activeCount}
+          pendingCount={pendingCount}
+        />
 
         {/* My Teams */}
         {role === "player" && (
@@ -218,18 +323,28 @@ const MyTeamScreen: React.FC = () => {
         {/* Recent Activity */}
         <SectionTitle
           title="Recent Activity"
-          showViewAll
+          showViewAll={recentActivities.length > 0}
           onViewAllPress={() => console.log("View All Activity")}
         />
-        {recentActivities.map((activity, index) => (
-          <ActivityCard
-            key={index}
-            layoutType="simple"
-            icon={activity.icon}
-            description={activity.description}
-            timestamp={activity.timestamp}
-          />
-        ))}
+        {activityLoading ? (
+          <View className="p-4 flex justify-center items-center">
+            <ActivityIndicator size="large" color="#4CAF50" />
+          </View>
+        ) : recentActivities.length > 0 ? (
+          recentActivities.map((activity, index) => (
+            <ActivityCard
+              key={index}
+              layoutType="simple"
+              icon={activity.icon}
+              description={activity.description}
+              timestamp={activity.timestamp}
+            />
+          ))
+        ) : (
+          <View className="p-4">
+            <SectionTitle title="No recent activity" />
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>

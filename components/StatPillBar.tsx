@@ -16,12 +16,22 @@ const StatPill: React.FC<StatPillProps> = ({ count, label, colorClass }) => (
   </View>
 );
 
-const StatPillBar: React.FC = () => {
+interface StatPillBarProps {
+  myTeamsCount: number;
+  activeCount: number;
+  pendingCount: number;
+}
+
+const StatPillBar: React.FC<StatPillBarProps> = ({
+  myTeamsCount,
+  activeCount,
+  pendingCount,
+}) => {
   return (
     <View className="flex-row items-center justify-between mx-4 gap-3">
-      <StatPill count={3} label="My teams" colorClass="bg-green-400" />
-      <StatPill count={2} label="Active" colorClass="bg-sky-400" />
-      <StatPill count={5} label="Pending" colorClass="bg-red-400" />
+      <StatPill count={myTeamsCount} label="My teams" colorClass="bg-green-400" />
+      <StatPill count={activeCount} label="Active" colorClass="bg-sky-400" />
+      <StatPill count={pendingCount} label="Pending" colorClass="bg-red-400" />
     </View>
   );
 };

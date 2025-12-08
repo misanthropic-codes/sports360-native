@@ -11,6 +11,7 @@ interface UpcomingEventCardProps {
   location: string;
   participants: number;
   onJoinPress?: () => void;
+  buttonText?: string;
 }
 
 const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
@@ -22,6 +23,7 @@ const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
   location,
   participants,
   onJoinPress,
+  buttonText = "Join Now",
 }) => {
   return (
     <View className="bg-white p-4 rounded-2xl border border-slate-200 mx-4 mb-3 shadow-sm">
@@ -88,7 +90,7 @@ const UpcomingEventCard: React.FC<UpcomingEventCardProps> = ({
           className="bg-indigo-600 px-4 py-2 rounded-lg min-w-[80px] items-center"
           onPress={onJoinPress}
         >
-          <Text className="text-white font-bold text-sm">Join Now</Text>
+          <Text className="text-white font-bold text-sm">{buttonText}</Text>
         </TouchableOpacity>
       </View>
     </View>

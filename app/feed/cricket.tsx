@@ -1,4 +1,4 @@
-import { Cricket, Fire, TrendUp, Trophy } from "phosphor-react-native";
+import { Cricket } from "phosphor-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import BottomNavBar from "../../components/BottomNavBar";
-import CategoryCard from "../../components/CategoriesCard";
 import FeaturedEventCard from "../../components/EventsCard";
 import FilterTabs from "../../components/FilterTab";
 import TopNavBar from "../../components/TopNavbar";
@@ -83,41 +82,92 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
     fetchTournaments(true);
   }, [fetchTournaments]);
 
+  // Get button configuration based on user role and tournament ownership
+  const getButtonConfig = useCallback((tournament: Tournament) => {
+    if (role === "organizer") {
+      if (tournament.organizerId === user?.id) {
+        return {
+          text: "Manage Now",
+          onPress: () => router.push(`/tournament/ManageTournament?id=${tournament.id}` as any),
+        };
+      }
+      return {
+        text: "View Details",
+        onPress: () => router.push(`/tournament/ViewTournament?id=${tournament.id}` as any),
+      };
+    }
+    return {
+      text: "Join Now",
+      onPress: () => router.push(`/tournament/JoinTournament?id=${tournament.id}` as any),
+    };
+  }, [role, user?.id]);
+
+  // Filter user's own tournaments if organizer
+  const userTournaments = useMemo(() => {
+    if (role !== "organizer" || !user?.id) return [];
+    return allTournaments.filter((t) => t.organizerId === user.id);
+  }, [allTournaments, role, user?.id]);
+
+  // Get ongoing tournaments for organizer
+  const ongoingUserTournaments = useMemo(() => {
+    return userTournaments.filter(
+      (t) =>
+        t.status?.toLowerCase() === "ongoing" ||
+        t.status?.toLowerCase() === "live"
+    );
+  }, [userTournaments]);
+
   // Filter tournaments based on active tab
   const filteredTournaments = useMemo(() => {
     if (!allTournaments.length) return [];
 
+    let filtered: Tournament[];
     switch (activeTab) {
       case "Upcoming":
-        return allTournaments.filter(
+        filtered = allTournaments.filter(
           (t) =>
             t.status?.toLowerCase() === "upcoming" ||
             t.status?.toLowerCase() === "scheduled" ||
             !t.status
         );
+        break;
       case "Live":
-        return allTournaments.filter(
+        filtered = allTournaments.filter(
           (t) =>
             t.status?.toLowerCase() === "ongoing" ||
             t.status?.toLowerCase() === "live"
         );
+        break;
       case "Completed":
-        return allTournaments.filter(
+        filtered = allTournaments.filter(
           (t) =>
             t.status?.toLowerCase() === "completed" ||
             t.status?.toLowerCase() === "finished"
         );
+        break;
       case "All":
       default:
-        return allTournaments;
+        filtered = allTournaments;
+        break;
     }
-  }, [allTournaments, activeTab]);
 
-  // Featured tournaments (first 3 from filtered)
-  const featuredTournaments = useMemo(
-    () => filteredTournaments.slice(0, 3),
-    [filteredTournaments]
-  );
+    // For organizers, prioritize their own tournaments
+    if (role === "organizer" && user?.id) {
+      const ownTournaments = filtered.filter((t) => t.organizerId === user.id);
+      const otherTournaments = filtered.filter((t) => t.organizerId !== user.id);
+      return [...ownTournaments, ...otherTournaments];
+    }
+
+    return filtered;
+  }, [allTournaments, activeTab, role, user?.id]);
+
+  // Featured tournaments - show ongoing tournaments for organizers, otherwise first 3
+  const featuredTournaments = useMemo(() => {
+    if (role === "organizer" && ongoingUserTournaments.length > 0) {
+      return ongoingUserTournaments.slice(0, 3);
+    }
+    return filteredTournaments.slice(0, 3);
+  }, [filteredTournaments, role, ongoingUserTournaments]);
 
   // Upcoming tournaments (first 6 from filtered)
   const upcomingTournaments = useMemo(
@@ -125,60 +175,7 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
     [filteredTournaments]
   );
 
-  // Dynamic category counts based on tournament format
-  const categoryStats = useMemo(() => {
-    const knockout = allTournaments.filter(
-      (t) => t.tournamentFormat?.toLowerCase() === "knockout"
-    ).length;
-    const roundRobin = allTournaments.filter(
-      (t) => t.tournamentFormat?.toLowerCase() === "round-robin"
-    ).length;
-    const league = allTournaments.filter(
-      (t) => t.tournamentFormat?.toLowerCase() === "league"
-    ).length;
-    const other = allTournaments.length - knockout - roundRobin - league;
 
-    return { knockout, roundRobin, league, other };
-  }, [allTournaments]);
-
-  const categories = useMemo(
-    () =>
-      [
-        {
-          icon: <Trophy size={28} color="#4338CA" weight="fill" />,
-          title: "Knockout",
-          eventCount: categoryStats.knockout,
-          color: "#EEF2FF",
-          notificationCount: categoryStats.knockout > 0 ? 1 : 0,
-          notificationColor: "#4F46E5",
-        },
-        {
-          icon: <Cricket size={28} color="#7E22CE" weight="fill" />,
-          title: "Round Robin",
-          eventCount: categoryStats.roundRobin,
-          color: "#F5F3FF",
-          notificationCount: categoryStats.roundRobin > 0 ? 1 : 0,
-          notificationColor: "#9333EA",
-        },
-        {
-          icon: <Fire size={28} color="#BE123C" weight="fill" />,
-          title: "League",
-          eventCount: categoryStats.league,
-          color: "#FEF2F2",
-          notificationCount: categoryStats.league > 0 ? 2 : 0,
-          notificationColor: "#DC2626",
-        },
-        {
-          icon: <TrendUp size={28} color="#16A34A" weight="fill" />,
-          title: "Others",
-          eventCount: categoryStats.other,
-          color: "#F0FDF4",
-          notificationCount: categoryStats.other > 0 ? 1 : 0,
-          notificationColor: "#16A34A",
-        },
-      ].filter((cat) => cat.eventCount > 0), // Only show categories with events
-    [categoryStats]
-  );
 
   const renderSectionHeader = useCallback(
     (title: string, viewAllRoute?: string) => (
@@ -348,7 +345,9 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
             {featuredTournaments.length > 0 && (
               <View className="mt-8">
                 {renderSectionHeader(
-                  "Featured Events",
+                  role === "organizer" && ongoingUserTournaments.length > 0
+                    ? "My Ongoing Tournaments"
+                    : "Featured Events",
                   "/tournament/ViewTournament"
                 )}
                 <ScrollView
@@ -363,53 +362,34 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
                 >
                   {loading
                     ? [1, 2, 3].map((i) => renderSkeletonCard(i, "w-80", "h-52"))
-                    : featuredTournaments.map((tournament) => (
-                        <FeaturedEventCard
-                          key={tournament.id}
-                          date={new Date(tournament.startDate).toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric", year: "numeric" }
-                          )}
-                          title={tournament.name}
-                          description={
-                            tournament.description ||
-                            `${tournament.tournamentFormat || "Tournament"} • ${
-                              tournament.teams?.length || 0
-                            }/${tournament.maxTeams || "∞"} teams`
-                          }
-                          location={tournament.location || "Location TBD"}
-                          type={tournament.tournamentFormat || "Format TBA"}
-                          onJoinPress={() =>
-                            router.push(
-                              `/tournament/JoinTournament?id=${tournament.id}`
-                            )
-                          }
-                        />
-                      ))}
+                    : featuredTournaments.map((tournament) => {
+                        const buttonConfig = getButtonConfig(tournament);
+                        return (
+                          <FeaturedEventCard
+                            key={tournament.id}
+                            date={new Date(tournament.startDate).toLocaleDateString(
+                              "en-US",
+                              { month: "short", day: "numeric", year: "numeric" }
+                            )}
+                            title={tournament.name}
+                            description={
+                              tournament.description ||
+                              `${tournament.tournamentFormat || "Tournament"} • ${
+                                tournament.teams?.length || 0
+                              }/${tournament.maxTeams || "∞"} teams`
+                            }
+                            location={tournament.location || "Location TBD"}
+                            type={tournament.tournamentFormat || "Format TBA"}
+                            buttonText={buttonConfig.text}
+                            onJoinPress={buttonConfig.onPress}
+                          />
+                        );
+                      })}
                 </ScrollView>
               </View>
             )}
 
-            {/* Categories Section with Dynamic Counts */}
-            {categories.length > 0 && (
-              <View className="mt-8">
-                {renderSectionHeader("Tournament Formats")}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{
-                    paddingLeft: 24,
-                    paddingRight: 24,
-                    gap: 12,
-                  }}
-                  className="mb-4"
-                >
-                  {categories.map((cat) => (
-                    <CategoryCard key={cat.title} {...cat} />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+
 
             {/* All Events Section */}
             <View className="mt-8">
@@ -430,35 +410,35 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
                 renderEmptyState()
               ) : (
                 <View className="px-6">
-                  {upcomingTournaments.map((tournament, index) => (
-                    <View
-                      key={tournament.id}
-                      className={`${
-                        index < upcomingTournaments.length - 1 ? "mb-4" : ""
-                      }`}
-                    >
-                      <UpcomingEventCard
-                        title={tournament.name}
-                        subtitle={
-                          tournament.description ||
-                          `${tournament.tournamentFormat || "Tournament"} Format`
-                        }
-                        status={tournament.status || "Upcoming"}
-                        price={formatPrice(tournament.entryFee)}
-                        date={new Date(tournament.startDate).toLocaleDateString(
-                          "en-US",
-                          { month: "short", day: "numeric", year: "numeric" }
-                        )}
-                        location={tournament.location || "Location TBD"}
-                        participants={tournament.teams?.length || 0}
-                        onJoinPress={() =>
-                          router.push(
-                            `/tournament/JoinTournament?id=${tournament.id}`
-                          )
-                        }
-                      />
-                    </View>
-                  ))}
+                  {upcomingTournaments.map((tournament, index) => {
+                    const buttonConfig = getButtonConfig(tournament);
+                    return (
+                      <View
+                        key={tournament.id}
+                        className={`${
+                          index < upcomingTournaments.length - 1 ? "mb-4" : ""
+                        }`}
+                      >
+                        <UpcomingEventCard
+                          title={tournament.name}
+                          subtitle={
+                            tournament.description ||
+                            `${tournament.tournamentFormat || "Tournament"} Format`
+                          }
+                          status={tournament.status || "Upcoming"}
+                          price={formatPrice(tournament.entryFee)}
+                          date={new Date(tournament.startDate).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric", year: "numeric" }
+                          )}
+                          location={tournament.location || "Location TBD"}
+                          participants={tournament.teams?.length || 0}
+                          buttonText={buttonConfig.text}
+                          onJoinPress={buttonConfig.onPress}
+                        />
+                      </View>
+                    );
+                  })}
                 </View>
               )}
             </View>
