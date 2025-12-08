@@ -37,6 +37,10 @@ const MyTeamScreen: React.FC = () => {
 
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [teamStats, setTeamStats] = useState<Record<string, {
+    playerCount: number;
+    matchCount: number;
+  }>>({});
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
   const role = user?.role?.toLowerCase() || "player";
@@ -52,6 +56,40 @@ const MyTeamScreen: React.FC = () => {
   const myTeamsCount = myTeams.length;
   const activeCount = myTeams.filter((team) => team.isActive === true).length;
   const pendingCount = myTeams.filter((team) => team.isActive === false).length;
+
+  // Fetch team statistics (members and matches count)
+  const fetchTeamStats = async () => {
+    if (!user?.token || !baseURL || myTeams.length === 0) return;
+
+    try {
+      const headers = { Authorization: `Bearer ${user.token}` };
+      const stats: Record<string, { playerCount: number; matchCount: number }> = {};
+
+      // Fetch stats for each team
+      await Promise.all(
+        myTeams.map(async (team) => {
+          try {
+            const [membersRes, matchesRes] = await Promise.all([
+              axios.get(`${baseURL}/api/v1/team/${team.id}/members`, { headers }),
+              axios.get(`${baseURL}/api/v1/team/${team.id}/matches`, { headers }),
+            ]);
+
+            stats[team.id] = {
+              playerCount: membersRes.data?.data?.length || 0,
+              matchCount: matchesRes.data?.data?.matches?.length || 0,
+            };
+          } catch (err) {
+            console.error(`Error fetching stats for team ${team.id}:`, err);
+            stats[team.id] = { playerCount: 0, matchCount: 0 };
+          }
+        })
+      );
+
+      setTeamStats(stats);
+    } catch (err) {
+      console.error("Error fetching team stats:", err);
+    }
+  };
 
   const handleJoinTeam = (teamId: string, teamName: string) => {
     if (!user?.token || !baseURL) return;
@@ -212,6 +250,13 @@ const MyTeamScreen: React.FC = () => {
     }
   }, [myTeams, loading]);
 
+  // Fetch team stats when teams are loaded
+  useEffect(() => {
+    if (!loading && myTeams.length > 0) {
+      fetchTeamStats();
+    }
+  }, [myTeams, loading]);
+
   return (
     <SafeAreaView
       className="flex-1 bg-slate-50"
@@ -252,25 +297,32 @@ const MyTeamScreen: React.FC = () => {
                 <ActivityIndicator size="large" color="#4CAF50" />
               </View>
             ) : myTeams.length > 0 ? (
-              myTeams.map((team) => (
-                <TeamCard
-                  key={`my-${team.id}`}
-                  context="myTeam"
-                  teamName={team.name}
-                  status={team.isActive ? "Active" : "Pending"}
-                  stats={[
-                    { value: "11", label: "players" },
-                    { value: "0", label: "matches" },
-                    { value: "0%", label: "winning rate" },
-                  ]}
-                  onManage={() =>
-                    router.push({
-                      pathname: "/team/ManageTeam/ManageTeam",
-                      params: { teamId: team.id },
-                    })
-                  }
-                />
-              ))
+              myTeams.map((team) => {
+                const stats = teamStats[team.id];
+                const playerCount = stats?.playerCount || 0;
+                const matchCount = stats?.matchCount || 0;
+                const teamCapacity = (team as any).teamSize || 11; // Get team size from team object
+                
+                return (
+                  <TeamCard
+                    key={`my-${team.id}`}
+                    context="myTeam"
+                    teamName={team.name}
+                    status={team.isActive ? "Active" : "Pending"}
+                    stats={[
+                      { value: `${playerCount}/${teamCapacity}`, label: "players" },
+                      { value: matchCount.toString(), label: "matches" },
+                      { value: teamCapacity.toString(), label: "capacity" },
+                    ]}
+                    onManage={() =>
+                      router.push({
+                        pathname: "/team/ManageTeam/ManageTeam",
+                        params: { teamId: team.id },
+                      })
+                    }
+                  />
+                );
+              })
             ) : (
               <View className="p-4">
                 <SectionTitle title="No teams found" />
