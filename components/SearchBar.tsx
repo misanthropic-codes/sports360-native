@@ -5,11 +5,15 @@ import { TextInput, TouchableOpacity, View } from "react-native";
 interface SearchBarProps {
   placeholder?: string;
   onFilterPress?: () => void;
+  value?: string;
+  onChangeText?: (text: string) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   placeholder = "Search grounds, locations...",
-  onFilterPress 
+  onFilterPress,
+  value,
+  onChangeText,
 }) => {
   return (
     <View className="px-4 my-3">
@@ -28,6 +32,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
           placeholder={placeholder}
           placeholderTextColor="#94A3B8"
           className="flex-1 h-12 ml-3 text-slate-800 font-medium"
+          value={value}
+          onChangeText={onChangeText}
         />
         <TouchableOpacity 
           onPress={onFilterPress}

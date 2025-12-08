@@ -11,11 +11,11 @@ import { Calendar, CheckCircle, Edit } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 
 import {
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-  Text,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    StatusBar,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -31,6 +31,7 @@ const MyTournamentsScreen = () => {
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const tabLogos = {
     All: <Calendar />,
@@ -52,15 +53,35 @@ const MyTournamentsScreen = () => {
     }
   };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    if (tab === "All") {
-      setFilteredTournaments(tournaments);
-    } else {
-      setFilteredTournaments(
-        tournaments.filter((t) => t.status?.toLowerCase() === tab.toLowerCase())
+  // Unified filter function that applies both tab and search filters
+  const filterTournaments = (tab: string, query: string) => {
+    let filtered = tournaments;
+
+    // Apply tab filter
+    if (tab !== "All") {
+      filtered = filtered.filter(
+        (t) => t.status?.toLowerCase() === tab.toLowerCase()
       );
     }
+
+    // Apply search filter
+    if (query.trim()) {
+      filtered = filtered.filter((t) =>
+        t.name.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    setFilteredTournaments(filtered);
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    filterTournaments(tab, searchQuery);
+  };
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    filterTournaments(activeTab, text);
   };
 
   // Direct route instead of modal
@@ -94,7 +115,11 @@ const MyTournamentsScreen = () => {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <SearchBar placeholder="Search..." />
+        <SearchBar 
+          placeholder="Search tournaments..." 
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
 
         <FilterTabs
           tabs={tabs}
