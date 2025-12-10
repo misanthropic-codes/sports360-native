@@ -129,7 +129,7 @@ export default function MyBookings() {
         </TouchableOpacity>
 
         {/* Filter Pills */}
-        <View className="flex-row space-x-2">
+        <View className="flex-row gap-3">
           <TouchableOpacity
             onPress={() => setFilter(undefined)}
             className={`px-4 py-2 rounded-full ${

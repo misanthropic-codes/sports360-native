@@ -125,6 +125,24 @@ export const createMarathonProfile = async (
   return res.data?.data || null;
 };
 
+/**
+ * Update Organizer Profile
+ * PUT /user/profile
+ */
+export const updateOrganizerProfile = async (
+  data: {
+    fullName?: string;
+    phoneNumber?: string;
+    location?: string;
+    bio?: string;
+    organizationName?: string;
+  },
+  token: string
+): Promise<void> => {
+  const res = await api.put("/user/profile", data, withAuthHeaders(token));
+  return res.data;
+};
+
 // ============================================
 // HISTORY & ANALYTICS APIs
 // ============================================
