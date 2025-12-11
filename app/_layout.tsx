@@ -49,7 +49,7 @@ const InitialLayout = () => {
       <Stack.Screen name="onboarding/organizer/marathon-form" />
       <Stack.Screen name="onboarding/ground-owner/cricket-form" />
       <Stack.Screen name="feed/cricket" />
-      <Stack.Screen name="feed/marathon" />
+      <Stack.Screen name="feed/marathon-feed" />
       <Stack.Screen name="booking/Cricket-booking" />
       <Stack.Screen name="booking/Marathon-booking" />
       <Stack.Screen name="booking/GroundDetails" />

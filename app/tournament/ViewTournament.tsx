@@ -12,12 +12,14 @@ import React, { useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
   StatusBar,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+type Role = "admin" | "player" | "organizer"; // ✅ New type
 
 const MyTournamentsScreen = () => {
   const tabs = ["All", "Upcoming", "Draft", "Completed"];
@@ -25,7 +27,7 @@ const MyTournamentsScreen = () => {
 
   const auth = useAuth();
   const token = auth.token;
-  const role = auth.user?.role?.toLowerCase() as "organizer" | "player";
+  const role = auth.user?.role?.toLowerCase() as Role;
 
   // Use tournament store for caching
   const { 
@@ -115,67 +117,69 @@ const MyTournamentsScreen = () => {
         onBackPress={() => console.log("Back button pressed")}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SearchBar 
-          placeholder="Search tournaments..." 
-          value={searchQuery}
-          onChangeText={handleSearch}
-        />
+      <SearchBar 
+        placeholder="Search tournaments..." 
+        value={searchQuery}
+        onChangeText={handleSearch}
+      />
 
-        <FilterTabs
-          tabs={tabs}
-          onTabChange={handleTabChange}
-          color={themeColor}
-          logos={tabLogos as Record<string, any>}
-        />
-
-        {role === "organizer" && (
-          <CreateTournamentButton
-        title="Create Tournament"
-        onPress={() => router.push("/tournament/createTournament")}
+      <FilterTabs
+        tabs={tabs}
+        onTabChange={handleTabChange}
         color={themeColor}
-          />
-        )}
+        logos={tabLogos as Record<string, any>}
+      />
 
-        <View className="mt-2">
-          {loading ? (
-        <ActivityIndicator size="large" color="#6D28D9" className="mt-4" />
-          ) : filteredTournaments.length > 0 ? (
-        filteredTournaments.map((tournament) => (
-          <TournamentCard
-            key={tournament.id}
-            id={tournament.id}
-            name={tournament.name}
-            format={`Team Size: ${tournament.teamSize}`}
-            status={
-          tournament.status === "upcoming"
-            ? "Active"
-            : tournament.status === "draft"
-              ? "Draft"
-              : "Completed"
-            }
-            teamCount={tournament.teamCount}
-            matchCount={0}
-            revenue={`₹ ${tournament.prizePool}`}
-            dateRange={`${new Date(
-          tournament.startDate
-            ).toLocaleDateString()} - ${new Date(
-          tournament.endDate
-            ).toLocaleDateString()}`}
-            onManagePress={handleManagePress}
-            color={themeColor}
-            role={role}
-          />
-        ))
-          ) : (
-        <Text className="text-center text-gray-500 mt-4">
-          No tournaments found
-        </Text>
-          )}
+      {role === "organizer" && (
+        <CreateTournamentButton
+          title="Create Tournament"
+          onPress={() => router.push("/tournament/createTournament")}
+          color={themeColor}
+        />
+      )}
+
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#6D28D9" />
         </View>
-
-        <View className="h-24" />
-      </ScrollView>
+      ) : (
+        <FlatList
+          data={filteredTournaments}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 150 }}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TournamentCard
+              id={item.id}
+              name={item.name}
+              format={`Team Size: ${item.teamSize}`}
+              status={
+                item.status === "upcoming"
+                  ? "Active"
+                  : item.status === "draft"
+                    ? "Draft"
+                    : "Completed"
+              }
+              teamCount={item.teamCount}
+              matchCount={0}
+              revenue={`₹ ${item.prizePool}`}
+              dateRange={`${new Date(
+                item.startDate
+              ).toLocaleDateString()} - ${new Date(
+                item.endDate
+              ).toLocaleDateString()}`}
+              onManagePress={handleManagePress}
+              color={themeColor}
+              role={role}
+            />
+          )}
+          ListEmptyComponent={
+            <Text className="text-center text-gray-500 mt-4">
+              No tournaments found
+            </Text>
+          }
+        />
+      )}
 
       <BottomNavBar role={role} type="cricket" />
     </SafeAreaView>

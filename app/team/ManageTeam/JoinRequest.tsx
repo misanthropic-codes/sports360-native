@@ -4,11 +4,11 @@ import { useLocalSearchParams } from "expo-router";
 import { CheckCircle, Clock, User, XCircle } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
@@ -189,7 +189,7 @@ const JoinRequests: React.FC = () => {
                 </View>
 
                 {/* Action Buttons */}
-                <View className="flex-row space-x-2">
+                <View className="flex-row gap-3">
                   <TouchableOpacity
                     onPress={() => acceptRequest(req.userId)}
                     disabled={isProcessing}
