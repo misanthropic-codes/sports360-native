@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -147,14 +148,26 @@ const JoinRequests: React.FC = () => {
   }
 
   return (
-    <View className="space-y-3">
-      {/* Header */}
-      <View className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-2">
-        <Text className="text-indigo-900 font-bold text-lg">
-          {requests.length} Pending {requests.length === 1 ? "Request" : "Requests"}
+    <ScrollView 
+      className="flex-1 bg-slate-50 px-4"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
+    >
+      {/* Header Stats */}
+      <View className="bg-white rounded-2xl p-4 mb-4"
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
+        }}
+      >
+        <Text className="text-2xl font-bold text-slate-900">
+          {requests.length}
         </Text>
-        <Text className="text-indigo-600 text-sm">
-          Review and approve new members
+        <Text className="text-slate-500 text-sm mt-0.5">
+          Pending {requests.length === 1 ? "Request" : "Requests"}
         </Text>
       </View>
 
@@ -165,25 +178,32 @@ const JoinRequests: React.FC = () => {
         return (
           <View
             key={req.userId}
-            className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+            className="bg-white rounded-2xl p-4 mb-3"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
           >
             <View className="flex-row items-start">
               {/* Avatar */}
-              <View className="w-12 h-12 rounded-full bg-indigo-500 items-center justify-center mr-4">
+              <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center mr-3">
                 <Text className="text-white font-bold text-base">
-                  {getInitials(req.name || "U")}
+                  {getInitials(req.name || "User")}
                 </Text>
               </View>
 
               {/* Request Info */}
               <View className="flex-1">
-                <Text className="text-gray-900 font-semibold text-base mb-1">
-                  {req.name}
+                <Text className="text-slate-900 font-semibold text-base mb-1">
+                  {req.name || `User ${req.userId.slice(0, 8)}`}
                 </Text>
                 
                 <View className="flex-row items-center mb-3">
-                  <Clock size={14} color="#6B7280" weight="bold" />
-                  <Text className="text-gray-500 text-xs ml-1">
+                  <Clock size={14} color="#64748B" weight="bold" />
+                  <Text className="text-slate-500 text-xs ml-1">
                     {getTimeAgo(req.requestedAt)}
                   </Text>
                 </View>
@@ -239,7 +259,7 @@ const JoinRequests: React.FC = () => {
           </View>
         );
       })}
-    </View>
+    </ScrollView>
   );
 };
 

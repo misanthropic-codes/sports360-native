@@ -9,7 +9,7 @@ interface NavItemProps {
   onPress: () => void;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, active, onPress }) => {
+const NavItem = React.memo<NavItemProps>(({ icon: Icon, active, onPress }) => {
   const scaleAnim = React.useRef(new Animated.Value(active ? 1 : 0)).current;
   const opacityAnim = React.useRef(new Animated.Value(active ? 1 : 0)).current;
 
@@ -51,7 +51,9 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, active, onPress }) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
+
+NavItem.displayName = "NavItem";
 
 interface BottomNavBarProps {
   role: string; // player, groundowner, organizer
@@ -62,18 +64,30 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Move Home button to center in array
-  const navItems = [
-    { name: "Teams", icon: Users, path: `/team/Myteam` },
-    { name: "Grounds", icon: MapPin, path: `/booking/Cricket-booking` },
-    { name: "Home", icon: Home, path: `/feed/${type}` }, // center
-    { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament` },
-    { name: "Profile", icon: User, path: `/dashboard/${role}/${type}` },
-  ];
+  // Memoize navItems to prevent recreation on every render
+  const navItems = React.useMemo(() => {
+    const allItems = [
+      { 
+        name: "Teams", 
+        icon: Users, 
+        path: role === "organizer" ? `/team/ExploreTeams` : `/team/Myteam`, 
+        roles: ["player", "organizer"] 
+      }, // Route organizers to ExploreTeams, players to Myteam
+      { name: "Grounds", icon: MapPin, path: `/booking/Cricket-booking`, roles: ["player", "organizer", "ground_owner"] },
+      { name: "Home", icon: Home, path: `/feed/${type}`, roles: ["player", "organizer", "ground_owner"] },
+      { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament`, roles: ["player", "organizer", "ground_owner"] },
+      { name: "Profile", icon: User, path: `/dashboard/${role}/${type}`, roles: ["player", "organizer", "ground_owner"] },
+    ];
+    
+    // Filter items based on role
+    return allItems.filter(item => item.roles.includes(role));
+  }, [role, type]);
 
-  const handleNavigation = (path: string) => {
+  // Memoize navigation handler
+  const handleNavigation = React.useCallback((path: string) => {
+    // Use push for instant navigation (replace is slower)
     router.push(path as any);
-  };
+  }, [router]);
 
   return (
     <View
@@ -101,4 +115,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   );
 };
 
-export default BottomNavBar;
+// Memoize the entire component to prevent re-renders when props don't change
+export default React.memo(BottomNavBar, (prevProps, nextProps) => {
+  return prevProps.role === nextProps.role && prevProps.type === nextProps.type;
+});

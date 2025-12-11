@@ -4,11 +4,12 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -52,9 +53,7 @@ const MyTeamScreen: React.FC = () => {
     playerCount: number;
     matchCount: number;
   }>>({});
-  
-  // Tab state - toggle between My Teams and All Teams
-  const [activeTab, setActiveTab] = useState<"my" | "all">("my");
+  const [refreshing, setRefreshing] = useState(false);
   
   // Pagination state
   const [myTeamsToShow, setMyTeamsToShow] = useState(4); // Initially show 4 teams
@@ -65,6 +64,33 @@ const MyTeamScreen: React.FC = () => {
   const type = Array.isArray(user?.domains)
     ? user.domains.join(", ")
     : user?.domains || "team";
+  
+  // Tab state - toggle between My Teams and All Teams
+  // For organizers, always show "all" teams, for players default to "my"
+  const [activeTab, setActiveTab] = useState<"my" | "all">(
+    role === "organiser" || role === "organizer" ? "all" : "my"
+  );
+
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    if (!user?.token || !baseURL) return;
+    
+    setRefreshing(true);
+    try {
+      await fetchTeams(user.token, baseURL);
+      // Optionally refresh team stats and activity
+      if (myTeams.length > 0) {
+        await Promise.all([
+          fetchTeamStats(),
+          fetchRecentActivity(),
+        ]);
+      }
+    } catch (error) {
+      console.error("Error refreshing teams:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Fetch teams with smart caching on mount
   useEffect(() => {
@@ -291,7 +317,17 @@ const MyTeamScreen: React.FC = () => {
         onBackPress={() => router.back()}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3B82F6"]} // Android
+            tintColor="#3B82F6" // iOS
+          />
+        }
+      >
         {role === "player" && (
           <CreateTeamButton
             title="Create Team"
@@ -308,25 +344,29 @@ const MyTeamScreen: React.FC = () => {
         {/* Tab Selector */}
         <View className="px-4 pt-4 pb-2">
           <View className="bg-slate-200 rounded-xl p-1 flex-row">
-            <TouchableOpacity
-              onPress={() => setActiveTab("my")}
-              className={`flex-1 py-3 rounded-lg ${
-                activeTab === "my" ? "bg-white" : "bg-transparent"
-              }`}
-              activeOpacity={0.7}
-            >
-              <Text
-                className={`text-center font-semibold text-sm ${
-                  activeTab === "my" ? "text-blue-600" : "text-slate-500"
+            {/* Only show My Teams tab for players */}
+            {role === "player" && (
+              <TouchableOpacity
+                onPress={() => setActiveTab("my")}
+                className={`flex-1 py-3 rounded-lg ${
+                  activeTab === "my" ? "bg-white" : "bg-transparent"
                 }`}
+                activeOpacity={0.7}
               >
-                My Teams
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  className={`text-center font-semibold text-sm ${
+                    activeTab === "my" ? "text-blue-600" : "text-slate-500"
+                  }`}
+                >
+                  My Teams
+                </Text>
+              </TouchableOpacity>
+            )}
             
+            {/* All Teams tab - show for everyone */}
             <TouchableOpacity
               onPress={() => setActiveTab("all")}
-              className={`flex-1 py-3 rounded-lg ${
+              className={`${role === "player" ? "flex-1" : "w-full"} py-3 rounded-lg ${
                 activeTab === "all" ? "bg-white" : "bg-transparent"
               }`}
               activeOpacity={0.7}

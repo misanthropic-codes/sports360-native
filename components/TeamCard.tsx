@@ -18,6 +18,7 @@ interface TeamCardProps {
   onView?: () => void;
   onAccept?: () => void;
   onDecline?: () => void;
+  onInvite?: () => void; // New prop for organizers to invite teams
 }
 
 const TeamCard: React.FC<TeamCardProps> = ({
@@ -31,6 +32,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
   onView,
   onAccept,
   onDecline,
+  onInvite, // Add to destructured props
 }) => {
   const isPending = status === "Pending";
 
@@ -117,13 +119,25 @@ const TeamCard: React.FC<TeamCardProps> = ({
           </TouchableOpacity>
         )}
 
-        {context === "viewTeam" && onView && (
-          <TouchableOpacity
-            onPress={onView}
-            className="bg-gray-500 w-full py-3 rounded-lg items-center"
-          >
-            <Text className="text-white font-bold">View Team</Text>
-          </TouchableOpacity>
+        {context === "viewTeam" && (
+          <View className="flex-row gap-3">
+            {onView && (
+              <TouchableOpacity
+                onPress={onView}
+                className="flex-1 bg-purple-500 py-3 rounded-lg items-center"
+              >
+                <Text className="text-white font-bold">View Details</Text>
+              </TouchableOpacity>
+            )}
+            {onInvite && (
+              <TouchableOpacity
+                onPress={onInvite}
+                className="flex-1 bg-emerald-500 py-3 rounded-lg items-center"
+              >
+                <Text className="text-white font-bold">Invite</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     </View>

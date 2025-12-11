@@ -37,7 +37,10 @@ const InitialLayout = () => {
   }, [user, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ 
+      headerShown: false,
+      animation: 'none', // Disable transitions for instant navigation
+    }}>
       <Stack.Screen name="(root)/index" />
       <Stack.Screen name="(root)/login" />
       <Stack.Screen name="(root)/signup" />

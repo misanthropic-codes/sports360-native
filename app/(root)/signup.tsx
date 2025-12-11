@@ -107,6 +107,13 @@ const SignupScreen = () => {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Error states for live validation
+  const [fullNameError, setFullNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
   // Helper function to convert role display name to backend format
   const getRoleValue = (role: Role): "player" | "organizer" | "ground_owner" => {
@@ -126,30 +133,88 @@ const SignupScreen = () => {
     return `${year}-${month}-${day}`;
   };
 
-  const handleSignUp = async () => {
-    // Validation
-    if (!fullName.trim()) {
-      Alert.alert("Validation Error", "Please enter your full name");
-      return;
+  // Validation functions
+  const validateFullName = (name: string): string => {
+    if (!name.trim()) {
+      return "Full name is required";
     }
-
-    if (!email.trim() || !email.includes("@")) {
-      Alert.alert("Validation Error", "Please enter a valid email address");
-      return;
+    if (name.trim().length < 2) {
+      return "Name must be at least 2 characters";
     }
+    return "";
+  };
 
-    if (!phone.trim() || phone.length < 10) {
-      Alert.alert("Validation Error", "Please enter a valid phone number");
-      return;
+  const validateEmail = (email: string): string => {
+    if (!email.trim()) {
+      return "Email is required";
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
 
+  const validatePhone = (phone: string): string => {
+    if (!phone.trim()) {
+      return "Phone number is required";
+    }
+    if (phone.length !== 10) {
+      return "Phone number must be exactly 10 digits";
+    }
+    if (!/^[0-9]+$/.test(phone)) {
+      return "Phone number must contain only digits";
+    }
+    return "";
+  };
+
+  const validatePassword = (password: string): string => {
+    if (!password) {
+      return "Password is required";
+    }
     if (password.length < 8) {
-      Alert.alert("Validation Error", "Password must be at least 8 characters");
-      return;
+      return "Password must be at least 8 characters";
     }
+    if (!/(?=.*[a-z])/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/(?=.*[0-9])/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    return "";
+  };
 
-    if (password !== confirmPassword) {
-      Alert.alert("Password Mismatch", "Passwords do not match");
+  const validateConfirmPassword = (confirmPwd: string, pwd: string): string => {
+    if (!confirmPwd) {
+      return "Please confirm your password";
+    }
+    if (confirmPwd !== pwd) {
+      return "Passwords do not match";
+    }
+    return "";
+  };
+
+  const handleSignUp = async () => {
+    // Validate all fields
+    const nameError = validateFullName(fullName);
+    const emailErr = validateEmail(email);
+    const phoneErr = validatePhone(phone);
+    const pwdError = validatePassword(password);
+    const confirmPwdError = validateConfirmPassword(confirmPassword, password);
+
+    // Set all errors
+    setFullNameError(nameError);
+    setEmailError(emailErr);
+    setPhoneError(phoneErr);
+    setPasswordError(pwdError);
+    setConfirmPasswordError(confirmPwdError);
+
+    // Check if any errors exist
+    if (nameError || emailErr || phoneErr || pwdError || confirmPwdError) {
+      Alert.alert("Validation Error", "Please fix all errors before submitting");
       return;
     }
 
@@ -270,12 +335,22 @@ const SignupScreen = () => {
               Enter full name
             </Text>
             <TextInput
-              className="bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2"
-              placeholder="Riya Singh"
+              className="bg-gray-100/50 rounded-xl h-14 px-4 mt-2"
+              style={{
+                borderWidth: 1,
+                borderColor: fullNameError ? '#EF4444' : '#E5E7EB',
+              }}
+              placeholder="John Doe"
               placeholderTextColor="#C0C0C0"
               value={fullName}
-              onChangeText={setFullName}
+              onChangeText={(text) => {
+                setFullName(text);
+                setFullNameError(validateFullName(text));
+              }}
             />
+            {fullNameError ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">{fullNameError}</Text>
+            ) : null}
           </View>
 
           <View className="mb-4">
@@ -283,14 +358,24 @@ const SignupScreen = () => {
               Enter email address
             </Text>
             <TextInput
-              className="bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2"
-              placeholder="riyasingh@gmail.com"
+              className="bg-gray-100/50 rounded-xl h-14 px-4 mt-2"
+              style={{
+                borderWidth: 1,
+                borderColor: emailError ? '#EF4444' : '#E5E7EB',
+              }}
+              placeholder="johndoe@gmail.com"
               placeholderTextColor="#C0C0C0"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                setEmailError(validateEmail(text));
+              }}
             />
+            {emailError ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">{emailError}</Text>
+            ) : null}
           </View>
 
           <View className="mb-4">
@@ -367,7 +452,13 @@ const SignupScreen = () => {
             <Text className="font-rubikMedium text-grayText">
               Enter phone number
             </Text>
-            <View className="flex-row items-center bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2">
+            <View
+              className="flex-row items-center bg-gray-100/50 rounded-xl h-14 px-4 mt-2"
+              style={{
+                borderWidth: 1,
+                borderColor: phoneError ? '#EF4444' : '#E5E7EB',
+              }}
+            >
               <Text className="font-rubik text-textBlack mr-2">+91</Text>
               <TextInput
                 className="flex-1 h-full font-rubik text-textBlack"
@@ -375,24 +466,44 @@ const SignupScreen = () => {
                 placeholderTextColor="#C0C0C0"
                 keyboardType="phone-pad"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => {
+                  setPhone(text);
+                  setPhoneError(validatePhone(text));
+                }}
+                maxLength={10}
                 returnKeyType="done"
               />
             </View>
+            {phoneError ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">{phoneError}</Text>
+            ) : null}
           </View>
 
           <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
               Create password
             </Text>
-            <View className="flex-row items-center bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2">
+            <View
+              className="flex-row items-center bg-gray-100/50 rounded-xl h-14 px-4 mt-2"
+              style={{
+                borderWidth: 1,
+                borderColor: passwordError ? '#EF4444' : '#E5E7EB',
+              }}
+            >
               <TextInput
                 className="flex-1 h-full font-rubik text-textBlack"
                 placeholder="********"
                 placeholderTextColor="#C0C0C0"
                 secureTextEntry={!isPasswordVisible}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setPasswordError(validatePassword(text));
+                  // Also revalidate confirm password when password changes
+                  if (confirmPassword) {
+                    setConfirmPasswordError(validateConfirmPassword(confirmPassword, text));
+                  }
+                }}
                 returnKeyType="next"
               />
               <TouchableOpacity
@@ -405,20 +516,32 @@ const SignupScreen = () => {
                 />
               </TouchableOpacity>
             </View>
+            {passwordError ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">{passwordError}</Text>
+            ) : null}
           </View>
 
           <View className="mb-4">
             <Text className="font-rubikMedium text-grayText">
               Confirm password
             </Text>
-            <View className="flex-row items-center bg-gray-100/50 border border-gray-200 rounded-xl h-14 px-4 mt-2">
+            <View
+              className="flex-row items-center bg-gray-100/50 rounded-xl h-14 px-4 mt-2"
+              style={{
+                borderWidth: 1,
+                borderColor: confirmPasswordError ? '#EF4444' : '#E5E7EB',
+              }}
+            >
               <TextInput
                 className="flex-1 h-full font-rubik text-textBlack"
                 placeholder="********"
                 placeholderTextColor="#C0C0C0"
                 secureTextEntry={!isConfirmPasswordVisible}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  setConfirmPasswordError(validateConfirmPassword(text, password));
+                }}
                 returnKeyType="done"
               />
               <TouchableOpacity
@@ -433,6 +556,9 @@ const SignupScreen = () => {
                 />
               </TouchableOpacity>
             </View>
+            {confirmPasswordError ? (
+              <Text className="text-red-500 text-sm mt-1 ml-1">{confirmPasswordError}</Text>
+            ) : null}
           </View>
 
           <TouchableOpacity
