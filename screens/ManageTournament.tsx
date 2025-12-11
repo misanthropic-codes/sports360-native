@@ -1,20 +1,22 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  Text,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
 } from "react-native";
 import Header from "../components/Ui/Header";
 import TabNavigation from "../components/Ui/TabNaviagtion";
 
 import {
-  deleteTournament,
-  getTeamsByTournament,
-  getTournamentById,
+    deleteTournament,
+    getTeamsByTournament,
+    getTournamentById,
 } from "../api/tournamentApi";
 
 import LeaderboardTab from "../components/Tournament/Leaderboard";
@@ -31,6 +33,7 @@ const ManageTournamentScreen = () => {
 
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -45,29 +48,59 @@ const ManageTournamentScreen = () => {
   }, [token]);
 
   // Fetch tournament details
+  const fetchTournamentData = async () => {
+    if (!id || !token) return;
+    try {
+      const data = await getTournamentById(id, token);
+      setTournament(data);
+    } catch (error) {
+      console.error("Error fetching tournament:", error);
+    }
+  };
+
+  // Fetch teams data
+  const fetchTeamsData = async () => {
+    if (!id || !token) return;
+    setTeamsLoading(true);
+    try {
+      const teams = await getTeamsByTournament(id, token);
+      setTeamsMessage("");
+      setTeamsData(teams || []);
+    } catch (error) {
+      setTeamsMessage("Error fetching teams.");
+      setTeamsData([]);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
+  // Initial load
   useEffect(() => {
     if (!id || !token) return;
-    getTournamentById(id, token)
-      .then(setTournament)
-      .finally(() => setLoading(false));
+    fetchTournamentData().finally(() => setLoading(false));
   }, [id, token]);
 
   // Fetch teams when "teams" tab is active
   useEffect(() => {
     if (activeTab === "teams" && id && token) {
-      setTeamsLoading(true);
-      getTeamsByTournament(id, token)
-        .then((teams) => {
-          setTeamsMessage("");
-          setTeamsData(teams || []);
-        })
-        .catch(() => {
-          setTeamsMessage("Error fetching teams.");
-          setTeamsData([]);
-        })
-        .finally(() => setTeamsLoading(false));
+      fetchTeamsData();
     }
   }, [activeTab, id]);
+
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchTournamentData();
+      if (activeTab === "teams") {
+        await fetchTeamsData();
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleDelete = () => {
     if (user?.role !== "organizer") {
@@ -98,7 +131,7 @@ const ManageTournamentScreen = () => {
                 res.message || "Tournament deleted successfully"
               );
 
-              router.push("/tournament/ViewTournament");
+              router.push("/tournament/MyTournaments");
             } catch (error: any) {
               console.log("Delete error:", error);
               Alert.alert(
@@ -174,7 +207,18 @@ const ManageTournamentScreen = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-      {renderContent()}
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#6D28D9"]} // Android
+            tintColor="#6D28D9" // iOS
+          />
+        }
+      >
+        {renderContent()}
+      </ScrollView>
     </SafeAreaView>
   );
 };

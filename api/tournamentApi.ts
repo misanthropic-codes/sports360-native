@@ -87,6 +87,11 @@ export const getAllTournaments = async (token: string) => {
   return res.data?.data || [];
 };
 
+export const getOrganizerTournaments = async (token: string) => {
+  const res = await api.get("/organizer-profile/tournaments", withAuthHeaders(token));
+  return res.data?.data || [];
+};
+
 export const getTournamentById = async (id: string, token: string) => {
   const res = await api.get(`/tournament/get/${id}`, withAuthHeaders(token));
   return res.data?.data?.[0] || null;

@@ -7,15 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 // @ts-ignore - DateTimePicker types might not be available
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -230,11 +230,8 @@ const CreateTournament: React.FC = () => {
       console.log("✅ API Response:", response.data);
       Alert.alert("Success", "Tournament Created Successfully!");
 
-      // ✅ navigate using expo-router
-      router.push({
-        pathname: "/tournament/ViewTournament",
-        params: { tournamentId: response.data?.id },
-      });
+      // ✅ navigate to the new MyTournaments page
+      router.push("/tournament/MyTournaments");
     } catch (err: unknown) {
       const error = err as any;
       console.error(

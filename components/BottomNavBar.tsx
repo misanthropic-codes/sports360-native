@@ -75,7 +75,12 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
       }, // Route organizers to ExploreTeams, players to Myteam
       { name: "Grounds", icon: MapPin, path: `/booking/Cricket-booking`, roles: ["player", "organizer", "ground_owner"] },
       { name: "Home", icon: Home, path: `/feed/${type}`, roles: ["player", "organizer", "ground_owner"] },
-      { name: "Trophy", icon: Trophy, path: `/tournament/ViewTournament`, roles: ["player", "organizer", "ground_owner"] },
+      { 
+        name: "Trophy", 
+        icon: Trophy, 
+        path: role === "organizer" ? `/tournament/MyTournaments` : `/tournament/ViewTournament`, 
+        roles: ["player", "organizer", "ground_owner"] 
+      },
       { name: "Profile", icon: User, path: `/dashboard/${role}/${type}`, roles: ["player", "organizer", "ground_owner"] },
     ];
     
