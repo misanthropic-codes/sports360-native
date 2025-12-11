@@ -153,10 +153,10 @@ export const joinTournament = async (
   }
 };
 
-// 🔹 Ground API
+// 🔹 Ground API - Fetch all available grounds for booking
 export const getGrounds = async (token: string): Promise<Ground[]> => {
   const res = await api.get(
-    "/ground-owner/my-grounds",
+    "/booking/grounds/all",
     withAuthHeaders(token)
   );
   return res.data?.data || [];

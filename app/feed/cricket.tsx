@@ -17,32 +17,21 @@ import TopNavBar from "../../components/TopNavbar";
 import UpcomingEventCard from "../../components/UpcomingEventCard";
 
 import { router } from "expo-router";
-import { getAllTournaments } from "../../api/tournamentApi";
 import { useAuth } from "../../context/AuthContext";
-
-interface Tournament {
-  id: string;
-  name: string;
-  description?: string;
-  location?: string;
-  tournamentFormat?: string;
-  status?: string;
-  startDate: string;
-  endDate?: string;
-  entryFee?: number | string;
-  teams?: any[];
-  maxTeams?: number;
-  organizerId?: string;
-  imageUrl?: string;
-}
+import { Tournament, useTournamentStore } from "../../store/tournamentStore";
 
 const CricketScreen = ({ navigation }: { navigation?: any }) => {
   const [activeTab, setActiveTab] = useState("All");
-  const [allTournaments, setAllTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { user, token } = useAuth();
+  
+  // Use tournamentStore instead of local state
+  const { 
+    tournaments: allTournaments, 
+    loading, 
+    error, 
+    fetchTournaments 
+  } = useTournamentStore();
   
   const role = user?.role || "player";
   const type = Array.isArray(user?.domains)
@@ -51,36 +40,24 @@ const CricketScreen = ({ navigation }: { navigation?: any }) => {
   
   const filterTabs = ["All", "Upcoming", "Live", "Completed"];
 
-  // Fetch tournaments function
-  const fetchTournaments = useCallback(async (showRefreshing = false) => {
-    try {
-      if (showRefreshing) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
-      
-      const tournaments = await getAllTournaments(token);
-      setAllTournaments(tournaments || []);
-    } catch (err: any) {
-      console.error("Error fetching tournaments:", err);
-      setError(err.message || "Failed to load tournaments");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  // Initial fetch with smart caching
+  useEffect(() => {
+    if (token) {
+      fetchTournaments(token); // Smart fetch - only if not cached
     }
   }, [token]);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchTournaments();
-  }, [fetchTournaments]);
-
   // Pull to refresh handler
-  const onRefresh = useCallback(() => {
-    fetchTournaments(true);
-  }, [fetchTournaments]);
+  const onRefresh = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      setRefreshing(true);
+      await fetchTournaments(token, true); // Force refresh
+    } finally {
+      setRefreshing(false);
+    }
+  }, [token]);
 
   // Get button configuration based on user role and tournament ownership
   const getButtonConfig = useCallback((tournament: Tournament) => {

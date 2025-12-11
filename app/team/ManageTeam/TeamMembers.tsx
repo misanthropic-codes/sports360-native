@@ -1,38 +1,12 @@
 import { benchMember, unbenchMember } from "@/api/teamApi";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { useTeamDetailsStore } from "@/store/teamDetailsStore";
 import { useLocalSearchParams } from "expo-router";
 import { Crown, DotsThreeVertical, User } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
 
-type Member = {
-  teamId: string;
-  userId: string;
-  role: string;
-  joinedAt: string;
-  isActive: boolean;
-  addedAt: string;
-  addedBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  removedAt: string | null;
-  removedBy: string | null;
-  fullName: string;
-  email: string;
-  profilePicUrl: string | null;
-  playingPosition: string;
-  battingStyle: string;
-  bowlingStyle: string;
-  batsmanType: string | null;
-  isBenched?: boolean;
-};
-
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
-
 const TeamMembers: React.FC = () => {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [benchingMemberId, setBenchingMemberId] = useState<string | null>(null);
   const { token, user } = useAuth();
@@ -40,27 +14,23 @@ const TeamMembers: React.FC = () => {
   const params = useLocalSearchParams();
   const teamId = params.teamId as string;
 
+  // Use teamDetailsStore instead of local state
+  const {
+    getTeamMembers,
+    fetchTeamMembers,
+    updateMemberBenchStatus,
+    loading,
+  } = useTeamDetailsStore();
+
+  const members = getTeamMembers(teamId);
+  const isLoading = loading[teamId] || false;
+
+  // Fetch members with smart caching
   useEffect(() => {
-    if (!teamId) return;
-
-    const fetchMembers = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/team/${teamId}/members`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.data.status === 200 && res.data.success) {
-          setMembers(res.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch team members", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMembers();
-  }, [token, teamId]);
+    if (!teamId || !token) return;
+    
+    fetchTeamMembers(teamId, token); // Smart fetch - only if not cached
+  }, [teamId, token]);
 
   const getInitials = (name: string) => {
     const parts = name.split(" ");
@@ -86,7 +56,7 @@ const TeamMembers: React.FC = () => {
     (m) => m.userId === user?.id && m.role.toLowerCase().includes("captain")
   );
 
-  // Handle bench/unbench member
+  // Handle bench/unbench member with optimistic update
   const handleBenchMember = (memberId: string, currentlyBenched: boolean) => {
     if (!isCurrentUserCaptain) {
       Alert.alert("Unauthorized", "Only team captains can bench/unbench members.");
@@ -112,20 +82,14 @@ const TeamMembers: React.FC = () => {
               setBenchingMemberId(memberId);
               setOpenMenuId(null);
 
+              // Optimistic update
+              updateMemberBenchStatus(teamId, memberId, !currentlyBenched);
+
               if (currentlyBenched) {
                 await unbenchMember(teamId, memberId, token);
               } else {
                 await benchMember(teamId, memberId, token);
               }
-
-              // Update local state
-              setMembers((prevMembers) =>
-                prevMembers.map((m) =>
-                  m.userId === memberId
-                    ? { ...m, isBenched: !currentlyBenched }
-                    : m
-                )
-              );
 
               Alert.alert(
                 "Success",
@@ -133,6 +97,8 @@ const TeamMembers: React.FC = () => {
               );
             } catch (error: any) {
               console.error("Bench/Unbench error:", error);
+              // Revert optimistic update on error
+              updateMemberBenchStatus(teamId, memberId, currentlyBenched);
               Alert.alert(
                 "Error",
                 error.response?.data?.message ||
@@ -147,7 +113,7 @@ const TeamMembers: React.FC = () => {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center py-12">
         <ActivityIndicator size="large" color="#4F46E5" />

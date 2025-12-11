@@ -1,63 +1,29 @@
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { useTeamDetailsStore } from "@/store/teamDetailsStore";
 import { useLocalSearchParams } from "expo-router";
 import { CalendarBlank, MapPin, Trophy as TrophyIcon, Users } from "phosphor-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
-
-type Tournament = {
-  id: string;
-  name: string;
-  description?: string;
-  location?: string;
-  startDate?: string;
-  endDate?: string;
-  bannerImageUrl?: string;
-  teamSize?: number;
-  teamCount?: number;
-  prizePool?: number;
-  status?: string;
-};
 
 const Tournaments: React.FC = () => {
   const { teamId } = useLocalSearchParams();
   const { token } = useAuth();
 
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use teamDetailsStore instead of local state
+  const {
+    getTeamTournaments,
+    fetchTeamTournaments,
+    loading,
+  } = useTeamDetailsStore();
 
+  const tournaments = getTeamTournaments(teamId as string);
+  const isLoading = loading[teamId as string] || false;
+
+  // Fetch tournaments with smart caching
   useEffect(() => {
-    const fetchTournaments = async () => {
-      try {
-        const response = await axios.get(
-          `${BASE_URL}/team/${teamId}/tournaments`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+    if (!teamId || !token) return;
 
-        const tournamentsData = response.data?.data?.tournaments || [];
-        const tournamentsList = tournamentsData.map(
-          (item: any) => item.tournament
-        );
-
-        setTournaments(tournamentsList);
-      } catch (error: any) {
-        console.error("Failed to fetch tournaments:", error.response || error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (teamId && token) {
-      fetchTournaments();
-    } else {
-      setLoading(false);
-    }
+    fetchTeamTournaments(teamId as string, token); // Smart fetch - only if not cached
   }, [teamId, token]);
 
   const getStatusBadge = (status?: string) => {
@@ -99,7 +65,7 @@ const Tournaments: React.FC = () => {
     });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center py-12">
         <ActivityIndicator size="large" color="#4F46E5" />

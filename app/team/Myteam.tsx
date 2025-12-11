@@ -2,11 +2,13 @@ import { useRouter } from "expo-router";
 import { Calendar, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StatusBar,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,6 +21,7 @@ import SectionTitle from "../../components/SectiontitleM";
 import StatPillBar from "../../components/StatPillBar";
 import TeamCard from "../../components/TeamCard";
 import { useAuth } from "../../context/AuthContext";
+import { useTeamDetailsStore } from "../../store/teamDetailsStore";
 import { useTeamStore } from "../../store/teamStore";
 
 type ActivityItem = {
@@ -34,6 +37,14 @@ const MyTeamScreen: React.FC = () => {
 
   const { myTeams, allTeams, loading, fetchTeams, addToMyTeams } =
     useTeamStore();
+  const {
+    getTeamMembers,
+    getTeamMatches,
+    getTeamTournaments,
+    fetchTeamMembers,
+    fetchTeamMatches,
+    fetchTeamTournaments,
+  } = useTeamDetailsStore();
 
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -41,6 +52,13 @@ const MyTeamScreen: React.FC = () => {
     playerCount: number;
     matchCount: number;
   }>>({});
+  
+  // Tab state - toggle between My Teams and All Teams
+  const [activeTab, setActiveTab] = useState<"my" | "all">("my");
+  
+  // Pagination state
+  const [myTeamsToShow, setMyTeamsToShow] = useState(4); // Initially show 4 teams
+  const [allTeamsToShow, setAllTeamsToShow] = useState(4); // Initially show 4 teams
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
   const role = user?.role?.toLowerCase() || "player";
@@ -48,9 +66,12 @@ const MyTeamScreen: React.FC = () => {
     ? user.domains.join(", ")
     : user?.domains || "team";
 
+  // Fetch teams with smart caching on mount
   useEffect(() => {
-    if (user?.token && baseURL) fetchTeams(user.token, baseURL);
-  }, [user?.token]);
+    if (user?.token && baseURL) {
+      fetchTeams(user.token, baseURL); // Smart fetch - only if not cached
+    }
+  }, []);
 
   // Calculate team statistics
   const myTeamsCount = myTeams.length;
@@ -62,21 +83,25 @@ const MyTeamScreen: React.FC = () => {
     if (!user?.token || !baseURL || myTeams.length === 0) return;
 
     try {
-      const headers = { Authorization: `Bearer ${user.token}` };
       const stats: Record<string, { playerCount: number; matchCount: number }> = {};
 
-      // Fetch stats for each team
+      // Fetch stats for each team using teamDetailsStore
       await Promise.all(
         myTeams.map(async (team) => {
           try {
-            const [membersRes, matchesRes] = await Promise.all([
-              axios.get(`${baseURL}/api/v1/team/${team.id}/members`, { headers }),
-              axios.get(`${baseURL}/api/v1/team/${team.id}/matches`, { headers }),
+            // Fetch from store (smart caching - only fetches if not cached)
+            await Promise.all([
+              fetchTeamMembers(team.id, user.token!),
+              fetchTeamMatches(team.id, user.token!),
             ]);
 
+            // Get cached data from store
+            const members = getTeamMembers(team.id);
+            const matches = getTeamMatches(team.id);
+
             stats[team.id] = {
-              playerCount: membersRes.data?.data?.length || 0,
-              matchCount: matchesRes.data?.data?.matches?.length || 0,
+              playerCount: members.length,
+              matchCount: matches.length,
             };
           } catch (err) {
             console.error(`Error fetching stats for team ${team.id}:`, err);
@@ -156,58 +181,50 @@ const MyTeamScreen: React.FC = () => {
     setActivityLoading(true);
     try {
       const activities: ActivityItem[] = [];
-      const headers = { Authorization: `Bearer ${user.token}` };
 
-      // Fetch matches and tournaments for each team
+      // Fetch matches and tournaments for each team using teamDetailsStore
       for (const team of myTeams.slice(0, 3)) { // Limit to first 3 teams for performance
         try {
-          // Fetch team matches
-          const matchesRes = await axios.get(
-            `${baseURL}/api/v1/team/${team.id}/matches`,
-            { headers }
-          );
-          if (matchesRes.data?.success) {
-            const matches = matchesRes.data.data.matches || [];
-            matches.slice(0, 3).forEach((match: any) => {
-              const matchDate = new Date(match.matchTime);
-              const icon = <Calendar size={24} color="#3B82F6" />;
-              let description = `Match scheduled for ${team.name}`;
-              
-              if (match.opponentTeamName) {
-                description = `${team.name} vs ${match.opponentTeamName}`;
-              }
-              
-              if (match.result) {
-                description = `${team.name} ${match.result} against ${match.opponentTeamName || 'opponent'}`;
-              }
+          // Fetch from store (smart caching)
+          await Promise.all([
+            fetchTeamMatches(team.id, user.token),
+            fetchTeamTournaments(team.id, user.token),
+          ]);
 
-              activities.push({
-                icon,
-                description,
-                timestamp: getRelativeTime(matchDate),
-                date: matchDate,
-              });
-            });
-          }
+          // Get cached matches
+          const matches = getTeamMatches(team.id);
+          matches.slice(0, 3).forEach((match) => {
+            const matchDate = new Date(match.matchTime);
+            const icon = <Calendar size={24} color="#3B82F6" />;
+            let description = `Match scheduled for ${team.name}`;
+            
+            if (match.opponentTeamName) {
+              description = `${team.name} vs ${match.opponentTeamName}`;
+            }
+            
+            if (match.result) {
+              description = `${team.name} ${match.result} against ${match.opponentTeamName || 'opponent'}`;
+            }
 
-          // Fetch team tournaments
-          const tournamentsRes = await axios.get(
-            `${baseURL}/api/v1/team/${team.id}/tournaments`,
-            { headers }
-          );
-          if (tournamentsRes.data?.success) {
-            const tournaments = tournamentsRes.data.data.tournaments || [];
-            tournaments.slice(0, 2).forEach((item: any) => {
-              const tournament = item.tournament;
-              const tournamentDate = new Date(tournament.startDate);
-              activities.push({
-                icon: <Trophy size={24} color="#3B82F6" />,
-                description: `${team.name} joined ${tournament.name}`,
-                timestamp: getRelativeTime(tournamentDate),
-                date: tournamentDate,
-              });
+            activities.push({
+              icon,
+              description,
+              timestamp: getRelativeTime(matchDate),
+              date: matchDate,
             });
-          }
+          });
+
+          // Get cached tournaments
+          const tournaments = getTeamTournaments(team.id);
+          tournaments.slice(0, 2).forEach((tournament) => {
+            const tournamentDate = new Date(tournament.startDate || Date.now());
+            activities.push({
+              icon: <Trophy size={24} color="#3B82F6" />,
+              description: `${team.name} joined ${tournament.name}`,
+              timestamp: getRelativeTime(tournamentDate),
+              date: tournamentDate,
+            });
+          });
         } catch (err) {
           console.error(`Error fetching activity for team ${team.id}:`, err);
         }
@@ -287,115 +304,194 @@ const MyTeamScreen: React.FC = () => {
           activeCount={activeCount}
           pendingCount={pendingCount}
         />
+        
+        {/* Tab Selector */}
+        <View className="px-4 pt-4 pb-2">
+          <View className="bg-slate-200 rounded-xl p-1 flex-row">
+            <TouchableOpacity
+              onPress={() => setActiveTab("my")}
+              className={`flex-1 py-3 rounded-lg ${
+                activeTab === "my" ? "bg-white" : "bg-transparent"
+              }`}
+              activeOpacity={0.7}
+            >
+              <Text
+                className={`text-center font-semibold text-sm ${
+                  activeTab === "my" ? "text-blue-600" : "text-slate-500"
+                }`}
+              >
+                My Teams
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={() => setActiveTab("all")}
+              className={`flex-1 py-3 rounded-lg ${
+                activeTab === "all" ? "bg-white" : "bg-transparent"
+              }`}
+              activeOpacity={0.7}
+            >
+              <Text
+                className={`text-center font-semibold text-sm ${
+                  activeTab === "all" ? "text-emerald-600" : "text-slate-500"
+                }`}
+              >
+                All Teams
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        {/* My Teams */}
-        {role === "player" && (
+        {/* My Teams Tab */}
+        {activeTab === "my" && (
           <>
-            <SectionTitle title="My Teams" />
             {loading ? (
               <View className="p-4 flex justify-center items-center">
                 <ActivityIndicator size="large" color="#4CAF50" />
               </View>
             ) : myTeams.length > 0 ? (
-              myTeams.map((team) => {
-                const stats = teamStats[team.id];
-                const playerCount = stats?.playerCount || 0;
-                const matchCount = stats?.matchCount || 0;
-                const teamCapacity = (team as any).teamSize || 11; // Get team size from team object
+              <>
+                {myTeams.slice(0, myTeamsToShow).map((team) => {
+                  const stats = teamStats[team.id];
+                  const playerCount = stats?.playerCount || 0;
+                  const matchCount = stats?.matchCount || 0;
+                  const teamCapacity = (team as any).teamSize || 11;
+                  
+                  return (
+                    <TeamCard
+                      key={`my-${team.id}`}
+                      context="myTeam"
+                      teamName={team.name}
+                      status={team.isActive ? "Active" : "Pending"}
+                      stats={[
+                        { value: `${playerCount}/${teamCapacity}`, label: "players" },
+                        { value: matchCount.toString(), label: "matches" },
+                        { value: teamCapacity.toString(), label: "capacity" },
+                      ]}
+                      onManage={() =>
+                        router.push({
+                          pathname: "/team/ManageTeam/ManageTeam",
+                          params: { teamId: team.id },
+                        })
+                      }
+                    />
+                  );
+                })}
                 
-                return (
-                  <TeamCard
-                    key={`my-${team.id}`}
-                    context="myTeam"
-                    teamName={team.name}
-                    status={team.isActive ? "Active" : "Pending"}
-                    stats={[
-                      { value: `${playerCount}/${teamCapacity}`, label: "players" },
-                      { value: matchCount.toString(), label: "matches" },
-                      { value: teamCapacity.toString(), label: "capacity" },
-                    ]}
-                    onManage={() =>
-                      router.push({
-                        pathname: "/team/ManageTeam/ManageTeam",
-                        params: { teamId: team.id },
-                      })
-                    }
-                  />
-                );
-              })
+                {/* Load More button */}
+                {myTeamsToShow < myTeams.length && (
+                  <View className="px-4 py-2">
+                    <TouchableOpacity
+                      onPress={() => setMyTeamsToShow(prev => prev + 4)}
+                      className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex-row items-center justify-center"
+                      activeOpacity={0.7}
+                    >
+                      <Text className="text-blue-600 font-semibold text-sm">
+                        Load More Teams
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             ) : (
-              <View className="p-4">
-                <SectionTitle title="No teams found" />
+              <View className="p-4 items-center justify-center py-12">
+                <Text className="text-slate-400 text-base">No teams found</Text>
+                <Text className="text-slate-400 text-sm mt-1">Create or join a team to get started</Text>
               </View>
             )}
           </>
         )}
 
-        {/* All Teams */}
-        <SectionTitle title="All Teams" />
-        {loading ? (
-          <View className="p-4 flex justify-center items-center">
-            <ActivityIndicator size="large" color="#4CAF50" />
-          </View>
-        ) : filteredAllTeams.length > 0 ? (
-          filteredAllTeams.map((team) => (
-            <TeamCard
-              key={`all-${team.id}`}
-              context={
-                role === "organiser" || role === "organizer"
-                  ? "viewTeam"
-                  : "allTeam"
-              }
-              teamName={team.name}
-              status={team.isActive ? "Active" : "Pending"}
-              stats={[
-                { value: "11", label: "players" },
-                { value: "0", label: "matches" },
-                { value: "0%", label: "winning rate" },
-              ]}
-              onView={() =>
-                router.push({
-                  pathname: "/team/ViewTeam",
-                  params: { teamId: team.id },
-                })
-              }
-              onJoin={
-                role === "player"
-                  ? () => handleJoinTeam(team.id, team.name)
-                  : undefined
-              }
-            />
-          ))
-        ) : (
-          <View className="p-4">
-            <SectionTitle title="No teams available" />
-          </View>
+        {/* All Teams Tab */}
+        {activeTab === "all" && (
+          <>
+            {loading ? (
+              <View className="p-4 flex justify-center items-center">
+                <ActivityIndicator size="large" color="#4CAF50" />
+              </View>
+            ) : filteredAllTeams.length > 0 ? (
+              <>
+                {filteredAllTeams.slice(0, allTeamsToShow).map((team) => (
+                  <TeamCard
+                    key={`all-${team.id}`}
+                    context={
+                      role === "organiser" || role === "organizer"
+                        ? "viewTeam"
+                        : "allTeam"
+                    }
+                    teamName={team.name}
+                    status={team.isActive ? "Active" : "Pending"}
+                    stats={[
+                      { value: "11", label: "players" },
+                      { value: "0", label: "matches" },
+                      { value: "0%", label: "winning rate" },
+                    ]}
+                    onView={() =>
+                      router.push({
+                        pathname: "/team/ViewTeam",
+                        params: { teamId: team.id },
+                      })
+                    }
+                    onJoin={
+                      role === "player"
+                        ? () => handleJoinTeam(team.id, team.name)
+                        : undefined
+                    }
+                  />
+                ))}
+                
+                {/* Load More button */}
+                {allTeamsToShow < filteredAllTeams.length && (
+                  <View className="px-4 py-2">
+                    <TouchableOpacity
+                      onPress={() => setAllTeamsToShow(prev => prev + 4)}
+                      className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex-row items-center justify-center"
+                      activeOpacity={0.7}
+                    >
+                      <Text className="text-emerald-600 font-semibold text-sm">
+                        Load More Teams
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View className="p-4 items-center justify-center py-12">
+                <Text className="text-slate-400 text-base">No teams available</Text>
+                <Text className="text-slate-400 text-sm mt-1">Browse teams or create your own</Text>
+              </View>
+            )}
+          </>
         )}
 
-        {/* Recent Activity */}
-        <SectionTitle
-          title="Recent Activity"
-          showViewAll={recentActivities.length > 0}
-          onViewAllPress={() => console.log("View All Activity")}
-        />
-        {activityLoading ? (
-          <View className="p-4 flex justify-center items-center">
-            <ActivityIndicator size="large" color="#4CAF50" />
-          </View>
-        ) : recentActivities.length > 0 ? (
-          recentActivities.map((activity, index) => (
-            <ActivityCard
-              key={index}
-              layoutType="simple"
-              icon={activity.icon}
-              description={activity.description}
-              timestamp={activity.timestamp}
+        {/* Recent Activity - Only show on My Teams tab */}
+        {activeTab === "my" && (
+          <>
+            <SectionTitle
+              title="Recent Activity"
+              showViewAll={recentActivities.length > 0}
+              onViewAllPress={() => console.log("View All Activity")}
             />
-          ))
-        ) : (
-          <View className="p-4">
-            <SectionTitle title="No recent activity" />
-          </View>
+            {activityLoading ? (
+              <View className="p-4 flex justify-center items-center">
+                <ActivityIndicator size="large" color="#4CAF50" />
+              </View>
+            ) : recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <ActivityCard
+                  key={index}
+                  layoutType="simple"
+                  icon={activity.icon}
+                  description={activity.description}
+                  timestamp={activity.timestamp}
+                />
+              ))
+            ) : (
+              <View className="p-4">
+                <SectionTitle title="No recent activity" />
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 100 }} />

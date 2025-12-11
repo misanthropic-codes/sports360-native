@@ -4,13 +4,13 @@ import { useTeamStore } from "@/store/teamStore";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Modal from "react-native-modal";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,15 +18,15 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
 import BottomNavBar from "@/components/BottomNavBar";
 import {
-  Award,
-  BookOpen,
-  ChevronRight,
-  PlusCircle,
-  Shield,
-  Target,
-  Trophy,
-  Users,
-  X,
+    Award,
+    BookOpen,
+    ChevronRight,
+    PlusCircle,
+    Shield,
+    Target,
+    Trophy,
+    Users,
+    X,
 } from "lucide-react-native";
 
 const CricketHomeScreen = () => {

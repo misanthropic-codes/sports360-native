@@ -1,6 +1,5 @@
 import { benchMember, unbenchMember } from "@/api/teamApi";
 import BottomNavBar from "@/components/BottomNavBar";
-import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, MoreVertical, Trophy, Users } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -14,41 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
-
-type Member = {
-  teamId: string;
-  userId: string;
-  role: string;
-  joinedAt: string;
-  isActive: boolean;
-  addedAt: string;
-  addedBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  removedAt: string | null;
-  removedBy: string | null;
-  fullName: string;
-  email: string;
-  profilePicUrl: string | null;
-  playingPosition: string;
-  battingStyle: string;
-  bowlingStyle: string;
-  batsmanType: string | null;
-  isBenched?: boolean;
-};
-
-type Tournament = {
-  id: string;
-  name: string;
-  startDate: string;
-};
-
-type Match = {
-  id: string;
-  opponentTeam: string;
-  date: string;
-  result?: string | null;
-};
+import { useTeamDetailsStore } from "../../store/teamDetailsStore";
 
 const TeamScreen: React.FC = () => {
   const { user } = useAuth();
@@ -58,63 +23,34 @@ const TeamScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     "members" | "tournaments" | "matches"
   >("members");
-  const [members, setMembers] = useState<Member[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [benchingMemberId, setBenchingMemberId] = useState<string | null>(null);
 
-  const baseURL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+  // Use teamDetailsStore instead of local state
+  const {
+    getTeamMembers,
+    getTeamTournaments,
+    getTeamMatches,
+    fetchTeamMembers,
+    fetchTeamTournaments,
+    fetchTeamMatches,
+    updateMemberBenchStatus,
+    loading,
+  } = useTeamDetailsStore();
 
-  const fetchTeamData = async () => {
+  const members = getTeamMembers(teamId as string);
+  const tournaments = getTeamTournaments(teamId as string);
+  const matches = getTeamMatches(teamId as string);
+  const isLoading = loading[teamId as string] || false;
+
+  // Fetch all team data with smart caching
+  useEffect(() => {
     if (!user?.token || !teamId) return;
 
-    setLoading(true);
-    const headers = { Authorization: `Bearer ${user.token}` };
-
-    try {
-      // Members
-      const membersRes = await axios.get(`${baseURL}/team/${teamId}/members`, {
-        headers,
-      });
-      if (membersRes.data?.success) setMembers(membersRes.data.data);
-
-      // Tournaments
-      const tournamentsRes = await axios.get(
-        `${baseURL}/team/${teamId}/tournaments`,
-        { headers }
-      );
-      if (tournamentsRes.data?.success) {
-        const tournamentData = tournamentsRes.data.data.tournaments.map(
-          (item: any) => item.tournament
-        );
-        setTournaments(tournamentData);
-      }
-
-      // Matches
-      const matchesRes = await axios.get(`${baseURL}/team/${teamId}/matches`, {
-        headers,
-      });
-      if (matchesRes.data?.success) {
-        const matchesData = matchesRes.data.data.matches.map((m: any) => ({
-          id: m.id,
-          opponentTeam: m.opponentTeamName || "Unknown",
-          date: m.matchTime,
-          result: m.result,
-        }));
-        setMatches(matchesData);
-      }
-    } catch (err: any) {
-      console.error("❌ Error fetching team data:", err.response?.data || err);
-      Alert.alert("Error", "Could not fetch team data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTeamData();
+    // Smart fetch - only fetches if not cached
+    fetchTeamMembers(teamId as string, user.token);
+    fetchTeamTournaments(teamId as string, user.token);
+    fetchTeamMatches(teamId as string, user.token);
   }, [teamId, user?.token]);
 
   const TabButton = ({
@@ -164,7 +100,7 @@ const TeamScreen: React.FC = () => {
     })));
   }, [isCaptain, members, user?.id]);
 
-  // Handle bench/unbench member
+  // Handle bench/unbench member with optimistic update
   const handleBenchMember = (memberId: string, currentlyBenched: boolean) => {
     if (!isCaptain) {
       Alert.alert("Unauthorized", "Only team captains can bench/unbench members.");
@@ -190,6 +126,9 @@ const TeamScreen: React.FC = () => {
               setBenchingMemberId(memberId);
               setOpenMenuId(null);
 
+              // Optimistic update
+              updateMemberBenchStatus(teamId as string, memberId, !currentlyBenched);
+
               if (currentlyBenched) {
                 await unbenchMember(
                   teamId as string,
@@ -204,21 +143,14 @@ const TeamScreen: React.FC = () => {
                 );
               }
 
-              // Update local state
-              setMembers((prevMembers) =>
-                prevMembers.map((m) =>
-                  m.userId === memberId
-                    ? { ...m, isBenched: !currentlyBenched }
-                    : m
-                )
-              );
-
               Alert.alert(
                 "Success",
                 `Member ${currentlyBenched ? "unbenched" : "benched"} successfully`
               );
             } catch (error: any) {
               console.error("Bench/Unbench error:", error);
+              // Revert optimistic update on error
+              updateMemberBenchStatus(teamId as string, memberId, currentlyBenched);
               Alert.alert(
                 "Error",
                 error.response?.data?.message ||
@@ -407,13 +339,13 @@ const TeamScreen: React.FC = () => {
             {/* Join Date */}
             <View className="border-t border-purple-100 pt-3">
               <Text className="text-purple-600 text-xs">
-                Joined{" "}
-                {new Date(item.joinedAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </Text>
+              Joined{" "}
+              {item.joinedAt && new Date(item.joinedAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </Text>
             </View>
           </View>
         );
@@ -430,7 +362,7 @@ const TeamScreen: React.FC = () => {
         <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-purple-100">
           <Text className="text-purple-800 font-bold text-lg">{item.name}</Text>
           <Text className="text-purple-700">
-            Start Date: {new Date(item.startDate).toLocaleDateString()}
+            Start Date: {new Date(item.startDate || Date.now()).toLocaleDateString()}
           </Text>
         </View>
       )}
@@ -445,10 +377,10 @@ const TeamScreen: React.FC = () => {
       renderItem={({ item }) => (
         <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-purple-100">
           <Text className="text-purple-800 font-bold text-lg">
-            Opponent: {item.opponentTeam}
+            Opponent: {item.opponentTeamName || "Unknown"}
           </Text>
           <Text className="text-purple-700">
-            Date: {new Date(item.date).toLocaleString()}
+            Date: {new Date(item.matchTime).toLocaleString()}
           </Text>
           {item.result && (
             <Text className="text-purple-700">Result: {item.result}</Text>
@@ -468,7 +400,7 @@ const TeamScreen: React.FC = () => {
       </View>
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#6b21a8" />
         </View>

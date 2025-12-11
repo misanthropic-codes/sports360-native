@@ -1,7 +1,6 @@
-import axios from "axios";
 import { useRouter } from "expo-router";
 import { Sparkles, TrendingUp } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -15,44 +14,34 @@ import VenueCard from "../../components/Card";
 import Header from "../../components/Header";
 import SearchBar from "../../components/SearchBar";
 import { useAuth } from "../../context/AuthContext";
-import { Ground, useGroundStore } from "../../store/groundStore";
-
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+import { useGroundStore } from "../../store/groundStore";
 
 const GroundBookingScreen = () => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
-  const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
-
-  const [grounds, setGrounds] = useState<Ground[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use existing groundStore instead of local state
+  const {
+    grounds,
+    groundsLoading,
+    fetchGrounds,
+    setSelectedGround,
+  } = useGroundStore();
 
   const role = user?.role || "player";
   const type = Array.isArray(user?.domains)
     ? user.domains.join(", ")
     : user?.domains || "team";
 
+  // Fetch grounds with smart caching
   useEffect(() => {
-    const fetchGrounds = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/booking/grounds/all`);
-        const groundsArray = res.data?.data || [];
+    if (!token) return;
+    
+    // Smart fetch - only fetches if not cached
+    fetchGrounds(token);
+  }, [token]);
 
-        console.log("✅ Grounds fetched:", groundsArray);
-        setGrounds(groundsArray);
-      } catch (err) {
-        console.error("❌ Error fetching grounds:", err);
-        setGrounds([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGrounds();
-  }, []);
-
-  if (loading) {
+  if (groundsLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#3B82F6" />

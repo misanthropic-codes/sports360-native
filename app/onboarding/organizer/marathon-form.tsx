@@ -3,16 +3,17 @@ import CheckboxItem from "@/components/CheckBoxItem";
 import ReusableDropdown from "@/components/dropdown";
 import SelectionPill from "@/components/SelelctionPill";
 import ReusableTextInput from "@/components/TextInput";
+import { pickAndStoreImage } from "@/utils/imageUtils";
 import React, { useState } from "react";
 import {
-  Image,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import FeatherIcon from "react-native-vector-icons/Feather";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -26,7 +27,8 @@ const CompleteProfileScreen = () => {
     "Accept runner registrations",
     "Receive Route Setup Alerts & Logistics Reminders",
   ]);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImageLocal, setProfileImageLocal] = useState<string | null>(null);
+  const [profileImageApi, setProfileImageApi] = useState<string | null>(null);
 
   const raceOptions: string[] = [
     "5 K Run",
@@ -101,10 +103,20 @@ const CompleteProfileScreen = () => {
       >
         {/* --- Profile Picture Uploader (Overlap Purple/White) --- */}
         <View className="items-center absolute -top-12 left-0 right-0 z-20">
-          <TouchableOpacity className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white items-center justify-center shadow-md overflow-hidden">
-            {profileImage ? (
+          <TouchableOpacity 
+            className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white items-center justify-center shadow-md overflow-hidden"
+            onPress={async () => {
+              const result = await pickAndStoreImage('profile');
+              if (result) {
+                setProfileImageLocal(result.localUri);
+                setProfileImageApi(result.apiUrl);
+                console.log('✅ Profile image selected:', result);
+              }
+            }}
+          >
+            {profileImageLocal ? (
               <Image
-                source={{ uri: profileImage }}
+                source={{ uri: profileImageLocal }}
                 className="w-full h-full"
                 resizeMode="cover"
               />

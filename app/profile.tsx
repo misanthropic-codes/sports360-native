@@ -1,7 +1,6 @@
-import { getPlayerAnalytics } from "@/api/userApi";
 import { useRouter } from "expo-router";
 import { Edit, LogOut, Target, Trophy } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -14,13 +13,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { useUserStore } from "../store/userStore";
 
 const ProfileScreen = () => {
   const { user, logout, token } = useAuth();
   const router = useRouter();
   
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  // Use userStore instead of local state
+  const { analytics, analyticsLoading, fetchAnalytics } = useUserStore();
 
   const role = user?.role?.toLowerCase() || "player";
   const type = Array.isArray(user?.domains) ? user.domains[0] : user?.domains || "cricket";
@@ -39,24 +39,10 @@ const ProfileScreen = () => {
   };
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      // Only fetch analytics for players
-      if (!token || role === "organizer" || role === "organiser") {
-        setLoadingAnalytics(false);
-        return;
-      }
-      
-      try {
-        const data = await getPlayerAnalytics("overall", undefined, undefined, token);
-        setAnalytics(data);
-      } catch (error) {
-        console.error("Failed to fetch analytics:", error);
-      } finally {
-        setLoadingAnalytics(false);
-      }
-    };
-
-    fetchAnalytics();
+    // Only fetch analytics for players using smart cache
+    if (token && role !== "organizer" && role !== "organiser") {
+      fetchAnalytics(token); // Smart fetch - only if not cached
+    }
   }, [token, role]);
 
   if (!user) {
@@ -109,7 +95,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Performance Stats - Only for Players */}
-        {(role === "player" || role === "cricket" || role === "marathon") && !loadingAnalytics && analytics && (
+        {(role === "player" || role === "cricket" || role === "marathon") && !analyticsLoading && analytics && (
           <View className="px-6 mt-6 mb-6">
             <Text className="text-xl font-bold text-gray-900 mb-4">
               Performance Overview
@@ -149,7 +135,7 @@ const ProfileScreen = () => {
           </View>
         )}
 
-        {(role === "player" || role === "cricket" || role === "marathon") && loadingAnalytics && (
+        {(role === "player" || role === "cricket" || role === "marathon") && analyticsLoading && (
           <View className="px-6 mt-6 items-center">
             <ActivityIndicator size="small" color="#4F46E5" />
           </View>

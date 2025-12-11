@@ -1,30 +1,29 @@
 // app/JoinTournamentScreen.tsx
 import {
-  getMyTeams,
-  getTournamentById,
-  joinTournament,
-  Team,
+    getTournamentById,
+    joinTournament
 } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
+import { useTeamStore } from "@/store/teamStore";
 import { router, useLocalSearchParams } from "expo-router";
 import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  Circle,
-  Info,
-  MapPin,
-  Trophy,
-  Users,
+    ArrowLeft,
+    Calendar,
+    CheckCircle2,
+    Circle,
+    Info,
+    MapPin,
+    Trophy,
+    Users,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -32,11 +31,14 @@ const JoinTournamentScreen = () => {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tournament, setTournament] = useState<any>(null);
-  const [teams, setTeams] = useState<Team[]>([]);
   const [joining, setJoining] = useState(false);
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
+  
+  // Use teamStore instead of local state for teams
+  const { myTeams, fetchTeams } = useTeamStore();
+  const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,11 +46,14 @@ const JoinTournamentScreen = () => {
         if (!id || !token) return;
         setLoading(true);
 
+        // Fetch tournament details
         const data = await getTournamentById(id, token);
         setTournament(data);
 
-        const teamsData = await getMyTeams(token);
-        setTeams(teamsData || []);
+        // Fetch teams using teamStore (smart cached)
+        if (token && baseURL) {
+          await fetchTeams(token, baseURL);
+        }
       } catch (error) {
         console.error("Error fetching tournament details:", error);
       } finally {
@@ -196,9 +201,9 @@ const JoinTournamentScreen = () => {
         <View className="px-6 mt-8">
           <Text className="text-gray-900 text-lg font-bold mb-4">Select Your Team</Text>
 
-          {teams.length > 0 ? (
+          {myTeams.length > 0 ? (
             <View className="space-y-4">
-              {teams.map((team) => {
+              {myTeams.map((team) => {
                 const isSelected = selectedTeam === team.id;
                 return (
                   <TouchableOpacity
@@ -258,7 +263,7 @@ const JoinTournamentScreen = () => {
       {/* Bottom Button */}
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-6">
         <TouchableOpacity
-          disabled={!selectedTeam || joining || teams.length === 0}
+          disabled={!selectedTeam || joining || myTeams.length === 0}
           onPress={handleJoinTournament}
           activeOpacity={0.8}
           className={`py-5 rounded-xl ${

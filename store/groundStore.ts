@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getGrounds } from "../api/tournamentApi";
 
 // ✅ Ground structure
 export interface Ground {
@@ -72,14 +73,33 @@ export interface GroundReviewData {
 interface GroundStore {
   selectedGround: Ground | null;
   groundReviews: Record<string, GroundReviewData>; // Key: groundId
+  
+  // Grounds list caching
+  grounds: Ground[];
+  groundsLoading: boolean;
+  groundsLoaded: boolean;
+  groundsLastFetched: number | null;
+  
   setSelectedGround: (ground: Ground) => void;
   setGroundReviews: (groundId: string, reviewData: GroundReviewData) => void;
+  
+  // Grounds fetching
+  fetchGrounds: (token: string, forceRefresh?: boolean) => Promise<void>;
+  invalidateGroundsCache: () => void;
 }
 
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 // ✅ Create store
-export const useGroundStore = create<GroundStore>((set) => ({
+export const useGroundStore = create<GroundStore>((set, get) => ({
   selectedGround: null,
   groundReviews: {},
+  
+  // Grounds list state
+  grounds: [],
+  groundsLoading: false,
+  groundsLoaded: false,
+  groundsLastFetched: null,
 
   setSelectedGround: (ground: Ground) => set({ selectedGround: ground }),
 
@@ -87,4 +107,49 @@ export const useGroundStore = create<GroundStore>((set) => ({
     set((state) => ({
       groundReviews: { ...state.groundReviews, [groundId]: reviewData },
     })),
+  
+  // Fetch grounds with smart caching
+  fetchGrounds: async (token: string, forceRefresh = false) => {
+    const state = get();
+    
+    // Check if we should skip fetching
+    if (!forceRefresh && state.groundsLoaded) {
+      // Check cache freshness
+      if (state.groundsLastFetched && Date.now() - state.groundsLastFetched < CACHE_TTL) {
+        console.log("[GroundStore] Using cached grounds data");
+        return;
+      }
+    }
+    
+    if (!token) {
+      console.warn("[GroundStore] No token provided");
+      return;
+    }
+    
+    try {
+      set({ groundsLoading: true });
+      console.log("[GroundStore] Fetching grounds - forceRefresh:", forceRefresh);
+      
+      const data = await getGrounds(token);
+      
+      set({
+        grounds: data || [],
+        groundsLoaded: true,
+        groundsLoading: false,
+        groundsLastFetched: Date.now(),
+      });
+    } catch (error) {
+      console.error("[GroundStore] Error fetching grounds:", error);
+      set({ groundsLoading: false });
+    }
+  },
+  
+  // Invalidate grounds cache
+  invalidateGroundsCache: () => {
+    console.log("[GroundStore] Grounds cache invalidated");
+    set({
+      groundsLoaded: false,
+      groundsLastFetched: null,
+    });
+  },
 }));

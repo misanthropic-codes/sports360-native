@@ -59,10 +59,7 @@ const InitialLayout = () => {
       <Stack.Screen name="booking/BrowseGrounds" />
       <Stack.Screen name="team/Myteam" />
       <Stack.Screen name="team/CreateTeam" />
-      <Stack.Screen name="team/TeamDetails" />
       <Stack.Screen name="tournament/ViewTournament" />
-      <Stack.Screen name="tournament/CreateTournament" />
-      <Stack.Screen name="tournament/TournamentDetails" />
       <Stack.Screen name="dashboard/player/cricket" />
       <Stack.Screen name="dashboard/player/marathon" />
       <Stack.Screen name="dashboard/organizer/cricket" />

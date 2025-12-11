@@ -1,57 +1,32 @@
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    SafeAreaView,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  SafeAreaView,
+  Text,
+  View,
 } from "react-native";
-import { useAuth } from "../../context/AuthContext"; // your existing context
-
-// ---------------------- API Call ----------------------
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
-
-const getMyBookings = async (token: string) => {
-  const res = await axios.get(`${BASE_URL}/booking/my-bookings`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data?.data || [];
-};
-
-// ---------------------- Screen ----------------------
-type Booking = {
-  id: string;
-  groundId: string;
-  groundName: string;
-  startTime: string;
-  endTime: string;
-  purpose: string;
-  message: string;
-  status: string;
-};
+import { useAuth } from "../../context/AuthContext";
+import { useBookingStore } from "../../store/bookingStore";
 
 const ViewBookingsScreen: React.FC = () => {
-  const { token } = useAuth(); // using your existing AuthContext
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
+  
+  // Use bookingStore instead of local state
+  const {
+    bookings,
+    bookingsLoading,
+    fetchMyBookings,
+  } = useBookingStore();
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      if (!token) return;
-      try {
-        const data = await getMyBookings(token);
-        setBookings(data);
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBookings();
+    if (!token) return;
+    
+    // Smart fetch - only fetches if not cached
+    fetchMyBookings(token);
   }, [token]);
 
-  if (loading) {
+  if (bookingsLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#000" />

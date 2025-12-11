@@ -1,6 +1,5 @@
 import type { Review } from "@/api/reviewApi";
 import { getGroundRatingStats, getGroundReviews } from "@/api/reviewApi";
-import { getAllTournaments } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
@@ -20,7 +19,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ground, useGroundStore } from "../../store/groundStore";
+import { useBookingStore } from "../../store/bookingStore";
+import { useGroundStore } from "../../store/groundStore";
+import { useTournamentStore } from "../../store/tournamentStore";
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
@@ -42,13 +43,24 @@ const GroundDetailsScreen: React.FC = () => {
 
   const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
   const selectedGround = useGroundStore((state) => state.selectedGround);
-  const groundReviews = useGroundStore((state) =>
-    selectedGround ? state.groundReviews[selectedGround.id] : null
-  );
+  
+  const finalGroundId = (params.groundId as string) || "";
+  
+  // Use bookingStore for ground details
+  const {
+    getGroundDetails,
+    fetchGroundDetails,
+    invalidateBookings,
+  } = useBookingStore();
+  
+  // Use tournamentStore for tournaments
+  const {
+    tournaments,
+    fetchTournaments,
+  } = useTournamentStore();
 
-  const [ground, setGround] = useState<Ground | null>(selectedGround);
+  const [ground, setGround] = useState(selectedGround || getGroundDetails(finalGroundId));
   const [loading, setLoading] = useState(false);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
   const [showTournamentPicker, setShowTournamentPicker] = useState(false);
   const [showPurposePicker, setShowPurposePicker] = useState(false);
@@ -76,8 +88,6 @@ const GroundDetailsScreen: React.FC = () => {
   const [reviewStats, setReviewStats] = useState<any>(null);
   const [showReviews, setShowReviews] = useState(false);
 
-  const finalGroundId = (params.groundId as string) || "";
-
   // 🎨 Role-based theme
   const theme = useMemo(() => {
     const isOrganizer = role?.toLowerCase() === "organizer";
@@ -90,23 +100,34 @@ const GroundDetailsScreen: React.FC = () => {
     };
   }, [role]);
 
-  // 🏟️ Fetch Ground Details
+  // Fetch Ground Details with smart caching
   useEffect(() => {
-    const fetchGroundDetails = async () => {
-      if (ground || !finalGroundId) return;
+    const loadGroundDetails = async () => {
+      if (selectedGround) {
+        setGround(selectedGround);
+        return;
+      }
+      
+      if (!finalGroundId) return;
 
-      try {
-        const res = await axios.get(
-          `${BASE_URL}/booking/grounds/${finalGroundId}`
-        );
-        setGround(res.data.data);
-        setSelectedGround(res.data.data);
-      } catch (error) {
-        console.error("❌ Error fetching ground details:", error);
+      // Check  cache first
+      const cachedGround = getGroundDetails(finalGroundId);
+      if (cachedGround) {
+        setGround(cachedGround as any);
+        setSelectedGround(cachedGround as any);
+        return;
+      }
+
+      // Fetch from store (smart caching)
+      await fetchGroundDetails(finalGroundId);
+      const freshGround = getGroundDetails(finalGroundId);
+      if (freshGround) {
+        setGround(freshGround as any);
+        setSelectedGround(freshGround as any);
       }
     };
 
-    fetchGroundDetails();
+    loadGroundDetails();
   }, [finalGroundId]);
 
   // Fetch Reviews
@@ -137,19 +158,17 @@ const GroundDetailsScreen: React.FC = () => {
     fetchReviews();
   }, [finalGroundId]);
 
-  // 🏆 Fetch Tournaments
+  // Fetch Tournaments with smart caching
   useEffect(() => {
-    const fetchTournaments = async () => {
-      try {
-        const data = await getAllTournaments(token);
-        setTournaments(data);
-        if (data.length > 0) setSelectedTournamentId(data[0].id);
-      } catch (error) {
-        console.error("❌ Error fetching tournaments:", error);
-      }
-    };
-    fetchTournaments();
-  }, [token]);
+    if (!token) return;
+    
+    // Smart fetch - only fetches if not cached
+    fetchTournaments(token);
+    
+    if (tournaments.length > 0) {
+      setSelectedTournamentId(tournaments[0].id);
+    }
+  }, [token, tournaments.length]);
 
   // 📅 DateTime Picker Controls
   const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") =>
@@ -183,7 +202,7 @@ const GroundDetailsScreen: React.FC = () => {
       hour12: false,
     });
 
-  // 🏁 Book Ground
+  // Book Ground with cache invalidation
   const handleBookNow = async () => {
     if (!purpose.trim() || !message.trim() || !selectedTournamentId) {
       alert("Please fill in all fields");
@@ -202,12 +221,15 @@ const GroundDetailsScreen: React.FC = () => {
           groundId: finalGroundId,
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString(),
-          purpose: purpose.trim().toLowerCase(), // Convert to lowercase for backend
+          purpose: purpose.trim().toLowerCase(),
           tournamentId: selectedTournamentId,
           message: message.trim(),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Invalidate bookings cache to ensure fresh data
+      invalidateBookings();
 
       alert("✅ Booking request sent successfully!");
       router.push("/booking/MyBookings");

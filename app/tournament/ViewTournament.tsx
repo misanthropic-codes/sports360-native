@@ -1,4 +1,3 @@
-import { getAllTournaments } from "@/api/tournamentApi";
 import BottomNavBar from "@/components/BottomNavBar";
 import CreateTournamentButton from "@/components/CreatTeamButton";
 import FilterTabs from "@/components/FilterTabs2";
@@ -6,16 +5,17 @@ import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
 import { useAuth } from "@/context/AuthContext";
+import { useTournamentStore } from "@/store/tournamentStore";
 import { router } from "expo-router";
 import { Calendar, CheckCircle, Edit } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 
 import {
-    ActivityIndicator,
-    ScrollView,
-    StatusBar,
-    Text,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,9 +27,14 @@ const MyTournamentsScreen = () => {
   const token = auth.token;
   const role = auth.user?.role?.toLowerCase() as "organizer" | "player";
 
-  const [tournaments, setTournaments] = useState<any[]>([]);
+  // Use tournament store for caching
+  const { 
+    tournaments, 
+    loading, 
+    fetchTournaments 
+  } = useTournamentStore();
+
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -38,19 +43,6 @@ const MyTournamentsScreen = () => {
     Upcoming: <Calendar />,
     Draft: <Edit />,
     Completed: <CheckCircle />,
-  };
-
-  const fetchTournaments = async () => {
-    setLoading(true);
-    try {
-      const data = await getAllTournaments(token);
-      setTournaments(data);
-      setFilteredTournaments(data);
-    } catch (error) {
-      console.error("Error fetching tournaments:", error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Unified filter function that applies both tab and search filters
@@ -93,9 +85,18 @@ const MyTournamentsScreen = () => {
     }
   };
 
+  // Fetch tournaments on mount with smart caching
   useEffect(() => {
-    fetchTournaments();
-  }, []);
+    if (token) {
+      fetchTournaments(token);
+    }
+  }, [token]);
+
+  // Update filtered tournaments when store data changes
+  useEffect(() => {
+    setFilteredTournaments(tournaments);
+    filterTournaments(activeTab, searchQuery);
+  }, [tournaments]);
 
   return (
     <SafeAreaView

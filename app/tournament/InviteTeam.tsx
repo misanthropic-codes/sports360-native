@@ -1,8 +1,8 @@
-import { getAllTournaments } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
+import { Tournament, useTournamentStore } from "@/store/tournamentStore";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Send } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -18,47 +18,38 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../../api/api";
 
-type Tournament = {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  status: string;
-};
-
 const InviteTeamScreen = () => {
   const { teamId } = useLocalSearchParams();
   const { token } = useAuth();
 
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  // Use tournament store for cached data
+  const { 
+    tournaments: allTournaments, 
+    loading, 
+    fetchTournaments,
+    invalidateCache 
+  } = useTournamentStore();
+
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // Fetch tournaments on mount (with smart caching)
   useEffect(() => {
-    fetchTournaments();
-  }, []);
-
-  const fetchTournaments = async () => {
-    setLoading(true);
-    try {
-      const data = await getAllTournaments(token);
-      // Filter for active/upcoming tournaments
-      const activeTournaments = data.filter(
-        (t: Tournament) => 
-          t.status?.toLowerCase() === "upcoming" || 
-          t.status?.toLowerCase() === "draft"
-      );
-      setTournaments(activeTournaments);
-    } catch (error) {
-      console.error("Error fetching tournaments:", error);
-      Alert.alert("Error", "Failed to load tournaments");
-    } finally {
-      setLoading(false);
+    if (token) {
+      fetchTournaments(token);
     }
-  };
+  }, [token]);
+
+  // Filter for active/upcoming tournaments
+  const tournaments = useMemo(() => {
+    return allTournaments.filter(
+      (t: Tournament) => 
+        t.status?.toLowerCase() === "upcoming" || 
+        t.status?.toLowerCase() === "draft"
+    );
+  }, [allTournaments]);
 
   const handleInvite = async () => {
     if (!selectedTournamentId) {
@@ -196,8 +187,8 @@ const InviteTeamScreen = () => {
                             {tournament.name}
                           </Text>
                           <Text className="text-purple-600 text-sm mt-1">
-                            {new Date(tournament.startDate).toLocaleDateString()} -{" "}
-                            {new Date(tournament.endDate).toLocaleDateString()}
+                            {tournament.startDate && new Date(tournament.startDate).toLocaleDateString()}{" "}
+                            {tournament.endDate && `- ${new Date(tournament.endDate).toLocaleDateString()}`}
                           </Text>
                           <Text className="text-purple-500 text-xs mt-1 capitalize">
                             Status: {tournament.status}

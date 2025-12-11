@@ -1,56 +1,29 @@
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { useTeamDetailsStore } from "@/store/teamDetailsStore";
 import { useLocalSearchParams } from "expo-router";
 import { Calendar, Clipboard, Trophy } from "phosphor-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-
-type Match = {
-  id: string;
-  tournamentName: string;
-  matchType: string;
-  teamAName?: string;
-  teamBName?: string;
-  opponentTeamName?: string;
-  matchTime: string;
-  status: string;
-  scoreA?: string;
-  scoreB?: string;
-};
 
 const Matches: React.FC = () => {
   const { token } = useAuth();
   const { teamId } = useLocalSearchParams();
 
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use teamDetailsStore instead of local state
+  const {
+    getTeamMatches,
+    fetchTeamMatches,
+    loading,
+  } = useTeamDetailsStore();
 
-  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+  const matches = getTeamMatches(teamId as string);
+  const isLoading = loading[teamId as string] || false;
 
+  // Fetch matches with smart caching
   useEffect(() => {
-    const fetchMatches = async () => {
-      if (!teamId || !token) {
-        setLoading(false);
-        return;
-      }
+    if (!teamId || !token) return;
 
-      try {
-        const response = await axios.get(`${BASE_URL}/team/${teamId}/matches`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const matchesData = response.data?.data?.matches || [];
-        setMatches(matchesData);
-      } catch (error: any) {
-        console.error("Failed to fetch matches:", error.response || error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMatches();
+    fetchTeamMatches(teamId as string, token); // Smart fetch - only if not cached
   }, [teamId, token]);
 
   const getStatusBadge = (status: string) => {
@@ -115,7 +88,7 @@ const Matches: React.FC = () => {
     });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center py-12">
         <ActivityIndicator size="large" color="#4F46E5" />

@@ -4,16 +4,17 @@ import ReusableDropdown from "@/components/dropdown";
 import SelectionPill from "@/components/SelelctionPill";
 import ReusableTextInput from "@/components/TextInput";
 
+import { ImagePickerResult, pickAndStoreImage, pickMultipleImages } from "@/utils/imageUtils";
 import React, { useState } from "react";
 import {
-  Image,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import FeatherIcon from "react-native-vector-icons/Feather";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -31,7 +32,9 @@ const CompleteProfileScreen = () => {
 
   const [groundType, setGroundType] = useState<string | null>(null);
   const [bookingFrequency, setBookingFrequency] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImageLocal, setProfileImageLocal] = useState<string | null>(null);
+  const [profileImageApi, setProfileImageApi] = useState<string | null>(null);
+  const [groundImages, setGroundImages] = useState<ImagePickerResult[]>([]);
 
   const handleFacilityToggle = (value: string) => {
     setFormState((prevState) => {
@@ -127,10 +130,20 @@ const CompleteProfileScreen = () => {
       >
         {/* Profile Picture */}
         <View className="items-center absolute -top-12 left-0 right-0 z-20">
-          <TouchableOpacity className="w-24 h-24 bg-gray-200 rounded-full border-4 border-white items-center justify-center shadow-md overflow-hidden">
-            {profileImage ? (
+          <TouchableOpacity 
+            className="w-24 h-24 bg-gray-200 rounded-full border-4 border-white items-center justify-center shadow-md overflow-hidden"
+            onPress={async () => {
+              const result = await pickAndStoreImage('profile');
+              if (result) {
+                setProfileImageLocal(result.localUri);
+                setProfileImageApi(result.apiUrl);
+                console.log('✅ Profile image selected:', result);
+              }
+            }}
+          >
+            {profileImageLocal ? (
               <Image
-                source={{ uri: profileImage }}
+                source={{ uri: profileImageLocal }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
@@ -211,7 +224,27 @@ const CompleteProfileScreen = () => {
             <Text className="text-gray-600 text-sm font-medium mb-2">
               Upload 2-3 images of the ground*
             </Text>
-            <TouchableOpacity className="bg-green-100 border border-dashed border-green-500 rounded-lg p-6 items-center justify-center">
+            {groundImages.length > 0 ? (
+              <View className="flex-row flex-wrap gap-2 mb-2">
+                {groundImages.map((img, idx) => (
+                  <Image 
+                    key={idx} 
+                    source={{ uri: img.localUri }} 
+                    className="w-20 h-20 rounded-lg"
+                  />
+                ))}
+              </View>
+            ) : null}
+            <TouchableOpacity 
+              className="bg-green-100 border border-dashed border-green-500 rounded-lg p-6 items-center justify-center"
+              onPress={async () => {
+                const results = await pickMultipleImages('ground', 3);
+                if (results.length > 0) {
+                  setGroundImages(results);
+                  console.log(`✅ ${results.length} ground images selected`);
+                }
+              }}
+            >
               <Icon name="cloud-upload-outline" size={32} color="#0D991E" />
               <Text className="text-green-700 mt-2">Upload Ground Images</Text>
             </TouchableOpacity>
