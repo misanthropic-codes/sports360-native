@@ -1,21 +1,24 @@
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Icon from "react-native-vector-icons/Ionicons";
 import api from "../../api/api";
 
 type GroundType = "Turf" | "Stadium" | "Local Ground" | "School/College Ground" | "Private Facility";
@@ -48,6 +51,7 @@ export default function PostGround() {
   const [receiveNotifications, setReceiveNotifications] = useState(true);
 
   const [loading, setLoading] = useState(false);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
 
   // Dropdown visibility
   const [showGroundTypeDropdown, setShowGroundTypeDropdown] = useState(false);
@@ -88,6 +92,43 @@ export default function PostGround() {
       "Seasonly": "seasonly",
     };
     return mapping[value] || value.toLowerCase();
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      setFetchingLocation(true);
+
+      // Request location permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          "Permission Denied",
+          "Please enable location permissions in your device settings to use this feature."
+        );
+        setFetchingLocation(false);
+        return;
+      }
+
+      // Get current position
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      // Format as "latitude,longitude"
+      const formattedCoordinates = `${location.coords.latitude},${location.coords.longitude}`;
+      setCoordinates(formattedCoordinates);
+
+      console.log("📍 Location fetched:", formattedCoordinates);
+    } catch (error: any) {
+      console.error("❌ Location fetch error:", error);
+      Alert.alert(
+        "Location Error",
+        "Unable to fetch your current location. Please ensure location services are enabled and try again."
+      );
+    } finally {
+      setFetchingLocation(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -422,13 +463,30 @@ export default function PostGround() {
 
               <View className="mb-4">
                 <Text className="text-gray-700 font-semibold mb-2">Coordinates *</Text>
-                <TextInput
-                  className="bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
-                  placeholder="e.g., 18.9388,72.8258"
-                  value={coordinates}
-                  onChangeText={setCoordinates}
-                  returnKeyType="next"
-                />
+                <View className="flex-row items-center gap-2">
+                  <TextInput
+                    className="flex-1 bg-white border-2 border-green-200 rounded-xl p-4 text-gray-800"
+                    placeholder="e.g., 18.9388,72.8258"
+                    value={coordinates}
+                    onChangeText={setCoordinates}
+                    returnKeyType="next"
+                    editable={!fetchingLocation}
+                  />
+                  <TouchableOpacity
+                    onPress={getCurrentLocation}
+                    disabled={fetchingLocation}
+                    className={`bg-green-600 rounded-xl p-4 items-center justify-center ${
+                      fetchingLocation ? "opacity-50" : ""
+                    }`}
+                    style={{ minWidth: 56, minHeight: 56 }}
+                  >
+                    {fetchingLocation ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <Icon name="location" size={24} color="white" />
+                    )}
+                  </TouchableOpacity>
+                </View>
                 <Text className="text-gray-500 text-xs mt-1">Format: latitude,longitude</Text>
               </View>
             </View>

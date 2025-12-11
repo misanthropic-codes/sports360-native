@@ -11,6 +11,7 @@ interface GroundStoreState {
   setAvailableGrounds: (grounds: Ground[]) => void;
   setTimeSlot: (slot: TimeSlot) => void;
   setSelectedGround: (ground: Ground | null) => void;
+  resetStore: () => void;
 }
 
 export const useGroundStore = create<GroundStoreState>((set) => ({
@@ -22,4 +23,13 @@ export const useGroundStore = create<GroundStoreState>((set) => ({
     set({ availableGrounds: grounds }),
   setTimeSlot: (slot: TimeSlot) => set({ timeSlot: slot }),
   setSelectedGround: (ground: Ground | null) => set({ selectedGround: ground }),
+  
+  resetStore: () => {
+    console.log("[GroundTStore] Resetting store");
+    set({
+      availableGrounds: [],
+      timeSlot: {},
+      selectedGround: null,
+    });
+  },
 }));

@@ -27,6 +27,11 @@ export interface GroundDetails {
   [key: string]: any;
 }
 
+export interface GroundWithBookings {
+  ground: any;
+  bookings: any[];
+}
+
 interface BookingStore {
   // My bookings
   bookings: Booking[];
@@ -40,10 +45,16 @@ interface BookingStore {
   groundDetailsLoaded: Record<string, boolean>;
   groundDetailsLastFetched: Record<string, number>;
   
+  // Ground owner booking requests
+  grounds: GroundWithBookings[];
+  selectedGround: GroundWithBookings | null;
+  
   // Actions
   fetchMyBookings: (token: string, forceRefresh?: boolean) => Promise<void>;
   fetchGroundDetails: (groundId: string, forceRefresh?: boolean) => Promise<void>;
   getGroundDetails: (groundId: string) => GroundDetails | null;
+  setGrounds: (grounds: GroundWithBookings[]) => void;
+  setSelectedGround: (ground: GroundWithBookings | null) => void;
   invalidateBookings: () => void;
   invalidateGroundDetails: (groundId: string) => void;
   invalidateAllCache: () => void;
@@ -59,6 +70,8 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
   groundDetailsLoading: {},
   groundDetailsLoaded: {},
   groundDetailsLastFetched: {},
+  grounds: [],
+  selectedGround: null,
   
   // Fetch my bookings with smart caching
   fetchMyBookings: async (token: string, forceRefresh = false) => {
@@ -149,6 +162,16 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     return get().groundDetails[groundId] || null;
   },
   
+  // Set grounds (for ground owner booking requests)
+  setGrounds: (grounds: GroundWithBookings[]) => {
+    set({ grounds });
+  },
+  
+  // Set selected ground (for ground owner booking requests)
+  setSelectedGround: (ground: GroundWithBookings | null) => {
+    set({ selectedGround: ground });
+  },
+  
   // Invalidate bookings cache
   invalidateBookings: () => {
     console.log("[BookingStore] Invalidating bookings cache");
@@ -182,6 +205,8 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
       groundDetails: {},
       groundDetailsLoaded: {},
       groundDetailsLastFetched: {},
+      grounds: [],
+      selectedGround: null,
     });
   },
 }));

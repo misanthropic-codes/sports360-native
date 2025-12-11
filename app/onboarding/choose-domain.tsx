@@ -14,7 +14,6 @@ import {
     TouchableWithoutFeedback,
     View,
 } from "react-native";
-import Icon from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcon from "react-native-vector-icons/MaterialCommunityIcons";
 
 interface ProgressIndicatorProps {
@@ -196,11 +195,8 @@ const ChooseDomainScreen: React.FC = () => {
           style={{ flex: 1 }}
         >
           <View className="bg-blue-600 pt-8 pb-6 px-4">
-            <View className="flex-row items-center mb-4">
-              <TouchableOpacity onPress={() => router.back()}>
-                <Icon name="arrow-back-circle" size={40} color="white" />
-              </TouchableOpacity>
-              <Text className="text-white text-xl font-bold ml-3">
+            <View className="items-center mb-4">
+              <Text className="text-white text-xl font-bold">
                 Complete Your Profile
               </Text>
             </View>

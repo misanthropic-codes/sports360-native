@@ -40,6 +40,7 @@ interface OrganizerState {
   summary: Summary | null;
   tournaments: Tournament[];
   fetchAnalytics: (token: string) => Promise<void>;
+  resetStore: () => void;
 }
 
 export const useOrganizerStore = create<OrganizerState>((set) => ({
@@ -78,5 +79,13 @@ export const useOrganizerStore = create<OrganizerState>((set) => ({
     } catch (err) {
       console.error("❌ Failed to fetch organizer analytics:", err);
     }
+  },
+  
+  resetStore: () => {
+    console.log("[OrganizerAnalyticsStore] Resetting store");
+    set({
+      summary: null,
+      tournaments: [],
+    });
   },
 }));
