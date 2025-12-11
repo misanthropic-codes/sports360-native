@@ -144,14 +144,6 @@ const LoginScreen = () => {
       {/* Background header container */}
       <View className="absolute top-0 left-0 right-0 h-[90%] bg-primary rounded-b-[40px] z-0" />
 
-      {/* Back button */}
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        className="absolute top-14 left-5 p-2 z-20"
-      >
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 z-10"

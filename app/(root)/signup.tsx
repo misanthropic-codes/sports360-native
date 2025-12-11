@@ -280,12 +280,6 @@ const SignupScreen = () => {
             {/* Header Section */}
             <View className="bg-primary pt-6 pb-8 rounded-b-[40px]">
               <View className="px-5">
-                <TouchableOpacity
-                  className="self-start p-2 -ml-2"
-                  onPress={() => router.back()}
-                >
-                  <Feather name="arrow-left" size={28} color="#fff" />
-                </TouchableOpacity>
                 <Text className="text-white font-rubikBold text-3xl mt-4">
                   Create Your Account
                 </Text>
