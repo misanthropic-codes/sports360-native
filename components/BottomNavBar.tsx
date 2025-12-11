@@ -101,7 +101,16 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
       }}
     >
       {navItems.map((item) => {
-        const active = pathname.startsWith(item.path);
+        // Special handling for Teams and Grounds tabs - highlight for any related routes
+        let active;
+        if (item.name === "Teams") {
+          active = pathname.startsWith('/team/');
+        } else if (item.name === "Grounds") {
+          active = pathname.startsWith('/booking/');
+        } else {
+          active = pathname.startsWith(item.path);
+        }
+        
         return (
           <NavItem
             key={item.name}

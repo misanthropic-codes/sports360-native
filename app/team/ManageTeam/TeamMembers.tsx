@@ -1,3 +1,4 @@
+import api from "@/api/api";
 import { benchMember, unbenchMember } from "@/api/teamApi";
 import { useAuth } from "@/context/AuthContext";
 import { useTeamDetailsStore } from "@/store/teamDetailsStore";
@@ -8,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View
@@ -17,6 +19,7 @@ const TeamMembers: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [benchingMemberId, setBenchingMemberId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { token, user } = useAuth();
 
   const params = useLocalSearchParams();
@@ -36,6 +39,39 @@ const TeamMembers: React.FC = () => {
     if (!teamId || !token) return;
     fetchTeamMembers(teamId, token);
   }, [teamId, token]);
+
+  // Pull-to-refresh handler with data comparison
+  const onRefresh = async () => {
+    if (!teamId || !token) return;
+    
+    try {
+      setRefreshing(true);
+      
+      // Fetch fresh data from API
+      const response = await api.get(`/team/${teamId}/members`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const freshMembers = response.data.data || [];
+      
+      // Compare with current data
+      const currentMembers = members || [];
+      const hasChanged = JSON.stringify(freshMembers) !== JSON.stringify(currentMembers);
+      
+      if (hasChanged) {
+        console.log("📊 Data changed - updating team members");
+        // Update store only if data changed
+        await fetchTeamMembers(teamId, token, true); // force refresh
+      } else {
+        console.log("✅ No changes detected - keeping current data");
+      }
+    } catch (error) {
+      console.error("❌ Refresh error:", error);
+      Alert.alert("Error", "Failed to refresh team members");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getInitials = (name: string) => {
     const parts = name.split(" ");
@@ -394,6 +430,14 @@ const TeamMembers: React.FC = () => {
         keyExtractor={(item) => item.userId}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3B82F6"]}
+            tintColor="#3B82F6"
+          />
+        }
       />
     </View>
   );

@@ -14,6 +14,7 @@ interface DropdownItemProps {
 }
 interface ReusableDropdownProps {
   options: string[];
+  displayOptions?: string[]; // Optional display labels
   selectedValue: string | null;
   onValueChange: (value: string) => void;
   placeholder?: string;
@@ -59,15 +60,26 @@ const DropdownItem: FC<DropdownItemProps> = ({
 
 const ReusableDropdown: FC<ReusableDropdownProps> = ({
   options,
+  displayOptions,
   selectedValue,
   onValueChange,
   placeholder = "Select an option",
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  
+  // Use displayOptions if provided, otherwise use options
+  const displayLabels = displayOptions || options;
 
   const handleSelect = (option: string) => {
     onValueChange(option);
     setIsOpen(false);
+  };
+  
+  // Get display label for selected value
+  const getDisplayLabel = (value: string | null): string | null => {
+    if (!value) return null;
+    const index = options.indexOf(value);
+    return index !== -1 ? displayLabels[index] : value;
   };
 
   return (
@@ -83,7 +95,7 @@ const ReusableDropdown: FC<ReusableDropdownProps> = ({
               : "text-base text-slate-400"
           }
         >
-          {selectedValue || placeholder}
+          {getDisplayLabel(selectedValue) || placeholder}
         </Text>
         <ChevronDown size={20} color="#64748B" />
       </Pressable>
@@ -105,7 +117,7 @@ const ReusableDropdown: FC<ReusableDropdownProps> = ({
             {options.map((option, index) => (
               <DropdownItem
                 key={index}
-                label={option}
+                label={displayLabels[index]}
                 isSelected={option === selectedValue}
                 onPress={() => handleSelect(option)}
               />

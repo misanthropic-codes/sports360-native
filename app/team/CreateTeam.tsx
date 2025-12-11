@@ -427,6 +427,7 @@ const CreateTeamScreen: React.FC = () => {
             <FormDropdown
               label="Sport *"
               options={["cricket", "marathon"]}
+              displayOptions={["Cricket", "Marathon"]}
               selectedValue={sport}
               onValueChange={(value) => {
                 setSport(value);

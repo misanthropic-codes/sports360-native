@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
 import { Sparkles, TrendingUp } from "lucide-react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
@@ -19,6 +20,7 @@ import { useGroundStore } from "../../store/groundStore";
 const GroundBookingScreen = () => {
   const router = useRouter();
   const { user, token } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
 
   // Use existing groundStore instead of local state
   const {
@@ -41,6 +43,15 @@ const GroundBookingScreen = () => {
     fetchGrounds(token);
   }, [token]);
 
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    
+    setRefreshing(true);
+    await fetchGrounds(token, true); // Force refresh
+    setRefreshing(false);
+  };
+
   if (groundsLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
@@ -59,7 +70,17 @@ const GroundBookingScreen = () => {
         onBackPress={() => router.back()}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3B82F6"]}
+            tintColor="#3B82F6"
+          />
+        }
+      >
         {/* Hero Section */}
         <View className="bg-blue-600 pt-6 pb-8 px-4">
           <View className="mb-4">

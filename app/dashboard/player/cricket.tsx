@@ -157,88 +157,86 @@ const CricketHomeScreen = () => {
 
         {/* Win Rate + Stats Card */}
         <View className="bg-white rounded-xl p-5 mb-6 shadow-sm">
-          <View className="flex-row items-center">
-            {/* Win Rate Circle */}
-            <View className="items-center">
-              <View className="w-24 h-24 mb-1">
-                <Svg width={100} height={100}>
-                  <Defs>
-                    <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <Stop offset="0%" stopColor="#10B981" />
-                      <Stop offset="100%" stopColor="#059669" />
-                    </LinearGradient>
-                  </Defs>
+          {/* Win Rate Circle - Centered at Top */}
+          <View className="items-center mb-5">
+            <View className="w-24 h-24 items-center justify-center">
+              <Svg width={96} height={96} viewBox="0 0 100 100">
+                <Defs>
+                  <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#10B981" />
+                    <Stop offset="100%" stopColor="#059669" />
+                  </LinearGradient>
+                </Defs>
 
-                  <Circle
-                    cx={50}
-                    cy={50}
-                    r={radius}
-                    stroke="#E2E8F0"
-                    strokeWidth={8}
-                    fill="none"
-                  />
+                <Circle
+                  cx={50}
+                  cy={50}
+                  r={radius}
+                  stroke="#E2E8F0"
+                  strokeWidth={8}
+                  fill="none"
+                />
 
-                  <Circle
-                    cx={50}
-                    cy={50}
-                    r={radius}
-                    stroke="url(#grad)"
-                    strokeWidth={8}
-                    fill="none"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    rotation="-90"
-                    origin="50,50"
-                  />
-                </Svg>
+                <Circle
+                  cx={50}
+                  cy={50}
+                  r={radius}
+                  stroke="url(#grad)"
+                  strokeWidth={8}
+                  fill="none"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+                  rotation="-90"
+                  origin="50,50"
+                />
+              </Svg>
 
-                <View className="absolute inset-0 items-center justify-center">
-                  <Text className="text-xl font-extrabold text-emerald-500">
-                    {winRate}%
-                  </Text>
-                </View>
+              <View className="absolute inset-0 items-center justify-center">
+                <Text className="text-2xl font-extrabold text-emerald-500">
+                  {winRate}%
+                </Text>
               </View>
+            </View>
 
-              <Text className="text-xs font-semibold text-slate-500">
-                WIN RATE
+            <Text className="text-xs font-semibold text-slate-500 mt-2">
+              WIN RATE
+            </Text>
+          </View>
+
+          {/* Stats Row - 3 Columns */}
+          <View className="flex-row justify-between px-2">
+            <View className="flex-1 items-center">
+              <Text className="text-xs text-slate-500 font-semibold mb-1">
+                TOTAL RUNS
+              </Text>
+              <Text className="text-2xl font-bold text-slate-900">
+                {summary?.totalRuns ?? 0}
               </Text>
             </View>
 
-            {/* Stats */}
-            <View className="flex-1 ml-6">
-              <View className="mb-3">
-                <Text className="text-xs text-slate-500 font-semibold mb-1">
-                  TOTAL RUNS
-                </Text>
-                <Text className="text-xl font-bold text-slate-900">
-                  {summary?.totalRuns ?? 0}
-                </Text>
-              </View>
+            <View className="flex-1 items-center border-x border-slate-100 px-2">
+              <Text className="text-xs text-slate-500 font-semibold mb-1">
+                WICKETS
+              </Text>
+              <Text className="text-2xl font-bold text-slate-900">
+                {summary?.totalWickets ?? 0}
+              </Text>
+            </View>
 
-              <View className="mb-3">
-                <Text className="text-xs text-slate-500 font-semibold mb-1">
-                  TOTAL WICKETS
-                </Text>
-                <Text className="text-xl font-bold text-slate-900">
-                  {summary?.totalWickets ?? 0}
-                </Text>
-              </View>
-
-              <View>
-                <Text className="text-xs text-slate-500 font-semibold mb-1">
-                  AVG SCORE
-                </Text>
-                <Text className="text-xl font-bold text-amber-500">
-                  {summary?.averageScore ?? 0}
-                </Text>
-              </View>
+            <View className="flex-1 items-center">
+              <Text className="text-xs text-slate-500 font-semibold mb-1">
+                AVG SCORE
+              </Text>
+              <Text className="text-2xl font-bold text-amber-500">
+                {summary?.averageScore ?? 0}
+              </Text>
             </View>
           </View>
 
           <TouchableOpacity
             onPress={() => openModal("performance")}
-            className="mt-4 pt-3 border-t border-slate-100 flex-row items-center justify-center"
+            className="mt-5 pt-4 border-t border-slate-100 flex-row items-center justify-center"
           >
             <Text className="text-blue-600 font-semibold text-sm mr-1">
               View Full Stats
