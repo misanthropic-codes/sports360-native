@@ -9,6 +9,7 @@ interface FeaturedEventCardProps {
   location: string;
   type: string;
   onJoinPress?: () => void;
+  buttonText?: string;
 }
 
 const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
@@ -18,6 +19,7 @@ const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
   location,
   type,
   onJoinPress,
+  buttonText = "Join Now",
 }) => {
   return (
     <View className="bg-indigo-700 rounded-2xl p-5 shadow-lg" style={{ width: 320 }}>
@@ -40,7 +42,7 @@ const FeaturedEventCard: React.FC<FeaturedEventCardProps> = ({
           className="bg-white px-8 py-3 rounded-full"
           onPress={onJoinPress}
         >
-          <Text className="text-indigo-700 font-bold">Join Now</Text>
+          <Text className="text-indigo-700 font-bold">{buttonText}</Text>
         </TouchableOpacity>
       </View>
     </View>

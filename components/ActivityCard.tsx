@@ -41,9 +41,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     return (
       <View className="flex-row items-center bg-white p-3 mx-4 my-1.5 rounded-xl border border-slate-100 shadow-sm">
         <View className="bg-blue-100 p-3 rounded-lg mr-4">{icon}</View>
-        <View>
+        <View className="flex-1">
           {description && (
-            <Text className="text-slate-700 font-semibold">{description}</Text>
+            <Text className="text-slate-700 font-semibold" numberOfLines={2}>
+              {description}
+            </Text>
           )}
           {timestamp && (
             <Text className="text-slate-400 text-xs mt-0.5">{timestamp}</Text>

@@ -1,9 +1,9 @@
-import axios from "axios";
 import { useRouter } from "expo-router";
 import { Sparkles, TrendingUp } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
@@ -15,44 +15,44 @@ import VenueCard from "../../components/Card";
 import Header from "../../components/Header";
 import SearchBar from "../../components/SearchBar";
 import { useAuth } from "../../context/AuthContext";
-import { Ground, useGroundStore } from "../../store/groundStore";
-
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+import { useGroundStore } from "../../store/groundStore";
 
 const GroundBookingScreen = () => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
-
-  const [grounds, setGrounds] = useState<Ground[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use existing groundStore instead of local state
+  const {
+    grounds,
+    groundsLoading,
+    fetchGrounds,
+    setSelectedGround,
+  } = useGroundStore();
 
   const role = user?.role || "player";
   const type = Array.isArray(user?.domains)
     ? user.domains.join(", ")
     : user?.domains || "team";
 
+  // Fetch grounds with smart caching
   useEffect(() => {
-    const fetchGrounds = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/booking/grounds/all`);
-        const groundsArray = res.data?.data || [];
+    if (!token) return;
+    
+    // Smart fetch - only fetches if not cached
+    fetchGrounds(token);
+  }, [token]);
 
-        console.log("✅ Grounds fetched:", groundsArray);
-        setGrounds(groundsArray);
-      } catch (err) {
-        console.error("❌ Error fetching grounds:", err);
-        setGrounds([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    
+    setRefreshing(true);
+    await fetchGrounds(token, true); // Force refresh
+    setRefreshing(false);
+  };
 
-    fetchGrounds();
-  }, []);
-
-  if (loading) {
+  if (groundsLoading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#3B82F6" />
@@ -70,7 +70,17 @@ const GroundBookingScreen = () => {
         onBackPress={() => router.back()}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3B82F6"]}
+            tintColor="#3B82F6"
+          />
+        }
+      >
         {/* Hero Section */}
         <View className="bg-blue-600 pt-6 pb-8 px-4">
           <View className="mb-4">

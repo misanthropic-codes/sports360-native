@@ -8,6 +8,17 @@ import React, {
     useState,
 } from "react";
 
+// Import all stores for logout cleanup
+import { useBookingStore } from "@/store/bookingStore";
+import { useGroundStore as useMainGroundStore } from "@/store/groundStore";
+import { useGroundStore as useBookingGroundStore } from "@/store/groundTStore";
+import { useOrganizerStore } from "@/store/organizerAnalyticsStore";
+import { usePlayerAnalyticsStore } from "@/store/playerAnalyticsStore";
+import { useTeamDetailsStore } from "@/store/teamDetailsStore";
+import { useTeamStore } from "@/store/teamStore";
+import { useTournamentStore } from "@/store/tournamentStore";
+import { useUserStore } from "@/store/userStore";
+
 export interface User {
   id: string;
   fullName: string;
@@ -69,9 +80,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    console.log("🚪 Logging out - clearing all cached data...");
+    
+    // Clear AuthContext state
     setUser(null);
     setToken(null);
-    await AsyncStorage.removeItem("user");
+    
+    // Clear all Zustand stores
+    try {
+      // Team stores
+      useTeamStore.getState().invalidateCache();
+      useTeamDetailsStore.getState().invalidateAllCache();
+      
+      // Tournament store
+      useTournamentStore.getState().invalidateCache();
+      
+      // User & Analytics stores
+      useUserStore.getState().invalidateCache();
+      usePlayerAnalyticsStore.getState().invalidateCache();
+      useOrganizerStore.getState().resetStore();
+      
+      // Booking & Ground stores
+      useBookingStore.getState().invalidateAllCache();
+      useMainGroundStore.getState().invalidateGroundsCache();
+      useBookingGroundStore.getState().resetStore();
+      
+      console.log("✅ All Zustand stores cleared");
+    } catch (error) {
+      console.error("❌ Error clearing Zustand stores:", error);
+    }
+    
+    // Clear ALL AsyncStorage data
+    try {
+      await AsyncStorage.clear();
+      console.log("✅ AsyncStorage cleared");
+    } catch (error) {
+      console.error("❌ Error clearing AsyncStorage:", error);
+    }
   };
 
   return (

@@ -2,25 +2,84 @@ import { reviewBookingRequest } from "@/api/booking";
 import { useAuth } from "@/context/AuthContext";
 import { useBookingStore } from "@/store/bookingStore";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const BookingRequestsScreen: React.FC = () => {
   const selectedGround = useBookingStore((state) => state.selectedGround);
+  const setSelectedGround = useBookingStore((state) => state.setSelectedGround);
   const { token } = useAuth();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+  // Fetch booking requests data
+  const fetchBookingRequests = async (isRefreshing = false) => {
+    try {
+      if (!isRefreshing) setLoading(true);
+      setError(null);
+
+      const res = await fetch(`${BASE_URL}/ground-owner/booking-requests`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const json = await res.json();
+
+      // Group bookings by ground (same logic as Booking.tsx)
+      const grouped = json.data?.reduce((acc: any, request: any) => {
+        const groundId = request.ground.id;
+        if (!acc[groundId])
+          acc[groundId] = { ground: request.ground, bookings: [] };
+        acc[groundId].bookings.push(request);
+        return acc;
+      }, {});
+
+      const groupedArray = Object.values(grouped || {}) as any[];
+
+      // Auto-select first ground if no ground is currently selected
+      if (!selectedGround && groupedArray.length > 0) {
+        console.log("📍 Auto-selecting first ground:", groupedArray[0].ground.groundOwnerName);
+        setSelectedGround(groupedArray[0]);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching booking requests:", err);
+      setError(err instanceof Error ? err.message : "Failed to load booking requests");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch data on mount
+  useEffect(() => {
+    if (token) {
+      fetchBookingRequests();
+    }
+  }, [token]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchBookingRequests(true);
+  };
 
   const handleReview = async (
     bookingId: string,
@@ -79,10 +138,48 @@ const BookingRequestsScreen: React.FC = () => {
     setSelectedBooking(null);
   };
 
-  if (!selectedGround) {
+  if (loading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
-        <Text className="text-gray-500">No ground selected</Text>
+        <StatusBar backgroundColor="#15803d" barStyle="light-content" />
+        <ActivityIndicator size="large" color="#16a34a" />
+        <Text className="text-gray-500 mt-4">Loading booking requests...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-white px-6">
+        <StatusBar backgroundColor="#15803d" barStyle="light-content" />
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text className="text-gray-800 text-lg font-semibold mt-4 text-center">Error Loading Requests</Text>
+        <Text className="text-gray-600 mt-2 text-center">{error}</Text>
+        <TouchableOpacity
+          onPress={() => fetchBookingRequests()}
+          className="bg-green-600 px-6 py-3 rounded-lg mt-6"
+        >
+          <Text className="text-white font-semibold">Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (!selectedGround) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-white px-6">
+        <StatusBar backgroundColor="#15803d" barStyle="light-content" />
+        <Ionicons name="file-tray" size={64} color="#d1d5db" />
+        <Text className="text-gray-800 text-xl font-semibold mt-4">No Booking Requests</Text>
+        <Text className="text-gray-600 mt-2 text-center">
+          You don't have any booking requests yet.
+        </Text>
+        <TouchableOpacity
+          onPress={onRefresh}
+          className="bg-green-600 px-6 py-3 rounded-lg mt-6"
+        >
+          <Text className="text-white font-semibold">Refresh</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -102,8 +199,27 @@ const BookingRequestsScreen: React.FC = () => {
       </View>
 
       {/* Booking List */}
-      <ScrollView className="p-4">
-        {selectedGround.bookings.map((booking: any) => (
+      <ScrollView
+        className="p-4"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#16a34a"]}
+            tintColor="#16a34a"
+          />
+        }
+      >
+        {selectedGround.bookings.length === 0 ? (
+          <View className="flex-1 justify-center items-center py-20">
+            <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
+            <Text className="text-gray-800 text-lg font-semibold mt-4">No Requests Yet</Text>
+            <Text className="text-gray-600 mt-2 text-center px-6">
+              This ground doesn't have any booking requests at the moment.
+            </Text>
+          </View>
+        ) : (
+          selectedGround.bookings.map((booking: any) => (
           <View
             key={booking.id}
             className="bg-white border-l-4 border-green-600 p-4 rounded-xl shadow-lg mb-4"
@@ -162,7 +278,8 @@ const BookingRequestsScreen: React.FC = () => {
               )}
             </View>
           </View>
-        ))}
+          ))
+        )}
       </ScrollView>
 
       {/* Booking Details Modal */}

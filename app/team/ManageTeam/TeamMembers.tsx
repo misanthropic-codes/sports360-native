@@ -1,66 +1,77 @@
+import api from "@/api/api";
 import { benchMember, unbenchMember } from "@/api/teamApi";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { useTeamDetailsStore } from "@/store/teamDetailsStore";
 import { useLocalSearchParams } from "expo-router";
-import { Crown, DotsThreeVertical, User } from "phosphor-react-native";
+import { CaretDown, CaretUp, Crown, DotsThreeVertical, User } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
-
-type Member = {
-  teamId: string;
-  userId: string;
-  role: string;
-  joinedAt: string;
-  isActive: boolean;
-  addedAt: string;
-  addedBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  removedAt: string | null;
-  removedBy: string | null;
-  fullName: string;
-  email: string;
-  profilePicUrl: string | null;
-  playingPosition: string;
-  battingStyle: string;
-  bowlingStyle: string;
-  batsmanType: string | null;
-  isBenched?: boolean;
-};
-
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    Text,
+    TouchableOpacity,
+    View
+} from "react-native";
 
 const TeamMembers: React.FC = () => {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [benchingMemberId, setBenchingMemberId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { token, user } = useAuth();
 
   const params = useLocalSearchParams();
   const teamId = params.teamId as string;
 
+  const {
+    getTeamMembers,
+    fetchTeamMembers,
+    updateMemberBenchStatus,
+    loading,
+  } = useTeamDetailsStore();
+
+  const members = getTeamMembers(teamId);
+  const isLoading = loading[teamId] || false;
+
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId || !token) return;
+    fetchTeamMembers(teamId, token);
+  }, [teamId, token]);
 
-    const fetchMembers = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/team/${teamId}/members`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.data.status === 200 && res.data.success) {
-          setMembers(res.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch team members", err);
-      } finally {
-        setLoading(false);
+  // Pull-to-refresh handler with data comparison
+  const onRefresh = async () => {
+    if (!teamId || !token) return;
+    
+    try {
+      setRefreshing(true);
+      
+      // Fetch fresh data from API
+      const response = await api.get(`/team/${teamId}/members`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const freshMembers = response.data.data || [];
+      
+      // Compare with current data
+      const currentMembers = members || [];
+      const hasChanged = JSON.stringify(freshMembers) !== JSON.stringify(currentMembers);
+      
+      if (hasChanged) {
+        console.log("📊 Data changed - updating team members");
+        // Update store only if data changed
+        await fetchTeamMembers(teamId, token, true); // force refresh
+      } else {
+        console.log("✅ No changes detected - keeping current data");
       }
-    };
-
-    fetchMembers();
-  }, [token, teamId]);
+    } catch (error) {
+      console.error("❌ Refresh error:", error);
+      Alert.alert("Error", "Failed to refresh team members");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getInitials = (name: string) => {
     const parts = name.split(" ");
@@ -68,6 +79,15 @@ const TeamMembers: React.FC = () => {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  };
+
+  const capitalizeText = (text: string) => {
+    if (!text) return "";
+    return text
+      .replace(/_/g, " ")
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -78,15 +98,13 @@ const TeamMembers: React.FC = () => {
     if (lowerRole.includes("vice")) {
       return "bg-blue-100 text-blue-700 border-blue-200";
     }
-    return "bg-gray-100 text-gray-700 border-gray-200";
+    return "bg-slate-100 text-slate-700 border-slate-200";
   };
 
-  // Check if current user is captain
   const isCurrentUserCaptain = members.some(
     (m) => m.userId === user?.id && m.role.toLowerCase().includes("captain")
   );
 
-  // Handle bench/unbench member
   const handleBenchMember = (memberId: string, currentlyBenched: boolean) => {
     if (!isCurrentUserCaptain) {
       Alert.alert("Unauthorized", "Only team captains can bench/unbench members.");
@@ -111,6 +129,7 @@ const TeamMembers: React.FC = () => {
 
               setBenchingMemberId(memberId);
               setOpenMenuId(null);
+              updateMemberBenchStatus(teamId, memberId, !currentlyBenched);
 
               if (currentlyBenched) {
                 await unbenchMember(teamId, memberId, token);
@@ -118,14 +137,10 @@ const TeamMembers: React.FC = () => {
                 await benchMember(teamId, memberId, token);
               }
 
-              // Update local state
-              setMembers((prevMembers) =>
-                prevMembers.map((m) =>
-                  m.userId === memberId
-                    ? { ...m, isBenched: !currentlyBenched }
-                    : m
-                )
-              );
+              // ✅ Invalidate cache and force refresh to update UI
+              const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
+              invalidateTeamCache(teamId);
+              await fetchTeamMembers(teamId, token, true);
 
               Alert.alert(
                 "Success",
@@ -133,6 +148,7 @@ const TeamMembers: React.FC = () => {
               );
             } catch (error: any) {
               console.error("Bench/Unbench error:", error);
+              updateMemberBenchStatus(teamId, memberId, currentlyBenched);
               Alert.alert(
                 "Error",
                 error.response?.data?.message ||
@@ -147,11 +163,11 @@ const TeamMembers: React.FC = () => {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center py-12">
-        <ActivityIndicator size="large" color="#4F46E5" />
-        <Text className="mt-4 text-gray-600 font-medium">Loading team members...</Text>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text className="mt-4 text-slate-600 font-medium">Loading team members...</Text>
       </View>
     );
   }
@@ -159,224 +175,275 @@ const TeamMembers: React.FC = () => {
   if (members.length === 0) {
     return (
       <View className="flex-1 justify-center items-center py-16">
-        <View className="bg-gray-100 rounded-full p-6 mb-4">
-          <User size={48} color="#9CA3AF" weight="light" />
+        <View className="bg-slate-100 rounded-full p-8 mb-4">
+          <User size={56} color="#94A3B8" weight="light" />
         </View>
-        <Text className="text-xl font-bold text-gray-900 mb-2">
+        <Text className="text-xl font-bold text-slate-900 mb-2">
           No Team Members
         </Text>
-        <Text className="text-gray-500 text-center px-8">
-          Your team doesn't have any members yet. Start inviting players to join!
+        <Text className="text-slate-500 text-center px-8 leading-5">
+          Your team doesn't have any members yet.{"\n"}Start inviting players to join!
         </Text>
       </View>
     );
   }
 
-  return (
-    <View className="space-y-3">
-      {/* Header Stats */}
-      <View className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-2">
-        <Text className="text-indigo-900 font-bold text-lg">
-          {members.length} {members.length === 1 ? "Member" : "Members"}
-        </Text>
-        <Text className="text-indigo-600 text-sm">
-          Active team roster
-        </Text>
-      </View>
+  const renderMember = ({ item: member }: { item: any }) => {
+    const isMemberCaptain = member.role.toLowerCase().includes("captain") || 
+                            member.role.toLowerCase().includes("leader");
+    const isMenuOpen = openMenuId === member.userId;
+    const isExpanded = expandedId === member.userId;
+    const shouldShowMenu = isCurrentUserCaptain && !isMemberCaptain;
 
-      {/* Members List */}
-      {members.map((member, index) => {
-        // Check if THIS member is a captain
-        const isMemberCaptain = member.role.toLowerCase().includes("captain") || 
-                         member.role.toLowerCase().includes("leader");
-        const isMenuOpen = openMenuId === member.userId;
-        // Show menu only if: current user is captain AND this member is NOT a captain
-        const shouldShowMenu = isCurrentUserCaptain && !isMemberCaptain;
-        
-        return (
-          <View
-            key={member.userId}
-            style={{
-              backgroundColor: "white",
-              borderWidth: 1,
-              borderColor: "#E5E7EB",
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
-              elevation: isMenuOpen ? 999 : 2,
-              zIndex: isMenuOpen ? 9999 : members.length - index,
-            }}
-          >
-            {/* Header */}
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-1">
-                <View className="flex-row items-center mb-1">
-                  <Text className="text-gray-900 font-bold text-lg mr-2">
-                    {member.fullName}
+    return (
+      <View className="px-4 mb-3">
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setExpandedId(isExpanded ? null : member.userId)}
+          className="bg-white rounded-2xl"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            elevation: 3,
+          }}
+        >
+          {/* Compact Header - Always Visible */}
+          <View className="p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                {/* Avatar */}
+                <View 
+                  className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-3"
+                >
+                  <Text className="text-blue-600 font-bold text-base">
+                    {getInitials(member.fullName)}
                   </Text>
-                  {isMemberCaptain && (
-                    <Crown size={20} weight="fill" color="#F59E0B" />
-                  )}
                 </View>
-                <Text className="text-gray-600 text-sm">{member.email}</Text>
+
+                {/* Name & Position */}
+                <View className="flex-1">
+                  <View className="flex-row items-center">
+                    <Text className="text-slate-900 font-bold text-base mr-2" numberOfLines={1}>
+                      {member.fullName}
+                    </Text>
+                    {isMemberCaptain && (
+                      <Crown size={16} weight="fill" color="#F59E0B" />
+                    )}
+                  </View>
+                  <Text className="text-slate-500 text-sm mt-0.5">
+                    {capitalizeText(member.playingPosition)}
+                  </Text>
+                </View>
               </View>
-              
-              <View
-                className={`px-3 py-1 rounded-full ${
-                  member.isActive ? "bg-green-100" : "bg-gray-100"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-semibold ${
-                    member.isActive ? "text-green-700" : "text-gray-600"
+
+              {/* Status & Expand Icon */}
+              <View className="flex-row items-center">
+                <View
+                  className={`px-2.5 py-1 rounded-full mr-2 ${
+                    member.isActive ? "bg-emerald-100" : "bg-slate-100"
                   }`}
                 >
-                  {member.isActive ? "Active" : "Inactive"}
-                </Text>
+                  <Text
+                    className={`text-xs font-semibold ${
+                      member.isActive ? "text-emerald-700" : "text-slate-600"
+                    }`}
+                  >
+                    {member.isActive ? "Active" : "Inactive"}
+                  </Text>
+                </View>
+                
+                {isExpanded ? (
+                  <CaretUp size={20} color="#64748B" weight="bold" />
+                ) : (
+                  <CaretDown size={20} color="#64748B" weight="bold" />
+                )}
               </View>
             </View>
 
-            {/* Role Badge and Benched Badge */}
-            <View className="mb-3 flex-row">
-              <View className={`
-                self-start px-3 py-1 rounded-full border
-                ${getRoleBadgeColor(member.role)}
-              `}>
+            {/* Badges Row */}
+            <View className="flex-row items-center mt-3 flex-wrap">
+              <View className={`px-3 py-1 rounded-full border mr-2 mb-1 ${getRoleBadgeColor(member.role)}`}>
                 <Text className="text-xs font-bold uppercase tracking-wide">
                   {member.role}
                 </Text>
               </View>
               {member.isBenched && (
-                <View 
-                  className="ml-2 px-3 py-1 rounded-full bg-red-100 border border-red-300"
-                >
+                <View className="px-3 py-1 rounded-full bg-red-100 border border-red-300 mb-1">
                   <Text className="text-xs font-bold uppercase tracking-wide text-red-700">
                     BENCHED
                   </Text>
                 </View>
               )}
             </View>
+          </View>
 
-            {/* Player Profile */}
-            <View className="bg-indigo-50 rounded-lg p-3 mb-3">
-              <Text className="text-indigo-900 font-semibold text-sm mb-2">
-                Player Profile
-              </Text>
-              <View className="space-y-1">
-                <View className="flex-row mb-1">
-                  <Text className="text-indigo-700 font-medium text-xs w-28">
-                    Position:
-                  </Text>
-                  <Text className="text-indigo-900 text-xs flex-1 capitalize">
-                    {member.playingPosition}
-                  </Text>
-                </View>
-                <View className="flex-row mb-1">
-                  <Text className="text-indigo-700 font-medium text-xs w-28">
-                    Batting:
-                  </Text>
-                  <Text className="text-indigo-900 text-xs flex-1 capitalize">
-                    {member.battingStyle.replace("_", " ")}
-                  </Text>
-                </View>
-                <View className="flex-row mb-1">
-                  <Text className="text-indigo-700 font-medium text-xs w-28">
-                    Bowling:
-                  </Text>
-                  <Text className="text-indigo-900 text-xs flex-1 capitalize">
-                    {member.bowlingStyle.replace(/_/g, " ")}
-                  </Text>
-                </View>
-                {member.batsmanType && (
-                  <View className="flex-row">
-                    <Text className="text-indigo-700 font-medium text-xs w-28">
-                      Batsman Type:
+          {/* Expanded Details */}
+          {isExpanded && (
+            <View className="px-4 pb-4 pt-2 border-t border-slate-100">
+              {/* Contact Info */}
+              <View className="mb-3">
+                <Text className="text-slate-500 text-sm mb-1">Email</Text>
+                <Text className="text-slate-900 text-sm">{member.email}</Text>
+              </View>
+
+              {/* Player Profile */}
+              <View className="bg-blue-50 rounded-xl p-3 mb-3">
+                <Text className="text-blue-900 font-semibold text-sm mb-2">
+                  Player Profile
+                </Text>
+                <View className="space-y-1">
+                  <View className="flex-row mb-1.5">
+                    <Text className="text-blue-700 font-medium text-xs w-28">
+                      Position:
                     </Text>
-                    <Text className="text-indigo-900 text-xs flex-1 capitalize">
-                      {member.batsmanType}
+                    <Text className="text-blue-900 text-xs flex-1">
+                      {capitalizeText(member.playingPosition)}
                     </Text>
+                  </View>
+                  <View className="flex-row mb-1.5">
+                    <Text className="text-blue-700 font-medium text-xs w-28">
+                      Batting:
+                    </Text>
+                    <Text className="text-blue-900 text-xs flex-1">
+                      {capitalizeText(member.battingStyle)}
+                    </Text>
+                  </View>
+                  <View className="flex-row mb-1.5">
+                    <Text className="text-blue-700 font-medium text-xs w-28">
+                      Bowling:
+                    </Text>
+                    <Text className="text-blue-900 text-xs flex-1">
+                      {capitalizeText(member.bowlingStyle)}
+                    </Text>
+                  </View>
+                  {member.batsmanType && (
+                    <View className="flex-row">
+                      <Text className="text-blue-700 font-medium text-xs w-28">
+                        Batsman Type:
+                      </Text>
+                      <Text className="text-blue-900 text-xs flex-1">
+                        {capitalizeText(member.batsmanType)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Footer with Join Date and Actions */}
+              <View className="flex-row justify-between items-center">
+                <Text className="text-slate-500 text-xs">
+                  Joined {new Date(member.joinedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </Text>
+                {shouldShowMenu && (
+                  <View style={{ position: "relative", zIndex: 9999 }}>
+                    <TouchableOpacity 
+                      onPress={() => setOpenMenuId(isMenuOpen ? null : member.userId)}
+                      className="px-3 py-2 bg-slate-100 rounded-lg"
+                      activeOpacity={0.7}
+                      disabled={benchingMemberId === member.userId}
+                    >
+                      <DotsThreeVertical size={18} color="#64748B" weight="bold" />
+                    </TouchableOpacity>
+                    {isMenuOpen && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          bottom: 40,
+                          right: 0,
+                          backgroundColor: "white",
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: "#E5E7EB",
+                          minWidth: 160,
+                          zIndex: 10000,
+                          elevation: 10,
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                        }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => handleBenchMember(member.userId, member.isBenched || false)}
+                          className="px-4 py-3"
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            className={`font-semibold text-sm ${
+                              member.isBenched ? "text-emerald-600" : "text-red-600"
+                            }`}
+                          >
+                            {member.isBenched ? "Unbench Member" : "Bench Member"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
             </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
-            {/* Footer with Join Date and Actions */}
-            <View className="flex-row justify-between items-center border-t border-gray-100 pt-3">
-              <Text className="text-gray-500 text-xs">
-                Joined {new Date(member.joinedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+  return (
+    <View className="flex-1 bg-slate-50">
+      {/* Header Stats */}
+      <View className="px-4 pt-4 pb-3">
+        <View className="bg-white rounded-2xl p-4"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+          }}
+        >
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-2xl font-bold text-slate-900">
+                {members.length}
               </Text>
-              {shouldShowMenu && (
-                <View style={{ position: "relative", zIndex: 1000 }}>
-                  <TouchableOpacity 
-                    onPress={() => {
-                      console.log("🎯 Menu clicked for:", member.fullName);
-                      setOpenMenuId(openMenuId === member.userId ? null : member.userId);
-                    }}
-                    style={{
-                      padding: 8,
-                      backgroundColor: "#F9FAFB",
-                      borderRadius: 8,
-                    }}
-                    activeOpacity={0.7}
-                    disabled={benchingMemberId === member.userId}
-                  >
-                    <DotsThreeVertical size={20} color="#6B7280" weight="bold" />
-                  </TouchableOpacity>
-                  {openMenuId === member.userId && (
-                    <View
-                      style={{
-                        position: "absolute",
-                        top: 40,
-                        right: 0,
-                        backgroundColor: "white",
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: "#e5e7eb",
-                        minWidth: 160,
-                        zIndex: 2000,
-                        elevation: 5,
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.25,
-                        shadowRadius: 3.84,
-                      }}
-                    >
-                      <TouchableOpacity
-                        onPress={() => {
-                          handleBenchMember(member.userId, member.isBenched || false);
-                        }}
-                        style={{
-                          paddingHorizontal: 16,
-                          paddingVertical: 12,
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "500",
-                            color: member.isBenched ? "#16a34a" : "#dc2626",
-                          }}
-                        >
-                          {member.isBenched ? "Unbench Member" : "Bench Member"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              )}
+              <Text className="text-slate-500 text-sm mt-0.5">
+                Total Members
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-2xl font-bold text-emerald-600">
+                {members.filter(m => m.isActive).length}
+              </Text>
+              <Text className="text-slate-500 text-sm mt-0.5">
+                Active
+              </Text>
             </View>
           </View>
-        );
-      })}
+        </View>
+      </View>
+
+      {/* Members List */}
+      <FlatList
+        data={members}
+        renderItem={renderMember}
+        keyExtractor={(item) => item.userId}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3B82F6"]}
+            tintColor="#3B82F6"
+          />
+        }
+      />
     </View>
   );
 };

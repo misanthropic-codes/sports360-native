@@ -6,21 +6,20 @@ import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
 import { useAuth } from "@/context/AuthContext";
 import { useOrganizerTournamentStore } from "@/store/organizerTournamentStore";
-import { useTournamentStore } from "@/store/tournamentStore";
 import { router } from "expo-router";
 import { Calendar, CheckCircle, Edit } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-
 import {
     ActivityIndicator,
     FlatList,
+    RefreshControl,
     StatusBar,
     Text,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type Role = "admin" | "player" | "organizer"; // ✅ New type
+type Role = "admin" | "player" | "organizer";
 
 const MyTournamentsScreen = () => {
   const tabs = ["All", "Upcoming", "Draft", "Completed"];
@@ -29,28 +28,18 @@ const MyTournamentsScreen = () => {
   const auth = useAuth();
   const token = auth.token;
   const role = auth.user?.role?.toLowerCase() as Role;
-  const isOrganizer = role === "organizer";
+  const type = Array.isArray(auth.user?.domains)
+    ? auth.user.domains.join(", ")
+    : auth.user?.domains || "cricket";
 
-  // Use role-based tournament store
-  const playerTournamentStore = useTournamentStore();
-  const organizerTournamentStore = useOrganizerTournamentStore();
-  
-  // Use appropriate store based on role
-  const tournaments = isOrganizer 
-    ? organizerTournamentStore.tournaments 
-    : playerTournamentStore.tournaments;
-  
-  const loading = isOrganizer
-    ? organizerTournamentStore.loading
-    : playerTournamentStore.loading;
-  
-  const fetchTournaments = isOrganizer
-    ? (token: string) => organizerTournamentStore.fetchOrganizerTournaments(token)
-    : (token: string) => playerTournamentStore.fetchTournaments(token);
+  // Use organizer tournament store for caching
+  const { tournaments, loading, fetchOrganizerTournaments } =
+    useOrganizerTournamentStore();
 
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   const tabLogos = {
     All: <Calendar />,
@@ -90,19 +79,29 @@ const MyTournamentsScreen = () => {
     filterTournaments(activeTab, text);
   };
 
-  // Direct route instead of modal
-  const handleManagePress = (id: string) => {
-    if (role === "organizer") {
-      router.push(`/tournament/ManageTournament?id=${id}`);
-    } else if (role === "player") {
-      router.push(`/tournament/JoinTournament?id=${id}`);
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+
+    setRefreshing(true);
+    try {
+      await fetchOrganizerTournaments(token, true); // Force refresh
+    } catch (error) {
+      console.error("Error refreshing tournaments:", error);
+    } finally {
+      setRefreshing(false);
     }
+  };
+
+  // Direct route to manage tournament
+  const handleManagePress = (id: string) => {
+    router.push(`/tournament/ManageTournament?id=${id}`);
   };
 
   // Fetch tournaments on mount with smart caching
   useEffect(() => {
     if (token) {
-      fetchTournaments(token);
+      fetchOrganizerTournaments(token);
     }
   }, [token]);
 
@@ -126,11 +125,11 @@ const MyTournamentsScreen = () => {
       <Header
         title="My Tournaments"
         showBackButton={true}
-        onBackPress={() => console.log("Back button pressed")}
+        onBackPress={() => router.back()}
       />
 
-      <SearchBar 
-        placeholder="Search tournaments..." 
+      <SearchBar
+        placeholder="Search tournaments..."
         value={searchQuery}
         onChangeText={handleSearch}
       />
@@ -142,15 +141,13 @@ const MyTournamentsScreen = () => {
         logos={tabLogos as Record<string, any>}
       />
 
-      {role === "organizer" && (
-        <CreateTournamentButton
-          title="Create Tournament"
-          onPress={() => router.push("/tournament/createTournament")}
-          color={themeColor}
-        />
-      )}
+      <CreateTournamentButton
+        title="Create Tournament"
+        onPress={() => router.push("/tournament/createTournament")}
+        color={themeColor}
+      />
 
-      {loading ? (
+      {loading && !refreshing ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#6D28D9" />
         </View>
@@ -160,6 +157,14 @@ const MyTournamentsScreen = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 150 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#6D28D9"]} // Android
+              tintColor="#6D28D9" // iOS
+            />
+          }
           renderItem={({ item }) => (
             <TournamentCard
               id={item.id}
@@ -186,14 +191,19 @@ const MyTournamentsScreen = () => {
             />
           )}
           ListEmptyComponent={
-            <Text className="text-center text-gray-500 mt-4">
-              No tournaments found
-            </Text>
+            <View className="p-4 items-center justify-center py-12">
+              <Text className="text-slate-400 text-base">
+                No tournaments found
+              </Text>
+              <Text className="text-slate-400 text-sm mt-1">
+                Create a tournament to get started
+              </Text>
+            </View>
           }
         />
       )}
 
-      <BottomNavBar role={role} type="cricket" />
+      <BottomNavBar role={role} type={type} />
     </SafeAreaView>
   );
 };

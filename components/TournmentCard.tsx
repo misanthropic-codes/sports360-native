@@ -4,7 +4,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 
 type Status = "Active" | "Draft" | "Completed";
 type ThemeColor = "indigo" | "purple";
-type Role = "admin" | "player"; // ✅ New type
+type Role = "admin" | "player" | "organizer"; // ✅ Updated to include organizer
 
 interface TournamentCardProps {
   id: string;
@@ -46,7 +46,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
   const themeButton = color === "indigo" ? "bg-indigo-600" : "bg-[#510EB0]";
 
   return (
-    <View className="bg-white rounded-2xl p-4 mx-4 mb-4 shadow-md shadow-gray-200">
+    <View className="bg-white rounded-2xl p-3 mx-4 mb-3 shadow-sm shadow-gray-200">
       {/* Top Row */}
       <View className="flex-row items-start justify-between">
         <View className="flex-row items-start flex-1 mr-2">
@@ -70,7 +70,7 @@ const TournamentCard: React.FC<TournamentCardProps> = ({
       </View>
 
       {/* Stats Row */}
-      <View className="flex-row justify-around my-4">
+      <View className="flex-row justify-around my-3">
         <View className="items-center">
           <Text className="text-xl font-bold text-gray-800">{teamCount}</Text>
           <Text className="text-sm text-gray-500">Teams</Text>

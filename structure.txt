@@ -1,0 +1,237 @@
+.
+├── README.md
+├── api
+│   ├── api.ts
+│   ├── booking.ts
+│   ├── bookingApi.ts
+│   ├── reviewApi.ts
+│   ├── teamApi.ts
+│   ├── teamsApi.ts
+│   ├── tournamentApi.ts
+│   └── userApi.ts
+├── app
+│   ├── (root)
+│   │   ├── index.tsx
+│   │   ├── login.tsx
+│   │   └── signup.tsx
+│   ├── _layout.tsx
+│   ├── booking
+│   │   ├── BrowseGrounds.tsx
+│   │   ├── CreateBooking.tsx
+│   │   ├── Cricket-booking.tsx
+│   │   ├── GroundDetails.tsx
+│   │   ├── Marathon-booking.tsx
+│   │   ├── MyBookings.tsx
+│   │   └── ViewAllBookings.tsx
+│   ├── dashboard
+│   │   ├── ground_owner.tsx
+│   │   ├── organizer
+│   │   │   ├── cricket.tsx
+│   │   │   └── marathon.tsx
+│   │   └── player
+│   │       ├── cricket.tsx
+│   │       └── marathon.tsx
+│   ├── edit-cricket.tsx
+│   ├── edit-organizer.tsx
+│   ├── feed
+│   │   ├── cricket.tsx
+│   │   └── marathon-feed.tsx
+│   ├── fixtures
+│   │   └── GenerateFixture.tsx
+│   ├── global.css
+│   ├── ground_owner
+│   │   ├── Analytics.tsx
+│   │   ├── Booking.tsx
+│   │   ├── BookingRequest.tsx
+│   │   ├── GroundDetail.tsx
+│   │   ├── PostGround.tsx
+│   │   ├── Slots.tsx
+│   │   ├── ViewAllGrounds.tsx
+│   │   └── myGrounds.tsx
+│   ├── onboarding
+│   │   ├── choose-domain.tsx
+│   │   ├── ground-owner
+│   │   │   ├── cricket-form.tsx
+│   │   │   └── marathon-form.tsx
+│   │   ├── organizer
+│   │   │   ├── cricket-form.tsx
+│   │   │   └── marathon-form.tsx
+│   │   └── player
+│   │       ├── cricket-form.tsx
+│   │       └── marathon-form.tsx
+│   ├── profile.tsx
+│   ├── reviews
+│   │   ├── CreateReview.tsx
+│   │   └── MyReviews.tsx
+│   ├── team
+│   │   ├── CreateTeam.tsx
+│   │   ├── ManageTeam
+│   │   │   ├── JoinRequest.tsx
+│   │   │   ├── ManageTeam.tsx
+│   │   │   ├── Matches.tsx
+│   │   │   ├── TeamMembers.tsx
+│   │   │   ├── Tournament.tsx
+│   │   │   └── TournamentInvitations.tsx
+│   │   ├── Myteam.tsx
+│   │   └── ViewTeam.tsx
+│   ├── tournament
+│   │   ├── GenerateFixtures.tsx
+│   │   ├── InviteTeam.tsx
+│   │   ├── JoinTournament.tsx
+│   │   ├── ManageTournament.tsx
+│   │   ├── ViewTournament.tsx
+│   │   ├── createTournament.tsx
+│   │   └── editTournament.tsx
+│   └── verifyScreen
+│       └── index.tsx
+├── app.json
+├── assets
+│   ├── fonts
+│   │   ├── Rubik-Black.ttf
+│   │   ├── Rubik-BlackItalic.ttf
+│   │   ├── Rubik-Bold.ttf
+│   │   ├── Rubik-BoldItalic.ttf
+│   │   ├── Rubik-ExtraBold.ttf
+│   │   ├── Rubik-ExtraBoldItalic.ttf
+│   │   ├── Rubik-Italic.ttf
+│   │   ├── Rubik-Light.ttf
+│   │   ├── Rubik-LightItalic.ttf
+│   │   ├── Rubik-Medium.ttf
+│   │   ├── Rubik-MediumItalic.ttf
+│   │   ├── Rubik-Regular.ttf
+│   │   ├── Rubik-SemiBold.ttf
+│   │   └── Rubik-SemiBoldItalic.ttf
+│   └── images
+│       ├── adaptive-icon.png
+│       ├── favicon.png
+│       ├── icon.png
+│       ├── partial-react-logo.png
+│       ├── react-logo.png
+│       ├── react-logo@2x.png
+│       ├── react-logo@3x.png
+│       └── splash-icon.png
+├── babel.config.js
+├── components
+│   ├── ActivityCard.tsx
+│   ├── AppScreen.tsx
+│   ├── BottomNavBar.tsx
+│   ├── Card.tsx
+│   ├── CategoriesCard.tsx
+│   ├── CheckBoxItem.tsx
+│   ├── CreatTeamButton.tsx
+│   ├── EventsCard.tsx
+│   ├── FilterPills.tsx
+│   ├── FilterTab.tsx
+│   ├── FilterTabs2.tsx
+│   ├── FormDropdown.tsx
+│   ├── FormImagePicker.tsx
+│   ├── FormInput.tsx
+│   ├── FormSection.tsx
+│   ├── FormSwitch.tsx
+│   ├── GenerateButton.tsx
+│   ├── Ground-owner
+│   │   ├── BookingCard.tsx
+│   │   └── BottomTabBar.tsx
+│   ├── Header.tsx
+│   ├── InfoRow.tsx
+│   ├── MatchCard.tsx
+│   ├── MatchesList.tsx
+│   ├── QuickActionCard.tsx
+│   ├── RegistrationCard.tsx
+│   ├── SearchBar.tsx
+│   ├── SectionHeader.tsx
+│   ├── SectionTitile.tsx
+│   ├── SectiontitleM.tsx
+│   ├── SelelctionPill.tsx
+│   ├── StatCard.tsx
+│   ├── StatPillBar.tsx
+│   ├── StatsBar.tsx
+│   ├── TeamCard.tsx
+│   ├── TeamSelection.tsx
+│   ├── TextInput.tsx
+│   ├── TopNavbar.tsx
+│   ├── Tournament
+│   │   ├── InfoCard.tsx
+│   │   ├── Input.tsx
+│   │   ├── Leaderboard.tsx
+│   │   ├── MatchesTab.tsx
+│   │   ├── MultiSelect.tsx
+│   │   ├── OverviewTab.tsx
+│   │   ├── ResultsTab.tsx
+│   │   ├── Select.tsx
+│   │   ├── StatHeader.tsx
+│   │   ├── TeamsTab.tsx
+│   │   ├── Toggle.tsx
+│   │   └── dateTimePicker.tsx
+│   ├── TournamentBanner.tsx
+│   ├── TournamentHeader.tsx
+│   ├── TournmentCard.tsx
+│   ├── Ui
+│   │   ├── Header.tsx
+│   │   ├── LeaderboardItem.tsx
+│   │   ├── MatchCard.tsx
+│   │   ├── StatCard.tsx
+│   │   ├── TabNaviagtion.tsx
+│   │   └── TeamCard.tsx
+│   ├── UpcomingEventCard.tsx
+│   ├── button.tsx
+│   └── dropdown.tsx
+├── context
+│   └── AuthContext.tsx
+├── declarations.d.ts
+├── eas.json
+├── eslint.config.js
+├── expo-env.d.ts
+├── hooks
+│   ├── useFetchGrounds.tsx
+│   ├── useFetchTeams.ts
+│   ├── useGenerateFixtures.tsx
+│   └── useReviewBooking.tsx
+├── metro.config.js
+├── nativewind-env.d.ts
+├── package.json
+├── screens
+│   ├── GenerateFixture.tsx
+│   ├── LeaderboardScreen.tsx
+│   ├── ManageTournament.tsx
+│   ├── MatchDetailsScreen.tsx
+│   └── TeamDetailsScreen.tsx
+├── src
+│   ├── components
+│   │   └── molecules
+│   │       ├── StatCard
+│   │       └── TabBar
+│   ├── config
+│   ├── features
+│   │   ├── analytics
+│   │   │   ├── components
+│   │   │   └── hooks
+│   │   ├── grounds
+│   │   │   └── hooks
+│   │   └── teams
+│   │       ├── components
+│   │       └── hooks
+│   ├── services
+│   │   └── api
+│   ├── store
+│   │   └── slices
+│   ├── types
+│   └── utils
+├── store
+│   ├── bookingStore.ts
+│   ├── groundStore.ts
+│   ├── groundTStore.ts
+│   ├── organizerAnalyticsStore.ts
+│   ├── playerAnalyticsStore.ts
+│   ├── teamDetailsStore.ts
+│   ├── teamStore.ts
+│   ├── tournamentStore.ts
+│   └── userStore.ts
+├── structure.txt
+├── tailwind.config.js
+├── tsconfig.json
+└── utils
+    ├── caseHelpers.ts
+    └── statusHelpers.ts
+
+53 directories, 182 files

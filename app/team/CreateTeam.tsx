@@ -1,13 +1,12 @@
-// --- FILE: ./src/screens/CreateTeamScreen.tsx ---
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import api from "../../api/api";
 import BottomNavBar from "../../components/BottomNavBar";
@@ -17,9 +16,12 @@ import FormInput from "../../components/FormInput";
 import FormSwitch from "../../components/FormSwitch";
 import Header from "../../components/Header";
 import { useAuth } from "../../context/AuthContext";
+import { useTeamStore } from "../../store/teamStore";
+import { ImagePickerResult } from "../../utils/imageUtils";
 
 const CreateTeamScreen: React.FC = () => {
   const { user } = useAuth();
+  const { invalidateCache } = useTeamStore();
 
   const role = "player";
   const type = "team";
@@ -28,7 +30,8 @@ const CreateTeamScreen: React.FC = () => {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [teamCode, setTeamCode] = useState("");
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoLocalUri, setLogoLocalUri] = useState<string | null>(null); // For display
+  const [logoApiUrl, setLogoApiUrl] = useState<string | null>(null);     // For backend
   const [isActive, setIsActive] = useState(true);
 
   // ✅ new dynamic fields
@@ -242,7 +245,7 @@ const CreateTeamScreen: React.FC = () => {
     }
 
     const finalLogoUrl =
-      logoUrl || "https://placehold.co/128x128/3B82F6/FFFFFF?text=TEAM";
+      logoApiUrl || "https://placehold.co/128x128/3B82F6/FFFFFF?text=TEAM";
 
     const formData = {
       name: teamName,
@@ -266,6 +269,14 @@ const CreateTeamScreen: React.FC = () => {
       });
 
       console.log("✅ Team created successfully:", response.data);
+      
+      // Invalidate team cache to refresh team list
+      invalidateCache();
+      // ✅ Invalidate cache and force refresh to show new team immediately
+      const { fetchTeams } = useTeamStore.getState();
+      const baseURL = process.env.EXPO_PUBLIC_BASE_URL || "";
+      await fetchTeams(user.token, baseURL, true);
+      
       Alert.alert("Success", "Your team has been created!");
       router.push("/team/Myteam");
     } catch (error: any) {
@@ -295,10 +306,12 @@ const CreateTeamScreen: React.FC = () => {
         <View className="p-4">
           <FormImagePicker
             label="Team Logo"
-            imageUrl={logoUrl}
-            onSelectImage={() => {
-              console.log("Opening image picker...");
-              setLogoUrl("https://placehold.co/128x128/3B82F6/FFFFFF?text=CSK");
+            imageUrl={logoLocalUri}
+            category="team"
+            onImagePicked={(result: ImagePickerResult) => {
+              console.log('✅ Image selected:', result);
+              setLogoLocalUri(result.localUri);
+              setLogoApiUrl(result.apiUrl);
             }}
           />
 
@@ -418,6 +431,7 @@ const CreateTeamScreen: React.FC = () => {
             <FormDropdown
               label="Sport *"
               options={["cricket", "marathon"]}
+              displayOptions={["Cricket", "Marathon"]}
               selectedValue={sport}
               onValueChange={(value) => {
                 setSport(value);

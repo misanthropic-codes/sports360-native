@@ -1,6 +1,5 @@
 import type { Review } from "@/api/reviewApi";
 import { getGroundRatingStats, getGroundReviews } from "@/api/reviewApi";
-import { getAllTournaments } from "@/api/tournamentApi";
 import { useAuth } from "@/context/AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
@@ -8,19 +7,22 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, ChevronDown, Clock, Star, User } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { Ground, useGroundStore } from "../../store/groundStore";
+import { useBookingStore } from "../../store/bookingStore";
+import { useGroundStore } from "../../store/groundStore";
+import { useOrganizerTournamentStore } from "../../store/organizerTournamentStore";
+import { useTournamentStore } from "../../store/tournamentStore";
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
@@ -42,15 +44,39 @@ const GroundDetailsScreen: React.FC = () => {
 
   const setSelectedGround = useGroundStore((state) => state.setSelectedGround);
   const selectedGround = useGroundStore((state) => state.selectedGround);
-  const groundReviews = useGroundStore((state) =>
-    selectedGround ? state.groundReviews[selectedGround.id] : null
-  );
+  
+  const finalGroundId = (params.groundId as string) || "";
+  
+  // Use bookingStore for ground details
+  const {
+    getGroundDetails,
+    fetchGroundDetails,
+    invalidateBookings,
+  } = useBookingStore();
+  
+  // Use role-based tournament store
+  const isOrganizer = role?.toLowerCase() === "organizer";
+  
+  // Get both stores
+  const playerTournamentStore = useTournamentStore();
+  const organizerTournamentStore = useOrganizerTournamentStore();
+  
+  // Use appropriate store based on role
+  const tournaments = isOrganizer 
+    ? organizerTournamentStore.tournaments 
+    : playerTournamentStore.tournaments;
+  
+  const fetchTournaments = isOrganizer
+    ? (token: string) => organizerTournamentStore.fetchOrganizerTournaments(token)
+    : (token: string) => playerTournamentStore.fetchTournaments(token);
 
-  const [ground, setGround] = useState<Ground | null>(selectedGround);
+  const [ground, setGround] = useState(selectedGround || getGroundDetails(finalGroundId));
   const [loading, setLoading] = useState(false);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
   const [showTournamentPicker, setShowTournamentPicker] = useState(false);
+  const [showPurposePicker, setShowPurposePicker] = useState(false);
+
+  const purposeOptions = ["Practice", "Match", "Tournament"];
 
   const [purpose, setPurpose] = useState("");
   const [message, setMessage] = useState("");
@@ -73,8 +99,6 @@ const GroundDetailsScreen: React.FC = () => {
   const [reviewStats, setReviewStats] = useState<any>(null);
   const [showReviews, setShowReviews] = useState(false);
 
-  const finalGroundId = (params.groundId as string) || "";
-
   // 🎨 Role-based theme
   const theme = useMemo(() => {
     const isOrganizer = role?.toLowerCase() === "organizer";
@@ -87,23 +111,34 @@ const GroundDetailsScreen: React.FC = () => {
     };
   }, [role]);
 
-  // 🏟️ Fetch Ground Details
+  // Fetch Ground Details with smart caching
   useEffect(() => {
-    const fetchGroundDetails = async () => {
-      if (ground || !finalGroundId) return;
+    const loadGroundDetails = async () => {
+      if (selectedGround) {
+        setGround(selectedGround);
+        return;
+      }
+      
+      if (!finalGroundId) return;
 
-      try {
-        const res = await axios.get(
-          `${BASE_URL}/booking/grounds/${finalGroundId}`
-        );
-        setGround(res.data.data);
-        setSelectedGround(res.data.data);
-      } catch (error) {
-        console.error("❌ Error fetching ground details:", error);
+      // Check  cache first
+      const cachedGround = getGroundDetails(finalGroundId);
+      if (cachedGround) {
+        setGround(cachedGround as any);
+        setSelectedGround(cachedGround as any);
+        return;
+      }
+
+      // Fetch from store (smart caching)
+      await fetchGroundDetails(finalGroundId);
+      const freshGround = getGroundDetails(finalGroundId);
+      if (freshGround) {
+        setGround(freshGround as any);
+        setSelectedGround(freshGround as any);
       }
     };
 
-    fetchGroundDetails();
+    loadGroundDetails();
   }, [finalGroundId]);
 
   // Fetch Reviews
@@ -134,19 +169,17 @@ const GroundDetailsScreen: React.FC = () => {
     fetchReviews();
   }, [finalGroundId]);
 
-  // 🏆 Fetch Tournaments
+  // Fetch Tournaments with smart caching
   useEffect(() => {
-    const fetchTournaments = async () => {
-      try {
-        const data = await getAllTournaments(token);
-        setTournaments(data);
-        if (data.length > 0) setSelectedTournamentId(data[0].id);
-      } catch (error) {
-        console.error("❌ Error fetching tournaments:", error);
-      }
-    };
-    fetchTournaments();
-  }, [token]);
+    if (!token) return;
+    
+    // Smart fetch - only fetches if not cached
+    fetchTournaments(token);
+    
+    if (tournaments.length > 0) {
+      setSelectedTournamentId(tournaments[0].id);
+    }
+  }, [token, tournaments.length]);
 
   // 📅 DateTime Picker Controls
   const showDateTimePicker = (mode: "date" | "time", type: "start" | "end") =>
@@ -180,7 +213,7 @@ const GroundDetailsScreen: React.FC = () => {
       hour12: false,
     });
 
-  // 🏁 Book Ground
+  // Book Ground with cache invalidation
   const handleBookNow = async () => {
     if (!purpose.trim() || !message.trim() || !selectedTournamentId) {
       alert("Please fill in all fields");
@@ -199,15 +232,18 @@ const GroundDetailsScreen: React.FC = () => {
           groundId: finalGroundId,
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString(),
-          purpose: purpose.trim(),
+          purpose: purpose.trim().toLowerCase(),
           tournamentId: selectedTournamentId,
           message: message.trim(),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Invalidate bookings cache to ensure fresh data
+      invalidateBookings();
+
       alert("✅ Booking request sent successfully!");
-      router.push("/booking/ViewAllBookings");
+      router.push("/booking/MyBookings");
     } catch (error: any) {
       console.error("Booking failed:", error.response?.data || error);
       alert("❌ Booking failed. Please try again.");
@@ -230,16 +266,16 @@ const GroundDetailsScreen: React.FC = () => {
     <TouchableOpacity
       onPress={onPress}
       style={{
-        borderColor: theme.primaryBorder,
-        backgroundColor: theme.primaryBg,
+        borderColor: theme.primary,
+        borderWidth: 2,
       }}
-      className="border-2 p-4 rounded-xl my-2"
+      className="p-4 rounded-xl my-2 bg-white"
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
-          <Text className="text-gray-600 text-sm mb-1">{label}</Text>
-          <Text className="text-base font-semibold text-gray-900">
-            {formatDate(date)} • {formatTime(date)}
+          <Text className="text-gray-500 text-xs mb-1">{label}</Text>
+          <Text className="text-lg font-bold text-gray-900">
+            {label === "Date" ? formatDate(date) : formatTime(date)}
           </Text>
         </View>
         <Icon size={24} color={theme.primary} />
@@ -510,17 +546,19 @@ const GroundDetailsScreen: React.FC = () => {
             <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
               Purpose
             </Text>
-            <TextInput
-              placeholder="Enter purpose of booking"
-              placeholderTextColor="#9ca3af"
-              value={purpose}
-              onChangeText={setPurpose}
+            <TouchableOpacity
+              onPress={() => setShowPurposePicker(true)}
               style={{
-                borderColor: theme.primaryBorder,
-                backgroundColor: theme.primaryBg,
+                borderColor: theme.primary,
+                borderWidth: 2,
               }}
-              className="border-2 p-4 rounded-xl text-base text-gray-900"
-            />
+              className="p-4 rounded-xl bg-white flex-row justify-between items-center"
+            >
+              <Text className="text-base font-medium text-gray-900 flex-1">
+                {purpose || "Select purpose"}
+              </Text>
+              <ChevronDown size={24} color={theme.primary} />
+            </TouchableOpacity>
 
             {/* Message */}
             <Text className="font-semibold text-base mb-2 mt-4 text-gray-900">
@@ -625,6 +663,65 @@ const GroundDetailsScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Purpose Picker */}
+      <Modal transparent animationType="slide" visible={showPurposePicker}>
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="bg-white rounded-t-3xl">
+            <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+              <TouchableOpacity onPress={() => setShowPurposePicker(false)}>
+                <Text
+                  style={{ color: theme.primary }}
+                  className="text-base font-semibold"
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-bold text-gray-900">
+                Select Purpose
+              </Text>
+              <TouchableOpacity onPress={() => setShowPurposePicker(false)}>
+                <Text
+                  style={{ color: theme.primary }}
+                  className="text-base font-semibold"
+                >
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {purposeOptions.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  onPress={() => {
+                    setPurpose(option);
+                    setShowPurposePicker(false);
+                  }}
+                  className="p-4 border-b border-gray-100"
+                  style={{
+                    backgroundColor:
+                      purpose === option
+                        ? theme.primaryBg
+                        : "white",
+                  }}
+                >
+                  <Text
+                    className="text-base font-medium"
+                    style={{
+                      color:
+                        purpose === option
+                          ? theme.primary
+                          : "#111827",
+                    }}
+                  >
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* iOS DateTime Picker */}
       {Platform.OS === "ios" && pickerState.show && (
         <Modal transparent animationType="slide" visible={pickerState.show}>
@@ -651,15 +748,19 @@ const GroundDetailsScreen: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <DateTimePicker
-                value={
-                  pickerState.type === "start" ? startDateTime : endDateTime
-                }
-                mode={pickerState.mode}
-                is24Hour
-                display="spinner"
-                onChange={onDateTimeChange}
-              />
+              <View className="bg-white py-4">
+                <DateTimePicker
+                  value={
+                    pickerState.type === "start" ? startDateTime : endDateTime
+                  }
+                  mode={pickerState.mode}
+                  is24Hour
+                  display="spinner"
+                  onChange={onDateTimeChange}
+                  textColor="#000000"
+                  style={{ backgroundColor: "white" }}
+                />
+              </View>
             </View>
           </View>
         </Modal>
@@ -673,6 +774,7 @@ const GroundDetailsScreen: React.FC = () => {
           is24Hour
           display="default"
           onChange={onDateTimeChange}
+          textColor="#000000"
         />
       )}
     </SafeAreaView>

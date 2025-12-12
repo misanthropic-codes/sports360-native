@@ -1,6 +1,6 @@
-import { getGrounds, Ground } from "@/api/tournamentApi";
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
+import { Ground, useGroundStore } from "@/store/groundStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -18,30 +18,29 @@ import {
 export default function MyGroundsScreen() {
   const { token } = useAuth();
   const router = useRouter();
-  const [grounds, setGrounds] = useState<Ground[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Use groundStore instead of local state
+  const { 
+    grounds, 
+    groundsLoading, 
+    fetchGrounds 
+  } = useGroundStore();
+  
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchGrounds = async () => {
-    if (!token) return;
-    try {
-      const data = await getGrounds(token);
-      setGrounds(data);
-    } catch (error) {
-      console.error("Failed to fetch grounds:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
+  // Fetch grounds with smart caching
   useEffect(() => {
-    fetchGrounds();
+    if (token) {
+      fetchGrounds(token); // Smart fetch - only if not cached
+    }
   }, [token]);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
+    if (!token) return;
+    
     setRefreshing(true);
-    fetchGrounds();
+    await fetchGrounds(token, true); // Force refresh
+    setRefreshing(false);
   };
 
   const renderGroundItem = ({ item }: { item: Ground }) => (
@@ -114,7 +113,7 @@ export default function MyGroundsScreen() {
     </TouchableOpacity>
   );
 
-  if (loading && !refreshing) {
+  if (groundsLoading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
         <ActivityIndicator size="large" color="#16a34a" />

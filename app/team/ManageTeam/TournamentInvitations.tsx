@@ -91,6 +91,23 @@ export default function TournamentInvitations() {
                 invitations.filter((inv) => inv.tournament.id !== tournamentId)
               );
 
+              // ✅ Invalidate cache and force refresh to update UI
+              const { useTeamDetailsStore } = await import("@/store/teamDetailsStore");
+              const { useTournamentStore } = await import("@/store/tournamentStore");
+              
+              const { invalidateTeamCache, fetchTeamTournaments } = useTeamDetailsStore.getState();
+              const { invalidateCache: invalidateTournamentCache, fetchTournaments } = useTournamentStore.getState();
+              
+              // Invalidate caches
+              invalidateTeamCache(teamId as string);
+              invalidateTournamentCache();
+              
+              // Force refresh team tournaments and all tournaments
+              await Promise.all([
+                fetchTeamTournaments(teamId as string, token, true),
+                token ? fetchTournaments(token, true) : Promise.resolve(),
+              ]);
+
               Alert.alert(
                 "Success",
                 `Invitation ${action}ed successfully!`

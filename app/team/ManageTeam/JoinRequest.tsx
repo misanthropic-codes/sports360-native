@@ -1,22 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
+import { useTeamDetailsStore } from "@/store/teamDetailsStore";
 import { useLocalSearchParams } from "expo-router";
 import { CheckCircle, Clock, User, XCircle } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    ScrollView,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-
-type Request = {
-  userId: string;
-  teamId: string;
-  status: string;
-  requestedAt: string;
-  name?: string;
-};
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 
@@ -24,72 +18,32 @@ const JoinRequests: React.FC = () => {
   const { teamId } = useLocalSearchParams<{ teamId: string }>();
   const { token } = useAuth();
 
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [teamName, setTeamName] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  // Use teamDetailsStore instead of local state
+  const {
+    getJoinRequests,
+    fetchJoinRequests,
+    removeJoinRequest,
+    loading,
+  } = useTeamDetailsStore();
+
+  const requests = getJoinRequests(teamId);
+  const isLoading = loading[teamId] || false;
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  // Fetch join requests with smart caching
   useEffect(() => {
-    if (!teamId || !token) {
-      console.log("Missing teamId or token");
-      return;
-    }
+    if (!teamId || !token) return;
 
-    const fetchRequests = async () => {
-      try {
-        setLoading(true);
-
-        const joinRequestsUrl = `${BASE_URL}/team/${teamId}/join-requests`;
-        const res = await fetch(joinRequestsUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const json = await res.json();
-
-        if (json.status === 200 && json.success) {
-          const requestsData: Request[] = json.data;
-
-          const requestsWithNames = await Promise.all(
-            requestsData.map(async (req) => {
-              const userUrl = `${BASE_URL}/user/${req.userId}`;
-              const userRes = await fetch(userUrl, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const userJson = await userRes.json();
-              return {
-                ...req,
-                name:
-                  userJson.data?.name?.trim() && userJson.data?.name !== ""
-                    ? userJson.data.name
-                    : "User " + req.userId.slice(0, 5),
-              };
-            })
-          );
-
-          setRequests(requestsWithNames);
-        }
-
-        const teamUrl = `${BASE_URL}/team/${teamId}`;
-        const teamRes = await fetch(teamUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const teamJson = await teamRes.json();
-        setTeamName(teamJson.data?.name || "Unnamed Team");
-      } catch (error) {
-        console.error("Error fetching join requests:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRequests();
+    fetchJoinRequests(teamId, token); // Smart fetch - only if not cached
   }, [teamId, token]);
 
   const acceptRequest = async (memberId: string) => {
     try {
       if (!teamId) return;
       setProcessingId(memberId);
+
+      // Optimistic update
+      removeJoinRequest(teamId, memberId);
 
       const acceptUrl = `${BASE_URL}/team/${teamId}/join-requests/${memberId}/approve`;
       const res = await fetch(acceptUrl, {
@@ -99,13 +53,26 @@ const JoinRequests: React.FC = () => {
       const json = await res.json();
 
       if (res.ok && json.success) {
-        setRequests((prev) => prev.filter((req) => req.userId !== memberId));
+        // ✅ Invalidate cache and force refresh to update UI
+        const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
+        invalidateTeamCache(teamId);
+        
+        // Force refresh both members and join requests
+        await Promise.all([
+          fetchTeamMembers(teamId, token, true),
+          fetchJoinRequests(teamId, token, true),
+        ]);
+        
         Alert.alert("Success", "Join request approved successfully!");
       } else {
+        // Revert on error (refetch)
+        await fetchJoinRequests(teamId, token, true);
         Alert.alert("Failed", json.message || "Could not approve request");
       }
     } catch (error) {
       console.error("Error approving join request:", error);
+      // Revert on error (refetch)
+      if (teamId) await fetchJoinRequests(teamId, token, true);
       Alert.alert("Error", "Failed to approve request");
     } finally {
       setProcessingId(null);
@@ -117,7 +84,9 @@ const JoinRequests: React.FC = () => {
       if (!teamId) return;
       setProcessingId(memberId);
 
-      // Note: Adjust endpoint if your API has a different decline endpoint
+      // Optimistic update
+      removeJoinRequest(teamId, memberId);
+
       const declineUrl = `${BASE_URL}/team/${teamId}/join-requests/${memberId}/decline`;
       const res = await fetch(declineUrl, {
         method: "POST",
@@ -126,13 +95,26 @@ const JoinRequests: React.FC = () => {
       const json = await res.json();
 
       if (res.ok && json.success) {
-        setRequests((prev) => prev.filter((req) => req.userId !== memberId));
+        // ✅ Invalidate cache and force refresh to update UI
+        const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
+        invalidateTeamCache(teamId);
+        
+        // Force refresh both members and join requests
+        await Promise.all([
+          fetchTeamMembers(teamId, token, true),
+          fetchJoinRequests(teamId, token, true),
+        ]);
+        
         Alert.alert("Request Declined", "Join request has been declined");
       } else {
+        // Revert on error (refetch)
+        await fetchJoinRequests(teamId, token, true);
         Alert.alert("Failed", json.message || "Could not decline request");
       }
     } catch (error) {
       console.error("Error declining join request:", error);
+      // Revert on error (refetch)
+      if (teamId) await fetchJoinRequests(teamId, token, true);
       Alert.alert("Error", "Failed to decline request");
     } finally {
       setProcessingId(null);
@@ -160,7 +142,7 @@ const JoinRequests: React.FC = () => {
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center py-12">
         <ActivityIndicator size="large" color="#4F46E5" />
@@ -186,14 +168,26 @@ const JoinRequests: React.FC = () => {
   }
 
   return (
-    <View className="space-y-3">
-      {/* Header */}
-      <View className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-2">
-        <Text className="text-indigo-900 font-bold text-lg">
-          {requests.length} Pending {requests.length === 1 ? "Request" : "Requests"}
+    <ScrollView 
+      className="flex-1 bg-slate-50 px-4"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
+    >
+      {/* Header Stats */}
+      <View className="bg-white rounded-2xl p-4 mb-4"
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 2,
+        }}
+      >
+        <Text className="text-2xl font-bold text-slate-900">
+          {requests.length}
         </Text>
-        <Text className="text-indigo-600 text-sm">
-          Review and approve new members
+        <Text className="text-slate-500 text-sm mt-0.5">
+          Pending {requests.length === 1 ? "Request" : "Requests"}
         </Text>
       </View>
 
@@ -204,31 +198,38 @@ const JoinRequests: React.FC = () => {
         return (
           <View
             key={req.userId}
-            className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+            className="bg-white rounded-2xl p-4 mb-3"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
           >
             <View className="flex-row items-start">
               {/* Avatar */}
-              <View className="w-12 h-12 rounded-full bg-indigo-500 items-center justify-center mr-4">
+              <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center mr-3">
                 <Text className="text-white font-bold text-base">
-                  {getInitials(req.name || "U")}
+                  {getInitials(req.name || "User")}
                 </Text>
               </View>
 
               {/* Request Info */}
               <View className="flex-1">
-                <Text className="text-gray-900 font-semibold text-base mb-1">
-                  {req.name}
+                <Text className="text-slate-900 font-semibold text-base mb-1">
+                  {req.name || `User ${req.userId.slice(0, 8)}`}
                 </Text>
                 
                 <View className="flex-row items-center mb-3">
-                  <Clock size={14} color="#6B7280" weight="bold" />
-                  <Text className="text-gray-500 text-xs ml-1">
+                  <Clock size={14} color="#64748B" weight="bold" />
+                  <Text className="text-slate-500 text-xs ml-1">
                     {getTimeAgo(req.requestedAt)}
                   </Text>
                 </View>
 
                 {/* Action Buttons */}
-                <View className="flex-row space-x-2">
+                <View className="flex-row gap-3">
                   <TouchableOpacity
                     onPress={() => acceptRequest(req.userId)}
                     disabled={isProcessing}
@@ -278,7 +279,7 @@ const JoinRequests: React.FC = () => {
           </View>
         );
       })}
-    </View>
+    </ScrollView>
   );
 };
 
