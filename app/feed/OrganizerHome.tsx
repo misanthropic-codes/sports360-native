@@ -9,7 +9,6 @@ import {
     Award,
     BarChart3,
     Calendar,
-    DollarSign,
     Heart,
     Lightbulb,
     Plus,
@@ -462,7 +461,7 @@ const OrganizerHome = () => {
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
                 <View className="bg-emerald-100 p-2 rounded-full mr-3">
-                  <DollarSign size={20} color="#10B981" />
+                  <TrendingUp size={20} color="#10B981" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-emerald-900 font-bold text-base">{revenueGrowth.text}</Text>
@@ -617,8 +616,8 @@ const OrganizerHome = () => {
                   <Text className="text-purple-700 text-sm ml-1">{nextTournament.teamCount} teams</Text>
                 </View>
                 <View className="flex-row items-center">
-                  <DollarSign size={16} color="#7C3AED" />
-                  <Text className="text-purple-700 text-sm">₹{nextTournament.prizePool}</Text>
+                  <Text className="text-purple-700 text-sm font-semibold">₹</Text>
+                  <Text className="text-purple-700 text-sm ml-1">₹{nextTournament.prizePool}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -721,7 +720,7 @@ const OrganizerHome = () => {
                   }`}>
                     {activity.icon === "users" && <Users size={18} color="#3B82F6" />}
                     {activity.icon === "star" && <Star size={18} color="#F59E0B" />}
-                    {activity.icon === "dollar" && <DollarSign size={18} color="#10B981" />}
+                    {activity.icon === "dollar" && <TrendingUp size={18} color="#10B981" />}
                   </View>
                   {index < recentActivity.length - 1 && (
                     <View className="w-0.5 h-8 bg-slate-200 mt-1" />
@@ -802,7 +801,6 @@ const OrganizerHome = () => {
                     <Text className="text-slate-600 text-sm ml-1">{tournament.teamCount} teams</Text>
                   </View>
                   <View className="flex-row items-center">
-                    <DollarSign size={14} color="#10B981" />
                     <Text className="text-emerald-600 font-semibold text-sm">₹{tournament.prizePool}</Text>
                   </View>
                 </View>
