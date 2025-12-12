@@ -276,10 +276,10 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
       
       console.log("[TeamDetailsStore] Fetching join requests - teamId:", teamId, "forceRefresh:", forceRefresh);
       
-      const response = await fetch(`${BASE_URL}/team/${teamId}/join-requests`, {
+      const response = await axios.get(`${BASE_URL}/team/${teamId}/join-requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const json = await response.json();
+      const json = response.data;
       
       if (json.success) {
         const requestsData: JoinRequest[] = json.data;
@@ -288,10 +288,10 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
         const requestsWithNames = await Promise.all(
           requestsData.map(async (req) => {
             try {
-              const userRes = await fetch(`${BASE_URL}/user/${req.userId}`, {
+              const userRes = await axios.get(`${BASE_URL}/user/${req.userId}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              const userJson = await userRes.json();
+              const userJson = userRes.data;
               return {
                 ...req,
                 name: userJson.data?.name?.trim() || `User ${req.userId.slice(0, 5)}`,

@@ -6,11 +6,13 @@ interface UserStore {
   profile: UserProfile | null;
   profileLoading: boolean;
   profileLoaded: boolean;
+  profileError: string | null;
   
   // Analytics state
   analytics: PlayerAnalytics | null;
   analyticsLoading: boolean;
   analyticsLoaded: boolean;
+  analyticsError: string | null;
   
   // Cache management
   lastFetched: number | null;
@@ -28,10 +30,12 @@ export const useUserStore = create<UserStore>((set, get) => ({
   profile: null,
   profileLoading: false,
   profileLoaded: false,
+  profileError: null,
   
   analytics: null,
   analyticsLoading: false,
   analyticsLoaded: false,
+  analyticsError: null,
   
   lastFetched: null,
   
@@ -54,7 +58,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     }
     
     try {
-      set({ profileLoading: true });
+      set({ profileLoading: true, profileError: null });
       console.log("[UserStore] Fetching user profile - forceRefresh:", forceRefresh);
       
       const data = await getUserProfile(token);
@@ -63,11 +67,16 @@ export const useUserStore = create<UserStore>((set, get) => ({
         profile: data,
         profileLoaded: true,
         profileLoading: false,
+        profileError: null,
         lastFetched: Date.now(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("[UserStore] Error fetching profile:", error);
-      set({ profileLoading: false });
+      // Error handled by axios interceptor, update local state only
+      set({ 
+        profileLoading: false,
+        profileError: error.response?.data?.message || "Failed to fetch profile"
+      });
     }
   },
   
@@ -90,7 +99,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     }
     
     try {
-      set({ analyticsLoading: true });
+      set({ analyticsLoading: true, analyticsError: null });
       console.log("[UserStore] Fetching analytics - forceRefresh:", forceRefresh);
       
       const data = await getPlayerAnalytics("overall", undefined, undefined, token);
@@ -99,11 +108,16 @@ export const useUserStore = create<UserStore>((set, get) => ({
         analytics: data,
         analyticsLoaded: true,
         analyticsLoading: false,
+        analyticsError: null,
         lastFetched: Date.now(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("[UserStore] Error fetching analytics:", error);
-      set({ analyticsLoading: false });
+      // Error handled by axios interceptor, update local state only
+      set({ 
+        analyticsLoading: false,
+        analyticsError: error.response?.data?.message || "Failed to fetch analytics"
+      });
     }
   },
   

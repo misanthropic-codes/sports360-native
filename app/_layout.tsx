@@ -2,17 +2,20 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
+import ErrorModal from "../components/ErrorModal";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { ApiErrorEvent, errorHandler } from "../utils/errorHandler";
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
 
 const InitialLayout = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [errorEvent, setErrorEvent] = useState<ApiErrorEvent | null>(null);
 
   useEffect(() => {
     const inAuthGroup = segments[0] === "(root)";
@@ -36,40 +39,80 @@ const InitialLayout = () => {
     }
   }, [user, segments]);
 
+  // Subscribe to error events
+  useEffect(() => {
+    console.log("🎧 Subscribing to error events...");
+    const unsubscribe = errorHandler.subscribe((event) => {
+      console.log("📢 Error event received in _layout:", event);
+      setErrorEvent(event);
+    });
+
+    return () => {
+      console.log("🔕 Unsubscribing from error events");
+      unsubscribe();
+    };
+  }, []);
+
+  const handleDismissError = () => {
+    setErrorEvent(null);
+  };
+
+  const handleLogout = async () => {
+    setErrorEvent(null);
+    await logout();
+    router.replace("/(root)/login");
+  };
+
   return (
-    <Stack screenOptions={{ 
-      headerShown: false,
-      animation: 'none', // Disable transitions for instant navigation
-    }}>
-      <Stack.Screen name="(root)/index" />
-      <Stack.Screen name="(root)/login" />
-      <Stack.Screen name="(root)/signup" />
-      <Stack.Screen name="verifyScreen/index" />
-      <Stack.Screen name="onboarding/choose-domain" />
-      <Stack.Screen name="onboarding/player/cricket-form" />
-      <Stack.Screen name="onboarding/player/marathon-form" />
-      <Stack.Screen name="onboarding/organizer/cricket-form" />
-      <Stack.Screen name="onboarding/organizer/marathon-form" />
-      <Stack.Screen name="onboarding/ground-owner/cricket-form" />
-      <Stack.Screen name="feed/cricket" />
-      <Stack.Screen name="feed/marathon-feed" />
-      <Stack.Screen name="booking/Cricket-booking" />
-      <Stack.Screen name="booking/Marathon-booking" />
-      <Stack.Screen name="booking/GroundDetails" />
-      <Stack.Screen name="booking/CreateBooking" />
-      <Stack.Screen name="booking/MyBookings" />
-      <Stack.Screen name="booking/ViewAllBookings" />
-      <Stack.Screen name="booking/BrowseGrounds" />
-      <Stack.Screen name="team/Myteam" />
-      <Stack.Screen name="team/CreateTeam" />
-      <Stack.Screen name="tournament/ViewTournament" />
-      <Stack.Screen name="dashboard/player/cricket" />
-      <Stack.Screen name="dashboard/player/marathon" />
-      <Stack.Screen name="dashboard/organizer/cricket" />
-      <Stack.Screen name="dashboard/organizer/marathon" />
-      <Stack.Screen name="dashboard/ground_owner" />
-      <Stack.Screen name="profile" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ 
+        headerShown: false,
+        animation: 'none', // Disable transitions for instant navigation
+      }}>
+        <Stack.Screen name="(root)/index" />
+        <Stack.Screen name="(root)/login" />
+        <Stack.Screen name="(root)/signup" />
+        <Stack.Screen name="verifyScreen/index" />
+        <Stack.Screen name="onboarding/choose-domain" />
+        <Stack.Screen name="onboarding/player/cricket-form" />
+        <Stack.Screen name="onboarding/player/marathon-form" />
+        <Stack.Screen name="onboarding/organizer/cricket-form" />
+        <Stack.Screen name="onboarding/organizer/marathon-form" />
+        <Stack.Screen name="onboarding/ground-owner/cricket-form" />
+        <Stack.Screen name="feed/cricket" />
+        <Stack.Screen name="feed/marathon-feed" />
+        <Stack.Screen name="booking/Cricket-booking" />
+        <Stack.Screen name="booking/Marathon-booking" />
+        <Stack.Screen name="booking/GroundDetails" />
+        <Stack.Screen name="booking/CreateBooking" />
+        <Stack.Screen name="booking/MyBookings" />
+        <Stack.Screen name="booking/ViewAllBookings" />
+        <Stack.Screen name="booking/BrowseGrounds" />
+        <Stack.Screen name="team/Myteam" />
+        <Stack.Screen name="team/CreateTeam" />
+        <Stack.Screen name="tournament/ViewTournament" />
+        <Stack.Screen name="dashboard/player/cricket" />
+        <Stack.Screen name="dashboard/player/marathon" />
+        <Stack.Screen name="dashboard/organizer/cricket" />
+        <Stack.Screen name="dashboard/organizer/marathon" />
+        <Stack.Screen name="dashboard/ground_owner" />
+        <Stack.Screen name="profile" />
+      </Stack>
+
+      {/* Global Error Modal */}
+      {errorEvent && (
+        <>
+          {console.log("🎨 Rendering ErrorModal with event:", errorEvent)}
+          <ErrorModal
+            visible={true}
+            type={errorEvent.type}
+            message={errorEvent.message}
+            onDismiss={handleDismissError}
+            onLogout={handleLogout}
+          />
+        </>
+      )}
+    </>
   );
 };
 

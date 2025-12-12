@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { errorHandler } from "../utils/errorHandler";
 
 // Extend axios config to include metadata for timing
 declare module "axios" {
@@ -86,6 +87,39 @@ api.interceptors.response.use(
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     });
+
+    // Check for network errors first (no response from server)
+    if (!error.response) {
+      // Network error (offline, timeout, connection refused, etc.)
+      const isTimeout = error.code === 'ECONNABORTED';
+      const isNetworkError = error.message?.toLowerCase().includes('network error');
+      const isConnectionRefused = error.message?.toLowerCase().includes('connection refused');
+      
+      if (isTimeout || isNetworkError || isConnectionRefused) {
+        console.warn("📡 Network error detected - triggering error modal");
+        errorHandler.handleNetworkError(error.message);
+        console.log("✅ Called errorHandler.handleNetworkError()");
+        return Promise.reject(error);
+      }
+    }
+    
+    // Handle specific HTTP error codes
+    const statusCode = error.response?.status;
+    
+    console.log("🔍 Checking error status code:", statusCode);
+
+    if (statusCode === 401) {
+      // Session expired / Unauthorized
+      console.warn("🔒 Session expired (401) - triggering error modal");
+      errorHandler.handleSessionExpired();
+      console.log("✅ Called errorHandler.handleSessionExpired()");
+    } else if (statusCode && statusCode >= 500) {
+      // Server errors (500+)
+      console.warn(`🔥 Server error (${statusCode}) - triggering error modal`);
+      const errorMessage = error.response?.data?.message || error.message;
+      errorHandler.handleServerError(statusCode, errorMessage);
+      console.log("✅ Called errorHandler.handleServerError()");
+    }
 
     return Promise.reject(error);
   }

@@ -1,5 +1,6 @@
 // src/store/playerAnalyticsStore.ts
 import { create } from "zustand";
+import api from "../api/api";
 
 interface Match {
   matchId: string;
@@ -79,13 +80,12 @@ export const usePlayerAnalyticsStore = create<PlayerAnalyticsState>((set, get) =
     set({ isLoading: true, error: null });
     try {
       console.log("[PlayerAnalyticsStore] Fetching analytics - forceRefresh:", forceRefresh);
-      const res = await fetch("https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/user/analytics", {
+      
+      const response = await api.get("/user/analytics", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error("Network response was not ok");
-
-      const data = await res.json();
+      const data = response.data;
 
       set({
         summary: data.summary || null,
@@ -93,10 +93,15 @@ export const usePlayerAnalyticsStore = create<PlayerAnalyticsState>((set, get) =
         isLoading: false,
         isLoaded: true,
         lastFetched: Date.now(),
+        error: null,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching analytics:", err);
-      set({ error: "Failed to fetch analytics", isLoading: false });
+      // Error is already handled by axios interceptor, just update local state
+      set({ 
+        error: err.response?.data?.message || "Failed to fetch analytics", 
+        isLoading: false 
+      });
     }
   },
   

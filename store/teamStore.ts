@@ -17,6 +17,7 @@ type TeamState = {
   loading: boolean;
   isLoaded: boolean;
   lastFetched: number | null;
+  error: string | null;
   setTeams: (myTeams: Team[], allTeams: Team[]) => void;
   setLoading: (loading: boolean) => void;
   fetchTeams: (token: string, baseURL: string, forceRefresh?: boolean) => Promise<void>;
@@ -32,6 +33,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
   loading: false,
   isLoaded: false,
   lastFetched: null,
+  error: null,
   
   setTeams: (myTeams, allTeams) => set({ myTeams, allTeams, isLoaded: true, lastFetched: Date.now() }),
   setLoading: (loading) => set({ loading }),
@@ -48,7 +50,7 @@ export const useTeamStore = create<TeamState>((set, get) => ({
       }
     }
     
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
       console.log("[TeamStore] Fetching teams - forceRefresh:", forceRefresh, "isLoaded:", state.isLoaded);
       const headers = { Authorization: `Bearer ${token}` };
@@ -61,10 +63,17 @@ export const useTeamStore = create<TeamState>((set, get) => ({
         allTeams: allRes.data?.data || [],
         isLoaded: true,
         lastFetched: Date.now(),
+        error: null,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ Error fetching teams:", err);
-      set({ myTeams: [], allTeams: [] });
+      // Error is already handled by axios interceptor, just update local state
+      // Keep existing data visible, don't clear it
+      set({ 
+        error: err.response?.data?.message || "Failed to fetch teams",
+        loading: false 
+      });
+      return; // Early return to skip finally block's loading:false
     } finally {
       set({ loading: false });
     }

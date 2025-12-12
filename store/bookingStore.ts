@@ -38,12 +38,14 @@ interface BookingStore {
   bookingsLoading: boolean;
   bookingsLoaded: boolean;
   bookingsLastFetched: number | null;
+  bookingsError: string | null;
   
   // Ground details cache (keyed by groundId)
   groundDetails: Record<string, GroundDetails>;
   groundDetailsLoading: Record<string, boolean>;
   groundDetailsLoaded: Record<string, boolean>;
   groundDetailsLastFetched: Record<string, number>;
+  groundDetailsError: Record<string, string | null>;
   
   // Ground owner booking requests
   grounds: GroundWithBookings[];
@@ -66,10 +68,12 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
   bookingsLoading: false,
   bookingsLoaded: false,
   bookingsLastFetched: null,
+  bookingsError: null,
   groundDetails: {},
   groundDetailsLoading: {},
   groundDetailsLoaded: {},
   groundDetailsLastFetched: {},
+  groundDetailsError: {},
   grounds: [],
   selectedGround: null,
   
@@ -86,7 +90,7 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
     }
     
     try {
-      set({ bookingsLoading: true });
+      set({ bookingsLoading: true, bookingsError: null });
       console.log("[BookingStore] Fetching my bookings - forceRefresh:", forceRefresh);
       
       const response = await axios.get(`${BASE_URL}/booking/my-bookings`, {
@@ -100,10 +104,15 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
         bookingsLoaded: true,
         bookingsLastFetched: Date.now(),
         bookingsLoading: false,
+        bookingsError: null,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("[BookingStore] Error fetching bookings:", error);
-      set({ bookingsLoading: false });
+      // Error handled by axios interceptor, update local state only
+      set({ 
+        bookingsLoading: false,
+        bookingsError: error.response?.data?.message || "Failed to fetch bookings"
+      });
     }
   },
   
@@ -149,10 +158,15 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
           [groundId]: false,
         },
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("[BookingStore] Error fetching ground details:", error);
+      // Error handled by axios interceptor, update local state only
       set((state) => ({
         groundDetailsLoading: { ...state.groundDetailsLoading, [groundId]: false },
+        groundDetailsError: { 
+          ...state.groundDetailsError, 
+          [groundId]: error.response?.data?.message || "Failed to fetch ground details" 
+        },
       }));
     }
   },

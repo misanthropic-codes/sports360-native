@@ -1,5 +1,6 @@
 // store/organizerStore.ts
 import { create } from "zustand";
+import api from "../api/api";
 
 interface Tournament {
   tournamentId: string;
@@ -39,6 +40,8 @@ interface Summary {
 interface OrganizerState {
   summary: Summary | null;
   tournaments: Tournament[];
+  isLoading: boolean;
+  error: string | null;
   fetchAnalytics: (token: string) => Promise<void>;
   resetStore: () => void;
 }
@@ -46,38 +49,37 @@ interface OrganizerState {
 export const useOrganizerStore = create<OrganizerState>((set) => ({
   summary: null,
   tournaments: [],
+  isLoading: false,
+  error: null,
   fetchAnalytics: async (token: string) => {
     console.log("🚀 Fetching organizer analytics...");
+    set({ isLoading: true, error: null });
+    
     try {
-      const res = await fetch(
-        "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/organizer-profile/analytics",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // ✅ Token added here
-          },
-        }
-      );
+      const response = await api.get("/organizer-profile/analytics", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      if (!res.ok) {
-        console.error(`❌ Server responded with status: ${res.status}`);
-        const text = await res.text();
-        console.error("🔍 Response text:", text);
-        return;
-      }
-
-      const data = await res.json();
+      const data = response.data;
       console.log("📦 Organizer analytics response:", data);
 
       set({
         summary: data.summary || null,
         tournaments: data.tournaments || [],
+        isLoading: false,
+        error: null,
       });
 
       console.log("✅ State updated successfully in store.");
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ Failed to fetch organizer analytics:", err);
+      // Error is already handled by axios interceptor, just update local state
+      set({ 
+        error: err.response?.data?.message || "Failed to fetch organizer analytics",
+        isLoading: false 
+      });
     }
   },
   
@@ -86,6 +88,8 @@ export const useOrganizerStore = create<OrganizerState>((set) => ({
     set({
       summary: null,
       tournaments: [],
+      isLoading: false,
+      error: null,
     });
   },
 }));

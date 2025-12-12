@@ -2,14 +2,14 @@ import { useRouter } from "expo-router";
 import { Calendar, Trophy } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -99,44 +99,56 @@ const MyTeamScreen: React.FC = () => {
     }
   }, []);
 
+  // Helper function to process promises in batches
+  const processBatches = async <T,>(
+    items: T[],
+    batchSize: number,
+    processor: (item: T) => Promise<void>
+  ) => {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await Promise.all(batch.map(processor));
+    }
+  };
+
   // Calculate team statistics
   const myTeamsCount = myTeams.length;
   const activeCount = myTeams.filter((team) => team.isActive === true).length;
   const pendingCount = myTeams.filter((team) => team.isActive === false).length;
 
-  // Fetch team statistics (members and matches count)
+  // Fetch team statistics (members and matches count) - BATCHED
   const fetchTeamStats = async () => {
     if (!user?.token || !baseURL || myTeams.length === 0) return;
 
     try {
       const stats: Record<string, { playerCount: number; matchCount: number }> = {};
 
-      // Fetch stats for each team using teamDetailsStore
-      await Promise.all(
-        myTeams.map(async (team) => {
-          try {
-            // Fetch from store (smart caching - only fetches if not cached)
-            await Promise.all([
-              fetchTeamMembers(team.id, user.token!),
-              fetchTeamMatches(team.id, user.token!),
-            ]);
+      // Process teams in batches of 3 to reduce concurrent API calls
+      console.log(`[Myteam] Fetching stats for ${myTeams.length} teams in batches of 3...`);
+      await processBatches(myTeams, 3, async (team) => {
+        try {
+          // Fetch from store (smart caching - only fetches if not cached)
+          await Promise.all([
+            fetchTeamMembers(team.id, user.token!),
+            fetchTeamMatches(team.id, user.token!),
+          ]);
 
-            // Get cached data from store
-            const members = getTeamMembers(team.id);
-            const matches = getTeamMatches(team.id);
+          // Get cached data from store
+          const members = getTeamMembers(team.id);
+          const matches = getTeamMatches(team.id);
 
-            stats[team.id] = {
-              playerCount: members.length,
-              matchCount: matches.length,
-            };
-          } catch (err) {
-            console.error(`Error fetching stats for team ${team.id}:`, err);
-            stats[team.id] = { playerCount: 0, matchCount: 0 };
-          }
-        })
-      );
+          stats[team.id] = {
+            playerCount: members.length,
+            matchCount: matches.length,
+          };
+        } catch (err) {
+          console.error(`Error fetching stats for team ${team.id}:`, err);
+          stats[team.id] = { playerCount: 0, matchCount: 0 };
+        }
+      });
 
       setTeamStats(stats);
+      console.log(`[Myteam] ✅ Stats fetched for ${Object.keys(stats).length} teams`);
     } catch (err) {
       console.error("Error fetching team stats:", err);
     }

@@ -79,6 +79,7 @@ interface GroundStore {
   groundsLoading: boolean;
   groundsLoaded: boolean;
   groundsLastFetched: number | null;
+  groundsError: string | null;
   
   setSelectedGround: (ground: Ground) => void;
   setGroundReviews: (groundId: string, reviewData: GroundReviewData) => void;
@@ -100,6 +101,7 @@ export const useGroundStore = create<GroundStore>((set, get) => ({
   groundsLoading: false,
   groundsLoaded: false,
   groundsLastFetched: null,
+  groundsError: null,
 
   setSelectedGround: (ground: Ground) => set({ selectedGround: ground }),
 
@@ -127,7 +129,7 @@ export const useGroundStore = create<GroundStore>((set, get) => ({
     }
     
     try {
-      set({ groundsLoading: true });
+      set({ groundsLoading: true, groundsError: null });
       console.log("[GroundStore] Fetching grounds - forceRefresh:", forceRefresh);
       
       const data = await getGrounds(token);
@@ -137,10 +139,15 @@ export const useGroundStore = create<GroundStore>((set, get) => ({
         groundsLoaded: true,
         groundsLoading: false,
         groundsLastFetched: Date.now(),
+        groundsError: null,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("[GroundStore] Error fetching grounds:", error);
-      set({ groundsLoading: false });
+      // Error handled by axios interceptor, update local state only
+      set({ 
+        groundsLoading: false,
+        groundsError: error.response?.data?.message || "Failed to fetch grounds"
+      });
     }
   },
   
