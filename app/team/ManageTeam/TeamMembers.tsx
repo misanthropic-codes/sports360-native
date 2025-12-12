@@ -6,13 +6,13 @@ import { useLocalSearchParams } from "expo-router";
 import { CaretDown, CaretUp, Crown, DotsThreeVertical, User } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 const TeamMembers: React.FC = () => {
@@ -136,6 +136,11 @@ const TeamMembers: React.FC = () => {
               } else {
                 await benchMember(teamId, memberId, token);
               }
+
+              // ✅ Invalidate cache and force refresh to update UI
+              const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
+              invalidateTeamCache(teamId);
+              await fetchTeamMembers(teamId, token, true);
 
               Alert.alert(
                 "Success",

@@ -272,6 +272,10 @@ const CreateTeamScreen: React.FC = () => {
       
       // Invalidate team cache to refresh team list
       invalidateCache();
+      // ✅ Invalidate cache and force refresh to show new team immediately
+      const { fetchTeams } = useTeamStore.getState();
+      const baseURL = process.env.EXPO_PUBLIC_BASE_URL || "";
+      await fetchTeams(user.token, baseURL, true);
       
       Alert.alert("Success", "Your team has been created!");
       router.push("/team/Myteam");

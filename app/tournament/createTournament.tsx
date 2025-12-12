@@ -7,15 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import React, { useState } from "react";
 import {
-  Alert,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 // @ts-ignore - DateTimePicker types might not be available
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -227,11 +227,35 @@ const CreateTournament: React.FC = () => {
         }
       );
 
-      console.log("✅ API Response:", response.data);
-      Alert.alert("Success", "Tournament Created Successfully!");
+      console.log("✅ Response data:", response.data);
 
-      // ✅ navigate to the new MyTournaments page
-      router.push("/tournament/MyTournaments");
+      // ✅ Invalidate cache and force refresh to show new tournament immediately
+      const { useOrganizerTournamentStore } = await import("@/store/organizerTournamentStore");
+      const { useTournamentStore } = await import("@/store/tournamentStore");
+      
+      const { invalidateCache: invalidateOrganizerCache, fetchOrganizerTournaments } = useOrganizerTournamentStore.getState();
+      const { invalidateCache: invalidateTournamentCache, fetchTournaments } = useTournamentStore.getState();
+      
+      // Invalidate both organizer and general tournament caches
+      invalidateOrganizerCache();
+      invalidateTournamentCache();
+      
+      // Force refresh both stores if token is available
+      if (user?.token) {
+        await Promise.all([
+          fetchOrganizerTournaments(user.token, true),
+          fetchTournaments(user.token, true),
+        ]);
+      }
+
+      Alert.alert("Success", "Tournament created successfully!", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.push("/tournament/MyTournaments");
+          },
+        },
+      ]);
     } catch (err: unknown) {
       const error = err as any;
       console.error(

@@ -79,6 +79,23 @@ const JoinTournamentScreen = () => {
         token
       );
 
+      // ✅ Invalidate cache and force refresh to update UI
+      const { useTeamDetailsStore } = await import("@/store/teamDetailsStore");
+      const { useTournamentStore } = await import("@/store/tournamentStore");
+      
+      const { invalidateTeamCache, fetchTeamTournaments } = useTeamDetailsStore.getState();
+      const { invalidateCache: invalidateTournamentCache, fetchTournaments } = useTournamentStore.getState();
+      
+      // Invalidate caches for the team and tournaments
+      invalidateTeamCache(selectedTeam);
+      invalidateTournamentCache();
+      
+      // Force refresh team tournaments and all tournaments
+      await Promise.all([
+        fetchTeamTournaments(selectedTeam, token, true),
+        fetchTournaments(token, true),
+      ]);
+
       Alert.alert(
         "Success!",
         "Your join request has been sent to the tournament organizer.",

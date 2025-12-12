@@ -4,12 +4,12 @@ import { useLocalSearchParams } from "expo-router";
 import { CheckCircle, Clock, User, XCircle } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
@@ -53,6 +53,16 @@ const JoinRequests: React.FC = () => {
       const json = await res.json();
 
       if (res.ok && json.success) {
+        // ✅ Invalidate cache and force refresh to update UI
+        const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
+        invalidateTeamCache(teamId);
+        
+        // Force refresh both members and join requests
+        await Promise.all([
+          fetchTeamMembers(teamId, token, true),
+          fetchJoinRequests(teamId, token, true),
+        ]);
+        
         Alert.alert("Success", "Join request approved successfully!");
       } else {
         // Revert on error (refetch)
@@ -85,6 +95,16 @@ const JoinRequests: React.FC = () => {
       const json = await res.json();
 
       if (res.ok && json.success) {
+        // ✅ Invalidate cache and force refresh to update UI
+        const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
+        invalidateTeamCache(teamId);
+        
+        // Force refresh both members and join requests
+        await Promise.all([
+          fetchTeamMembers(teamId, token, true),
+          fetchJoinRequests(teamId, token, true),
+        ]);
+        
         Alert.alert("Request Declined", "Join request has been declined");
       } else {
         // Revert on error (refetch)
