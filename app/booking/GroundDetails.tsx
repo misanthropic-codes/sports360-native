@@ -7,20 +7,21 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Calendar, ChevronDown, Clock, Star, User } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useBookingStore } from "../../store/bookingStore";
 import { useGroundStore } from "../../store/groundStore";
+import { useOrganizerTournamentStore } from "../../store/organizerTournamentStore";
 import { useTournamentStore } from "../../store/tournamentStore";
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
@@ -53,11 +54,21 @@ const GroundDetailsScreen: React.FC = () => {
     invalidateBookings,
   } = useBookingStore();
   
-  // Use tournamentStore for tournaments
-  const {
-    tournaments,
-    fetchTournaments,
-  } = useTournamentStore();
+  // Use role-based tournament store
+  const isOrganizer = role?.toLowerCase() === "organizer";
+  
+  // Get both stores
+  const playerTournamentStore = useTournamentStore();
+  const organizerTournamentStore = useOrganizerTournamentStore();
+  
+  // Use appropriate store based on role
+  const tournaments = isOrganizer 
+    ? organizerTournamentStore.tournaments 
+    : playerTournamentStore.tournaments;
+  
+  const fetchTournaments = isOrganizer
+    ? (token: string) => organizerTournamentStore.fetchOrganizerTournaments(token)
+    : (token: string) => playerTournamentStore.fetchTournaments(token);
 
   const [ground, setGround] = useState(selectedGround || getGroundDetails(finalGroundId));
   const [loading, setLoading] = useState(false);

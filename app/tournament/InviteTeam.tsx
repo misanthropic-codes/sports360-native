@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
-import { Tournament, useTournamentStore } from "@/store/tournamentStore";
+import { useOrganizerTournamentStore } from "@/store/organizerTournamentStore";
 import { router, useLocalSearchParams } from "expo-router";
 import { Calendar, MapPin, Send, Trophy } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
@@ -23,28 +23,28 @@ const InviteTeamScreen = () => {
   const { teamId } = useLocalSearchParams();
   const { token } = useAuth();
 
-  // Use tournament store for cached data
+  // Use organizer tournament store (only organizers can invite teams)
   const { 
     tournaments: allTournaments, 
     loading, 
-    fetchTournaments,
-  } = useTournamentStore();
+    fetchOrganizerTournaments,
+  } = useOrganizerTournamentStore();
 
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch tournaments on mount (with smart caching)
+  // Fetch organizer's tournaments on mount (with smart caching)
   useEffect(() => {
     if (token) {
-      fetchTournaments(token);
+      fetchOrganizerTournaments(token);
     }
   }, [token]);
 
   // Filter for active/upcoming tournaments
   const tournaments = useMemo(() => {
     return allTournaments.filter(
-      (t: Tournament) => 
+      (t) => 
         t.status?.toLowerCase() === "upcoming" || 
         t.status?.toLowerCase() === "draft"
     );

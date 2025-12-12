@@ -5,17 +5,18 @@ import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import TournamentCard from "@/components/TournmentCard";
 import { useAuth } from "@/context/AuthContext";
+import { useOrganizerTournamentStore } from "@/store/organizerTournamentStore";
 import { useTournamentStore } from "@/store/tournamentStore";
 import { router } from "expo-router";
 import { Calendar, CheckCircle, Edit } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 
 import {
-  ActivityIndicator,
-  FlatList,
-  StatusBar,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    StatusBar,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -28,13 +29,24 @@ const MyTournamentsScreen = () => {
   const auth = useAuth();
   const token = auth.token;
   const role = auth.user?.role?.toLowerCase() as Role;
+  const isOrganizer = role === "organizer";
 
-  // Use tournament store for caching
-  const { 
-    tournaments, 
-    loading, 
-    fetchTournaments 
-  } = useTournamentStore();
+  // Use role-based tournament store
+  const playerTournamentStore = useTournamentStore();
+  const organizerTournamentStore = useOrganizerTournamentStore();
+  
+  // Use appropriate store based on role
+  const tournaments = isOrganizer 
+    ? organizerTournamentStore.tournaments 
+    : playerTournamentStore.tournaments;
+  
+  const loading = isOrganizer
+    ? organizerTournamentStore.loading
+    : playerTournamentStore.loading;
+  
+  const fetchTournaments = isOrganizer
+    ? (token: string) => organizerTournamentStore.fetchOrganizerTournaments(token)
+    : (token: string) => playerTournamentStore.fetchTournaments(token);
 
   const [filteredTournaments, setFilteredTournaments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("All");
