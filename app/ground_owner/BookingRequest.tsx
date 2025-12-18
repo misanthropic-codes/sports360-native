@@ -58,6 +58,42 @@ const BookingRequestsScreen: React.FC = () => {
     setRefreshing(false);
   };
 
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str: string) => {
+    if (!str) return str;
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Helper function to format status with proper casing
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  };
+
+  // Helper function to format date nicely
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function to format time nicely
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   const handleReview = async (
     bookingId: string,
     status: "approved" | "rejected"
@@ -202,11 +238,11 @@ const BookingRequestsScreen: React.FC = () => {
             className="bg-white border-l-4 border-green-600 p-4 rounded-xl shadow-lg mb-4"
           >
             <Text className="text-lg font-semibold text-gray-900">
-              {booking.user.fullName}
+              {capitalizeWords(booking.user.fullName)}
             </Text>
             <Text className="text-gray-600">{booking.user.email}</Text>
             <Text className="mt-2 text-gray-700">
-              <Text className="font-bold">Purpose:</Text> {booking.purpose}
+              <Text className="font-bold">Purpose:</Text> {capitalizeWords(booking.purpose)}
             </Text>
             <Text
               className={`mt-1 text-sm font-bold ${
@@ -217,7 +253,7 @@ const BookingRequestsScreen: React.FC = () => {
                     : "text-orange-600"
               }`}
             >
-              Status: {booking.status.toUpperCase()}
+              Status: {formatStatus(booking.status)}
             </Text>
 
             {/* Actions */}
@@ -290,7 +326,7 @@ const BookingRequestsScreen: React.FC = () => {
                     <View className="flex-row items-center mb-2">
                       <Ionicons name="person" size={20} color="#15803d" />
                       <Text className="text-xl font-bold text-gray-900 ml-2">
-                        {selectedBooking.user.fullName}
+                        {capitalizeWords(selectedBooking.user.fullName)}
                       </Text>
                     </View>
                     <View className="flex-row items-center">
@@ -314,7 +350,7 @@ const BookingRequestsScreen: React.FC = () => {
                           Purpose:
                         </Text>
                         <Text className="text-gray-700">
-                          {selectedBooking.purpose}
+                          {capitalizeWords(selectedBooking.purpose)}
                         </Text>
                       </View>
                     </View>

@@ -1,5 +1,6 @@
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
+import { GroundAnalytics, useGroundOwnerStore } from "@/store/groundOwnerStore";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from "react";
 import {
@@ -10,80 +11,37 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { create } from "zustand";
-
-interface GroundAnalytics {
-  groundId: string;
-  groundName: string;
-  location: string;
-  pricePerHour: number;
-  totalBookings: number;
-  utilizationRate: number;
-}
-
-interface AnalyticsSummary {
-  totalGrounds: number;
-  totalBookings: number;
-  approvedBookings: number;
-  pendingBookings: number;
-}
-
-interface AnalyticsData {
-  summary: AnalyticsSummary;
-  grounds: GroundAnalytics[];
-}
-
-interface AnalyticsStore {
-  analytics: AnalyticsData | null;
-  loading: boolean;
-  error: string | null;
-  fetchAnalytics: (token: string) => Promise<void>;
-}
-
-// Zustand store for analytics
-const useAnalyticsStore = create<AnalyticsStore>((set) => ({
-  analytics: null,
-  loading: false,
-  error: null,
-  fetchAnalytics: async (token: string) => {
-    set({ loading: true, error: null });
-    try {
-      const res = await fetch(
-        "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/ground-owner/analytics",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const data = await res.json();
-      set({ analytics: data, loading: false });
-    } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'An error occurred', loading: false });
-    }
-  },
-}));
 
 export default function GroundOwnerAnalyticsScreen() {
   const { token } = useAuth();
-  const { analytics, loading, error, fetchAnalytics } = useAnalyticsStore();
   const [refreshing, setRefreshing] = React.useState(false);
+  
+  // Use ground owner store with caching
+  const {
+    analytics,
+    analyticsLoading,
+    analyticsError,
+    fetchAnalytics,
+  } = useGroundOwnerStore();
 
+  // Fetch analytics with smart caching
   useEffect(() => {
     if (token) {
-      fetchAnalytics(token);
+      fetchAnalytics(token); // Smart fetch - only if not cached
     }
   }, [token]);
 
+  // Pull to refresh handler
   const onRefresh = React.useCallback(async () => {
+    if (!token) return;
+    
     setRefreshing(true);
-    if (token) {
-      await fetchAnalytics(token);
-    }
+    await fetchAnalytics(token, true); // Force refresh
     setRefreshing(false);
   }, [token, fetchAnalytics]);
 
-  if (loading && !refreshing) {
+  // Show loading only when data is being fetched from backend (not from cache)
+  if (analyticsLoading && !refreshing) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
         <ActivityIndicator size="large" color="#15803d" />
@@ -94,7 +52,7 @@ export default function GroundOwnerAnalyticsScreen() {
     );
   }
 
-  if (error) {
+  if (analyticsError) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50 p-4">
         <View className="bg-red-50 p-4 rounded-full mb-4">
@@ -103,9 +61,9 @@ export default function GroundOwnerAnalyticsScreen() {
         <Text className="text-red-600 text-lg font-bold text-center mb-2">
           Something went wrong
         </Text>
-        <Text className="text-gray-500 text-center mb-6">{error}</Text>
+        <Text className="text-gray-500 text-center mb-6">{analyticsError}</Text>
         <Text
-          onPress={() => token && fetchAnalytics(token)}
+          onPress={() => token && fetchAnalytics(token, true)}
           className="text-green-700 font-bold text-lg"
         >
           Try Again
@@ -118,14 +76,12 @@ export default function GroundOwnerAnalyticsScreen() {
 
   const { summary, grounds } = analytics;
 
-  interface SummaryCardProps {
+  const SummaryCard = ({ title, value, icon, color }: {
     title: string;
     value: number | string;
     icon: keyof typeof Ionicons.glyphMap;
     color: string;
-  }
-
-  const SummaryCard = ({ title, value, icon, color }: SummaryCardProps) => (
+  }) => (
     <View className="w-[48%] bg-white p-4 rounded-2xl mb-4 shadow-sm border border-gray-100">
       <View className={`w-10 h-10 rounded-full justify-center items-center mb-3 ${color}`}>
         <Ionicons name={icon} size={20} color="#15803d" />

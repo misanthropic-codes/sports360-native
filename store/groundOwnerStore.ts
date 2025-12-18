@@ -69,6 +69,27 @@ export interface GroundWithBookings {
   bookings: BookingRequest[];
 }
 
+export interface GroundAnalytics {
+  groundId: string;
+  groundName: string;
+  location: string;
+  pricePerHour: number;
+  totalBookings: number;
+  utilizationRate: number;
+}
+
+export interface AnalyticsSummary {
+  totalGrounds: number;
+  totalBookings: number;
+  approvedBookings: number;
+  pendingBookings: number;
+}
+
+export interface AnalyticsData {
+  summary: AnalyticsSummary;
+  grounds: GroundAnalytics[];
+}
+
 interface GroundOwnerStore {
   // Booking status cache
   bookingStatus: BookingStatusData | null;
@@ -84,11 +105,20 @@ interface GroundOwnerStore {
   bookingRequestsLastFetched: number | null;
   bookingRequestsError: string | null;
   
+  // Analytics cache
+  analytics: AnalyticsData | null;
+  analyticsLoading: boolean;
+  analyticsLoaded: boolean;
+  analyticsLastFetched: number | null;
+  analyticsError: string | null;
+  
   // Actions
   fetchBookingStatus: (token: string, forceRefresh?: boolean) => Promise<void>;
   fetchBookingRequests: (token: string, forceRefresh?: boolean) => Promise<void>;
+  fetchAnalytics: (token: string, forceRefresh?: boolean) => Promise<void>;
   invalidateBookingStatus: () => void;
   invalidateBookingRequests: () => void;
+  invalidateAnalytics: () => void;
   invalidateAllCache: () => void;
   updateBookingRequestStatus: (bookingId: string, status: "approved" | "rejected") => void;
 }
@@ -106,6 +136,12 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
   bookingRequestsLoaded: false,
   bookingRequestsLastFetched: null,
   bookingRequestsError: null,
+  
+  analytics: null,
+  analyticsLoading: false,
+  analyticsLoaded: false,
+  analyticsLastFetched: null,
+  analyticsError: null,
   
   // Fetch booking status with smart caching (for dashboard)
   fetchBookingStatus: async (token: string, forceRefresh = false) => {
@@ -268,6 +304,64 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
     });
   },
   
+  // Fetch analytics with smart caching
+  fetchAnalytics: async (token: string, forceRefresh = false) => {
+    const state = get();
+    
+    // Check if we should skip fetching
+    if (!forceRefresh && state.analyticsLoaded) {
+      if (state.analyticsLastFetched && Date.now() - state.analyticsLastFetched < CACHE_TTL) {
+        console.log("[GroundOwnerStore] Using cached analytics");
+        return;
+      }
+    }
+    
+    if (!token) {
+      console.warn("[GroundOwnerStore] No token provided for fetchAnalytics");
+      return;
+    }
+    
+    try {
+      set({ analyticsLoading: true, analyticsError: null });
+      console.log("[GroundOwnerStore] Fetching analytics - forceRefresh:", forceRefresh);
+      
+      const response = await fetch(`${BASE_URL}/ground-owner/analytics`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      set({
+        analytics: data,
+        analyticsLoaded: true,
+        analyticsLoading: false,
+        analyticsLastFetched: Date.now(),
+        analyticsError: null,
+      });
+    } catch (error: any) {
+      console.error("[GroundOwnerStore] Error fetching analytics:", error);
+      set({
+        analyticsLoading: false,
+        analyticsError: error.message || "Failed to fetch analytics",
+      });
+    }
+  },
+  
+  // Invalidate analytics cache
+  invalidateAnalytics: () => {
+    console.log("[GroundOwnerStore] Invalidating analytics cache");
+    set({
+      analyticsLoaded: false,
+      analyticsLastFetched: null,
+    });
+  },
+  
   // Invalidate all caches
   invalidateAllCache: () => {
     console.log("[GroundOwnerStore] Invalidating all ground owner caches");
@@ -276,6 +370,8 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
       bookingStatusLastFetched: null,
       bookingRequestsLoaded: false,
       bookingRequestsLastFetched: null,
+      analyticsLoaded: false,
+      analyticsLastFetched: null,
     });
   },
 }));

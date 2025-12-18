@@ -93,6 +93,21 @@ const GroundOwnerDashboard: React.FC = () => {
     }
   };
 
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str: string) => {
+    if (!str) return str;
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Helper function to format status with proper casing
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  };
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -122,7 +137,7 @@ const GroundOwnerDashboard: React.FC = () => {
     <View style={styles.bookingCard}>
       <View style={styles.bookingHeader}>
         <View style={styles.bookingTitleContainer}>
-          <Text style={styles.bookingPurpose}>{item.purpose}</Text>
+          <Text style={styles.bookingPurpose}>{capitalizeWords(item.purpose)}</Text>
           <View
             style={[
               styles.statusBadge,
@@ -135,7 +150,7 @@ const GroundOwnerDashboard: React.FC = () => {
                 { color: getStatusColor(item.status) },
               ]}
             >
-              {item.status}
+              {formatStatus(item.status)}
             </Text>
           </View>
         </View>
@@ -147,7 +162,7 @@ const GroundOwnerDashboard: React.FC = () => {
             <User size={16} color="#666" />
             <Text style={styles.detailLabel}>Customer</Text>
           </View>
-          <Text style={styles.detailValue}>{item.user.fullName}</Text>
+          <Text style={styles.detailValue}>{capitalizeWords(item.user.fullName)}</Text>
         </View>
         <View style={styles.detailRow}>
           <View style={styles.detailLabelContainer}>
