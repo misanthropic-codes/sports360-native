@@ -8,7 +8,9 @@ interface Match {
   round: number;
   matchNumber: number;
   userTeamId: string;
+  userTeamName?: string;
   opponentTeamId: string | null;
+  opponentTeamName?: string;
   status: string;
   matchTime: string;
   result: string | null;

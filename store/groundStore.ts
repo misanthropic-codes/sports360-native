@@ -20,6 +20,10 @@ export interface Ground {
   name?: string | null;
   location?: string | null;
   address?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number; // Calculated field for location-based sorting
   coordinates?: string;
   facilities?: string | null;
   pricePerHour?: number;

@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from "expo-router";
 import { Home, MapPin, Trophy, User, Users } from "lucide-react-native";
 import React from "react";
@@ -29,9 +30,15 @@ const NavItem = React.memo<NavItemProps>(({ icon: Icon, active, onPress }) => {
     ]).start();
   }, [active]);
 
+  const handlePress = React.useCallback(() => {
+    // Trigger haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress();
+  }, [onPress]);
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       className="flex-1 items-center justify-center p-2"
       activeOpacity={0.7}
     >

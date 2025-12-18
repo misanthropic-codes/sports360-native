@@ -611,7 +611,9 @@ const PlayerHome = () => {
                 </View>
               </View>
 
-              <Text className="text-blue-900 font-bold text-xl mb-2">vs Opponent Team</Text>
+              <Text className="text-blue-900 font-bold text-xl mb-2">
+                {nextMatch.opponentTeamName ? `vs ${nextMatch.opponentTeamName}` : `Match Round ${nextMatch.round}`}
+              </Text>
               <Text className="text-blue-700 text-sm">
                 {new Date(nextMatch.matchTime).toLocaleDateString("en-US", {
                   weekday: "long",
@@ -665,7 +667,9 @@ const PlayerHome = () => {
                   </View>
                 </View>
 
-                <Text className="text-slate-900 font-bold text-base mb-1">vs Opponent Team</Text>
+                <Text className="text-slate-900 font-bold text-base mb-1">
+                  {match.opponentTeamName ? `vs ${match.opponentTeamName}` : `Match in Round ${match.round}`}
+                </Text>
                 <Text className="text-slate-600 text-sm">Round {match.round}</Text>
               </TouchableOpacity>
             ))

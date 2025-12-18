@@ -1,4 +1,4 @@
-import { Clock, Heart, MapPin, Phone, Star } from "lucide-react-native";
+import { Clock, Heart, MapPin, Navigation, Phone, Star } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
     Image,
@@ -10,6 +10,7 @@ import { Ground, useGroundStore } from "../store/groundStore";
 
 interface VenueCardProps {
   ground: Ground;
+  distance?: number; // Distance in kilometers
   onBookNowPress: () => void;
   initialIsFavorited?: boolean;
 }
@@ -24,6 +25,7 @@ const MOCK_GROUND_IMAGES = [
 
 const VenueCard: React.FC<VenueCardProps> = ({
   ground,
+  distance,
   onBookNowPress,
   initialIsFavorited = false,
 }) => {
@@ -77,17 +79,31 @@ const VenueCard: React.FC<VenueCardProps> = ({
 
         {/* Top Badges */}
         <View className="absolute top-3 left-3 right-3 flex-row justify-between items-start">
-          {ground.acceptOnlineBookings && (
-            <View className="bg-green-500 rounded-full px-3 py-1.5 shadow-lg">
-              <Text className="text-white text-xs font-bold">
-                Available
-              </Text>
-            </View>
-          )}
+          <View className="flex-row gap-2">
+            {ground.acceptOnlineBookings && (
+              <View className="bg-green-500 rounded-full px-3 py-1.5 shadow-lg">
+                <Text className="text-white text-xs font-bold">
+                  Available
+                </Text>
+              </View>
+            )}
+            
+            {/* Distance Badge */}
+            {distance !== undefined && distance !== Infinity && (
+              <View className="bg-blue-500 rounded-full px-3 py-1.5 shadow-lg flex-row items-center">
+                <Navigation size={12} color="#FFF" fill="#FFF" />
+                <Text className="text-white text-xs font-bold ml-1">
+                  {distance < 1 
+                    ? `${Math.round(distance * 1000)}m` 
+                    : `${distance.toFixed(1)}km`}
+                </Text>
+              </View>
+            )}
+          </View>
           
           <TouchableOpacity
             onPress={() => setIsFavorited((prev) => !prev)}
-            className="bg-white/90 rounded-full w-9 h-9 items-center justify-center shadow-lg ml-auto"
+            className="bg-white/90 rounded-full w-9 h-9 items-center justify-center shadow-lg"
             activeOpacity={0.8}
           >
             <Heart
