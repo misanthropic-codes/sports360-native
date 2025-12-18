@@ -7,18 +7,18 @@ import { router } from "expo-router";
 import api from "../../../api/api";
 
 import { useAuth } from "@/context/AuthContext";
+import * as Location from 'expo-location';
 import React, { useState } from "react";
 import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import FeatherIcon from "react-native-vector-icons/Feather";
 import Icon from "react-native-vector-icons/Ionicons";
 
 const CompleteProfileScreen = () => {
@@ -31,6 +31,7 @@ const CompleteProfileScreen = () => {
   const [experience, setExperience] = useState<string | null>(null);
   const [orgType, setOrgType] = useState<string | null>(null);
   const [primaryLocation, setPrimaryLocation] = useState("");
+  const [loadingLocation, setLoadingLocation] = useState(false);
   const [tournamentType, setTournamentType] = useState<string | null>(null);
   const [frequency, setFrequency] = useState<string | null>(null);
   const [aboutOrganization, setAboutOrganization] = useState("");
@@ -165,6 +166,42 @@ const CompleteProfileScreen = () => {
     }
   };
 
+  const getCurrentLocation = async () => {
+    try {
+      setLoadingLocation(true);
+      
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Denied',
+          'Please enable location permissions to use this feature'
+        );
+        setLoadingLocation(false);
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const address = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+
+      if (address && address.length > 0) {
+        const { city, region, country } = address[0];
+        const locationString = [city, region, country].filter(Boolean).join(', ');
+        setPrimaryLocation(locationString);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Unable to get your current location');
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
 
   const experienceOptions = [
     "New Organizer",
@@ -213,16 +250,10 @@ const CompleteProfileScreen = () => {
       />
 
       {/* Header */}
-      <View className="px-4 py-3 flex-row items-center justify-between">
-        <TouchableOpacity>
-          <Icon name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
+      <View className="px-4 py-3 items-center justify-center">
         <Text className="text-white text-xl font-bold">
           Complete Your Profile
         </Text>
-        <TouchableOpacity>
-          <FeatherIcon name="bell" size={24} color="white" />
-        </TouchableOpacity>
       </View>
 
       {/* Progress Bar */}
@@ -241,11 +272,17 @@ const CompleteProfileScreen = () => {
         className="bg-gray-50 flex-1 relative"
         style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20, paddingBottom: 30 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 }}
       >
-        <View className="px-4 pb-6">
-          {/* Form Fields */}
-          <View className="space-y-5">
+        {/* Organization Details Section */}
+        <View className="mb-6">
+          <View className="flex-row items-center mb-3">
+            <Icon name="business" size={20} color="#7C3AED" />
+            <Text className="text-gray-800 text-lg font-bold ml-2">
+              Organization Details
+            </Text>
+          </View>
+          <View className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <ReusableTextInput
               label="Organisation Name *"
               placeholder="Enter your organisation name..."
@@ -271,7 +308,18 @@ const CompleteProfileScreen = () => {
                 placeholder="Select Organization Type"
               />
             </View>
+          </View>
+        </View>
 
+        {/* Experience & Location Section */}
+        <View className="mb-6">
+          <View className="flex-row items-center mb-3">
+            <Icon name="stats-chart" size={20} color="#7C3AED" />
+            <Text className="text-gray-800 text-lg font-bold ml-2">
+              Experience & Location
+            </Text>
+          </View>
+          <View className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <View>
               <Text className="text-gray-600 text-sm font-medium mb-3">
                 Experience in Organizing *
@@ -288,13 +336,43 @@ const CompleteProfileScreen = () => {
               </View>
             </View>
 
-            <ReusableTextInput
-              label="Primary Location *"
-              placeholder="e.g., Kolkata"
-              value={primaryLocation}
-              onChangeText={setPrimaryLocation}
-            />
+            <View>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-gray-600 text-sm font-medium">Primary Location *</Text>
+                <TouchableOpacity onPress={getCurrentLocation}>
+                  <View className="flex-row items-center bg-purple-50 px-3 py-1.5 rounded-lg">
+                    {loadingLocation ? (
+                      <View className="w-4 h-4">
+                        <View className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full" />
+                      </View>
+                    ) : (
+                      <Icon name="location" size={14} color="#7C3AED" />
+                    )}
+                    <Text className="text-purple-600 text-xs font-medium ml-1">
+                      {loadingLocation ? 'Getting...' : 'Use Current'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <ReusableTextInput
+                label=""
+                placeholder="e.g., Kolkata"
+                value={primaryLocation}
+                onChangeText={setPrimaryLocation}
+              />
+            </View>
+          </View>
+        </View>
 
+        {/* Tournament Details Section */}
+        <View className="mb-6">
+          <View className="flex-row items-center mb-3">
+            <Icon name="trophy" size={20} color="#7C3AED" />
+            <Text className="text-gray-800 text-lg font-bold ml-2">
+              Tournament Details
+            </Text>
+          </View>
+          <View className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <View>
               <Text className="text-gray-600 text-sm font-medium mb-3">
                 Tournament Type You Organize *
@@ -322,7 +400,18 @@ const CompleteProfileScreen = () => {
                 placeholder="Select Frequency"
               />
             </View>
+          </View>
+        </View>
 
+        {/* About Organization Section */}
+        <View className="mb-6">
+          <View className="flex-row items-center mb-3">
+            <Icon name="information-circle" size={20} color="#7C3AED" />
+            <Text className="text-gray-800 text-lg font-bold ml-2">
+              About Organization
+            </Text>
+          </View>
+          <View className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
             <ReusableTextInput
               label="Tell us about your organization"
               placeholder="Tell us about your organization, your experience and your goals...."
@@ -330,41 +419,48 @@ const CompleteProfileScreen = () => {
               value={aboutOrganization}
               onChangeText={setAboutOrganization}
             />
-
-            <View>
-              <Text className="text-gray-800 text-lg font-bold mb-3">
-                Preferences
-              </Text>
-              <View className="bg-purple-100/50 p-3 rounded-lg">
-                <CheckboxItem
-                  label="Accept team registration requests"
-                  isChecked={prefs.registrations}
-                  onPress={() => setPrefs({ ...prefs, registrations: !prefs.registrations })}
-                />
-                <CheckboxItem
-                  label="Allow player auctions in Tournament"
-                  isChecked={prefs.auctions}
-                  onPress={() => setPrefs({ ...prefs, auctions: !prefs.auctions })}
-                />
-                <CheckboxItem
-                  label="Receive Ground Booking Notification"
-                  isChecked={prefs.notifications}
-                  onPress={() => setPrefs({ ...prefs, notifications: !prefs.notifications })}
-                />
-              </View>
-            </View>
-
-            <View className="pt-2 items-center">
-              <ReusableButton
-                title="Complete Profile"
-                role="organizer"
-                onPress={handleSubmit}
-              />
-              <Text className="text-gray-500 text-xs mt-3">
-                You can update your profile anytime in the settings
-              </Text>
-            </View>
           </View>
+        </View>
+
+        {/* Preferences Section */}
+        <View className="mb-6">
+          <View className="flex-row items-center mb-3">
+            <Icon name="settings" size={20} color="#7C3AED" />
+            <Text className="text-gray-800 text-lg font-bold ml-2">
+              Preferences
+            </Text>
+          </View>
+          <View className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <CheckboxItem
+              label="Accept team registration requests"
+              isChecked={prefs.registrations}
+              onPress={() => setPrefs({ ...prefs, registrations: !prefs.registrations })}
+            />
+            <View className="h-3" />
+            <CheckboxItem
+              label="Allow player auctions in Tournament"
+              isChecked={prefs.auctions}
+              onPress={() => setPrefs({ ...prefs, auctions: !prefs.auctions })}
+            />
+            <View className="h-3" />
+            <CheckboxItem
+              label="Receive Ground Booking Notification"
+              isChecked={prefs.notifications}
+              onPress={() => setPrefs({ ...prefs, notifications: !prefs.notifications })}
+            />
+          </View>
+        </View>
+
+        {/* Submit Button */}
+        <View className="pt-2 items-center">
+          <ReusableButton
+            title="Complete Profile"
+            role="organizer"
+            onPress={handleSubmit}
+          />
+          <Text className="text-gray-500 text-xs mt-3 text-center">
+            You can update your profile anytime in settings
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
