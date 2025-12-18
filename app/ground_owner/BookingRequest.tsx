@@ -1,6 +1,6 @@
 import { reviewBookingRequest } from "@/api/booking";
 import { useAuth } from "@/context/AuthContext";
-import { useBookingStore } from "@/store/bookingStore";
+import { useGroundOwnerStore } from "@/store/groundOwnerStore";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -17,68 +17,81 @@ import {
 } from "react-native";
 
 const BookingRequestsScreen: React.FC = () => {
-  const selectedGround = useBookingStore((state) => state.selectedGround);
-  const setSelectedGround = useBookingStore((state) => state.setSelectedGround);
   const { token } = useAuth();
+  
+  // Use ground owner store with caching
+  const {
+    bookingRequests,
+    bookingRequestsLoading,
+    bookingRequestsError,
+    fetchBookingRequests,
+    updateBookingRequestStatus,
+  } = useGroundOwnerStore();
+  
+  const [selectedGround, setSelectedGround] = useState<any>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
-  // Fetch booking requests data
-  const fetchBookingRequests = async (isRefreshing = false) => {
-    try {
-      if (!isRefreshing) setLoading(true);
-      setError(null);
-
-      const res = await fetch(`${BASE_URL}/ground-owner/booking-requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const json = await res.json();
-
-      // Group bookings by ground (same logic as Booking.tsx)
-      const grouped = json.data?.reduce((acc: any, request: any) => {
-        const groundId = request.ground.id;
-        if (!acc[groundId])
-          acc[groundId] = { ground: request.ground, bookings: [] };
-        acc[groundId].bookings.push(request);
-        return acc;
-      }, {});
-
-      const groupedArray = Object.values(grouped || {}) as any[];
-
-      // Auto-select first ground if no ground is currently selected
-      if (!selectedGround && groupedArray.length > 0) {
-        console.log("📍 Auto-selecting first ground:", groupedArray[0].ground.groundOwnerName);
-        setSelectedGround(groupedArray[0]);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching booking requests:", err);
-      setError(err instanceof Error ? err.message : "Failed to load booking requests");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Fetch data on mount
+  // Fetch booking requests with smart caching
   useEffect(() => {
     if (token) {
-      fetchBookingRequests();
+      fetchBookingRequests(token); // Smart fetch - only if not cached
     }
   }, [token]);
 
-  const onRefresh = () => {
+  // Auto-select first ground when data changes
+  useEffect(() => {
+    if (!selectedGround && bookingRequests.length > 0) {
+      console.log("📍 Auto-selecting first ground:", bookingRequests[0].ground.groundOwnerName);
+      setSelectedGround(bookingRequests[0]);
+    }
+  }, [bookingRequests]);
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    
     setRefreshing(true);
-    fetchBookingRequests(true);
+    await fetchBookingRequests(token, true); // Force refresh
+    setRefreshing(false);
+  };
+
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str: string) => {
+    if (!str) return str;
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Helper function to format status with proper casing
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  };
+
+  // Helper function to format date nicely
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function to format time nicely
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const handleReview = async (
@@ -98,19 +111,18 @@ const BookingRequestsScreen: React.FC = () => {
               await reviewBookingRequest(bookingId, status, token);
               Alert.alert("Success", `Request ${status} successfully!`);
 
-              // Update Zustand store instantly
-              useBookingStore.setState((state) => {
-                if (!state.selectedGround) return {};
-                return {
-                  selectedGround: {
-                    ...state.selectedGround,
-                    bookings: state.selectedGround.bookings.map((b: any) =>
-                      b.id === bookingId ? { ...b, status } : b
-                    ),
-                    ground: state.selectedGround.ground,
-                  },
-                };
-              });
+              // Update local cache instantly
+              updateBookingRequestStatus(bookingId, status);
+
+              // Update selected ground local state
+              if (selectedGround) {
+                setSelectedGround({
+                  ...selectedGround,
+                  bookings: selectedGround.bookings.map((b: any) =>
+                    b.id === bookingId ? { ...b, status } : b
+                  ),
+                });
+              }
 
               // Update selected booking if it's the one being reviewed
               if (selectedBooking?.id === bookingId) {
@@ -138,7 +150,8 @@ const BookingRequestsScreen: React.FC = () => {
     setSelectedBooking(null);
   };
 
-  if (loading) {
+  // Show loading only when data is being fetched from backend (not from cache)
+  if (bookingRequestsLoading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <StatusBar backgroundColor="#15803d" barStyle="light-content" />
@@ -148,15 +161,15 @@ const BookingRequestsScreen: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (bookingRequestsError) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white px-6">
         <StatusBar backgroundColor="#15803d" barStyle="light-content" />
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text className="text-gray-800 text-lg font-semibold mt-4 text-center">Error Loading Requests</Text>
-        <Text className="text-gray-600 mt-2 text-center">{error}</Text>
+        <Text className="text-gray-600 mt-2 text-center">{bookingRequestsError}</Text>
         <TouchableOpacity
-          onPress={() => fetchBookingRequests()}
+          onPress={() => token && fetchBookingRequests(token, true)}
           className="bg-green-600 px-6 py-3 rounded-lg mt-6"
         >
           <Text className="text-white font-semibold">Retry</Text>
@@ -225,11 +238,11 @@ const BookingRequestsScreen: React.FC = () => {
             className="bg-white border-l-4 border-green-600 p-4 rounded-xl shadow-lg mb-4"
           >
             <Text className="text-lg font-semibold text-gray-900">
-              {booking.user.fullName}
+              {capitalizeWords(booking.user.fullName)}
             </Text>
             <Text className="text-gray-600">{booking.user.email}</Text>
             <Text className="mt-2 text-gray-700">
-              <Text className="font-bold">Purpose:</Text> {booking.purpose}
+              <Text className="font-bold">Purpose:</Text> {capitalizeWords(booking.purpose)}
             </Text>
             <Text
               className={`mt-1 text-sm font-bold ${
@@ -240,7 +253,7 @@ const BookingRequestsScreen: React.FC = () => {
                     : "text-orange-600"
               }`}
             >
-              Status: {booking.status.toUpperCase()}
+              Status: {formatStatus(booking.status)}
             </Text>
 
             {/* Actions */}
@@ -313,7 +326,7 @@ const BookingRequestsScreen: React.FC = () => {
                     <View className="flex-row items-center mb-2">
                       <Ionicons name="person" size={20} color="#15803d" />
                       <Text className="text-xl font-bold text-gray-900 ml-2">
-                        {selectedBooking.user.fullName}
+                        {capitalizeWords(selectedBooking.user.fullName)}
                       </Text>
                     </View>
                     <View className="flex-row items-center">
@@ -337,7 +350,7 @@ const BookingRequestsScreen: React.FC = () => {
                           Purpose:
                         </Text>
                         <Text className="text-gray-700">
-                          {selectedBooking.purpose}
+                          {capitalizeWords(selectedBooking.purpose)}
                         </Text>
                       </View>
                     </View>

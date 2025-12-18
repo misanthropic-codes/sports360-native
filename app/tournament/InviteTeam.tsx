@@ -156,14 +156,15 @@ const InviteTeamScreen = () => {
                 </Text>
                 
                 {/* Tournament Cards */}
-                <View className="space-y-3">
+                <View className="gap-4">
                   {tournaments.map((tournament) => {
                     const isSelected = selectedTournamentId === tournament.id;
                     return (
                       <TouchableOpacity
                         key={tournament.id}
                         onPress={() => setSelectedTournamentId(tournament.id)}
-                        className={`bg-white rounded-2xl p-5 border-2 ${
+                        activeOpacity={0.7}
+                        className={`bg-white rounded-2xl p-6 border-2 ${
                           isSelected ? "border-emerald-500 bg-emerald-50" : "border-slate-200"
                         }`}
                         style={{
@@ -172,22 +173,29 @@ const InviteTeamScreen = () => {
                           shadowOpacity: isSelected ? 0.15 : 0.05,
                           shadowRadius: 8,
                           elevation: isSelected ? 4 : 2,
+                          minHeight: 120,
                         }}
                       >
                         {/* Tournament Header */}
-                        <View className="flex-row items-start justify-between mb-3">
-                          <View className="flex-1 mr-3">
-                            <Text className={`font-bold text-lg mb-1 ${
-                              isSelected ? "text-emerald-900" : "text-slate-900"
-                            }`}>
+                        <View className="flex-row items-start justify-between mb-4">
+                          <View className="flex-1 mr-4">
+                            <Text 
+                              className={`font-bold text-lg mb-2 ${
+                                isSelected ? "text-emerald-900" : "text-slate-900"
+                              }`}
+                              numberOfLines={2}
+                            >
                               {tournament.name}
                             </Text>
                             {tournament.location && (
                               <View className="flex-row items-center mt-1">
-                                <MapPin size={14} color={isSelected ? "#059669" : "#64748B"} />
-                                <Text className={`text-sm ml-1 ${
-                                  isSelected ? "text-emerald-700" : "text-slate-500"
-                                }`}>
+                                <MapPin size={16} color={isSelected ? "#059669" : "#64748B"} />
+                                <Text 
+                                  className={`text-sm ml-2 flex-1 ${
+                                    isSelected ? "text-emerald-700" : "text-slate-500"
+                                  }`}
+                                  numberOfLines={1}
+                                >
                                   {tournament.location}
                                 </Text>
                               </View>
@@ -195,24 +203,27 @@ const InviteTeamScreen = () => {
                           </View>
                           
                           {/* Selection Indicator */}
-                          <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
+                          <View className={`w-7 h-7 rounded-full border-2 items-center justify-center ${
                             isSelected ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
                           }`}>
                             {isSelected && (
-                              <View className="w-2 h-2 rounded-full bg-white" />
+                              <View className="w-2.5 h-2.5 rounded-full bg-white" />
                             )}
                           </View>
                         </View>
 
                         {/* Tournament Info */}
-                        <View className="flex-row gap-3 pt-3 border-t border-slate-100">
+                        <View className="flex-row gap-3 pt-4 border-t border-slate-100">
                           {/* Date Range */}
                           {tournament.startDate && (
                             <View className="flex-1 flex-row items-center">
-                              <Calendar size={16} color={isSelected ? "#10B981" : "#64748B"} />
-                              <Text className={`text-xs ml-1.5 ${
-                                isSelected ? "text-emerald-700" : "text-slate-600"
-                              }`}>
+                              <Calendar size={18} color={isSelected ? "#10B981" : "#64748B"} />
+                              <Text 
+                                className={`text-sm ml-2 flex-1 ${
+                                  isSelected ? "text-emerald-700 font-medium" : "text-slate-600"
+                                }`}
+                                numberOfLines={2}
+                              >
                                 {new Date(tournament.startDate).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
@@ -226,7 +237,7 @@ const InviteTeamScreen = () => {
                           )}
 
                           {/* Status Badge */}
-                          <View className={`px-3 py-1 rounded-full ${
+                          <View className={`px-4 py-1.5 rounded-full ${
                             isSelected ? "bg-emerald-200" : "bg-slate-100"
                           }`}>
                             <Text className={`text-xs font-bold uppercase ${

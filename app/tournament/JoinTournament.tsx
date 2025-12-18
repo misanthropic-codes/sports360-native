@@ -227,7 +227,7 @@ const JoinTournamentScreen = () => {
                     key={team.id}
                     onPress={() => setSelectedTeam(team.id)}
                     activeOpacity={0.7}
-                    className={`flex-row items-center justify-between px-6 py-5 rounded-xl border-2 ${
+                    className={`flex-row items-center justify-between px-6 py-5 rounded-xl border-2 mb-4 ${
                       isSelected
                         ? "border-indigo-600 bg-indigo-50"
                         : "border-gray-200 bg-white"

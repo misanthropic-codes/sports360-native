@@ -109,8 +109,6 @@ const LoginScreen = () => {
           console.log("Fallback redirect to feed/cricket-feed");
           router.replace("/feed/cricket");
         }
-
-        Alert.alert("Success", "Logged in successfully!");
       } else {
         throw new Error(response.data.message || "An unknown error occurred");
       }

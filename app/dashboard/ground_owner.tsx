@@ -1,6 +1,7 @@
 // GroundOwnerDashboard.tsx
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
+import { BookingRequest, useGroundOwnerStore } from "@/store/groundOwnerStore";
 import { useRouter } from "expo-router";
 import {
     BarChart3,
@@ -20,168 +21,51 @@ import {
     FlatList,
     Image,
     Platform,
+    RefreshControl,
     SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
-
-// ---------------------- TYPES ----------------------
-interface Summary {
-  totalMyRequests: number;
-  myPendingRequests: number;
-  myApprovedRequests: number;
-  myRejectedRequests: number;
-  totalGroundRequests: number;
-  groundPendingRequests: number;
-  groundApprovedRequests: number;
-  groundRejectedRequests: number;
-}
-
-interface User {
-  id: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  dateOfBirth?: string;
-}
-
-interface Ground {
-  id: string;
-  userId: string;
-  groundOwnerName: string;
-  ownerName: string;
-  groundType: string;
-  yearsOfOperation: string;
-  primaryLocation: string;
-  facilityAvailable: string;
-  bookingFrequency: string;
-  groundDescription: string;
-  imageUrls: string;
-  acceptOnlineBookings: boolean;
-  allowTournamentsBookings: boolean;
-  receiveGroundAvailabilityNotifications: boolean;
-}
-
-interface BookingRequest {
-  id: string;
-  userId: string;
-  groundId: string;
-  startTime: string;
-  endTime: string;
-  purpose: string;
-  tournamentId: string;
-  status: string;
-  message: string;
-  requestedAt: string;
-  reviewedAt: string | null;
-  reviewedBy: string | null;
-  rejectionReason: string | null;
-  ground: Ground;
-  user: User;
-}
-
-interface BookingStatusResponse {
-  message: string;
-  userRole: string;
-  summary: Summary;
-  data: {
-    myBookingRequests: BookingRequest[];
-    groundBookingRequests: BookingRequest[];
-  };
-}
 
 // ---------------------- COMPONENT ----------------------
 const GroundOwnerDashboard: React.FC = () => {
-  const { user, role, token } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [bookings, setBookings] = useState<BookingRequest[]>([]);
-  const [groundInfo, setGroundInfo] = useState<Ground | null>(null);
+  // Use ground owner store with caching
+  const {
+    bookingStatus,
+    bookingStatusLoading,
+    bookingStatusError,
+    fetchBookingStatus,
+  } = useGroundOwnerStore();
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch booking status with smart caching
   useEffect(() => {
-    const fetchBookingStatus = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        console.log("Fetching booking status...");
-        console.log("Token:", token ? "Present" : "Missing");
-
-        const response = await fetch(
-          "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/booking/status",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        console.log("Response status:", response.status);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: BookingStatusResponse = await response.json();
-        console.log("Full API Response:", JSON.stringify(data, null, 2));
-
-        // Set summary
-        if (data?.summary) {
-          console.log("Setting summary:", data.summary);
-          setSummary(data.summary);
-        }
-
-        // Set bookings - FIXED: Check for groundBookingRequests properly
-        if (
-          data?.data?.groundBookingRequests &&
-          Array.isArray(data.data.groundBookingRequests)
-        ) {
-          console.log(
-            "Number of bookings:",
-            data.data.groundBookingRequests.length
-          );
-          setBookings(data.data.groundBookingRequests);
-
-          // Set ground info from first booking
-          if (
-            data.data.groundBookingRequests.length > 0 &&
-            data.data.groundBookingRequests[0]?.ground
-          ) {
-            console.log(
-              "Setting ground info:",
-              data.data.groundBookingRequests[0].ground.groundOwnerName
-            );
-            setGroundInfo(data.data.groundBookingRequests[0].ground);
-          }
-        } else {
-          console.log("No ground booking requests found or invalid format");
-          setBookings([]);
-        }
-      } catch (error) {
-        console.error("Error fetching booking status:", error);
-        setError(error instanceof Error ? error.message : "An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (token) {
-      fetchBookingStatus();
-    } else {
-      console.log("No token available");
-      setLoading(false);
-      setError("Authentication token missing");
+      fetchBookingStatus(token); // Smart fetch - only if not cached
     }
   }, [token]);
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    
+    setRefreshing(true);
+    await fetchBookingStatus(token, true); // Force refresh
+    setRefreshing(false);
+  };
+
+  // Derive data from store
+  const summary = bookingStatus?.summary || null;
+  const bookings = bookingStatus?.groundBookingRequests || [];
+  const groundInfo = bookings.length > 0 && bookings[0]?.ground ? bookings[0].ground : null;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -207,6 +91,21 @@ const GroundOwnerDashboard: React.FC = () => {
       default:
         return "#F5F5F5";
     }
+  };
+
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str: string) => {
+    if (!str) return str;
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Helper function to format status with proper casing
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
   };
 
   const formatDate = (dateString: string) => {
@@ -238,7 +137,7 @@ const GroundOwnerDashboard: React.FC = () => {
     <View style={styles.bookingCard}>
       <View style={styles.bookingHeader}>
         <View style={styles.bookingTitleContainer}>
-          <Text style={styles.bookingPurpose}>{item.purpose}</Text>
+          <Text style={styles.bookingPurpose}>{capitalizeWords(item.purpose)}</Text>
           <View
             style={[
               styles.statusBadge,
@@ -251,7 +150,7 @@ const GroundOwnerDashboard: React.FC = () => {
                 { color: getStatusColor(item.status) },
               ]}
             >
-              {item.status}
+              {formatStatus(item.status)}
             </Text>
           </View>
         </View>
@@ -263,7 +162,7 @@ const GroundOwnerDashboard: React.FC = () => {
             <User size={16} color="#666" />
             <Text style={styles.detailLabel}>Customer</Text>
           </View>
-          <Text style={styles.detailValue}>{item.user.fullName}</Text>
+          <Text style={styles.detailValue}>{capitalizeWords(item.user.fullName)}</Text>
         </View>
         <View style={styles.detailRow}>
           <View style={styles.detailLabelContainer}>
@@ -299,7 +198,8 @@ const GroundOwnerDashboard: React.FC = () => {
     </View>
   );
 
-  if (loading) {
+  // Show loading only when data is being fetched from backend (not from cache)
+  if (bookingStatusLoading && !refreshing) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
@@ -309,14 +209,14 @@ const GroundOwnerDashboard: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (bookingStatusError) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-        <Text style={styles.errorText}>Error: {error}</Text>
+        <Text style={styles.errorText}>Error: {bookingStatusError}</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => window.location.reload()}
+          onPress={() => token && fetchBookingStatus(token, true)}
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
@@ -330,6 +230,14 @@ const GroundOwnerDashboard: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#4CAF50"]}
+            tintColor="#4CAF50"
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -904,6 +812,6 @@ const styles = StyleSheet.create({
   },
 
   bottomSpacer: {
-    height: 80,
+    height: 100,
   },
 });

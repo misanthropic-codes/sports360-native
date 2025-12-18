@@ -16,7 +16,7 @@ const CheckboxItem: React.FC<CheckboxItemProps> = ({
 }) => (
   <TouchableOpacity
     onPress={onPress}
-    className="flex-row items-center space-x-3 mb-3"
+    style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}
   >
     <View
       className={`w-6 h-6 rounded-md justify-center items-center ${
@@ -25,7 +25,7 @@ const CheckboxItem: React.FC<CheckboxItemProps> = ({
     >
       {isChecked && <Icon name="checkmark" size={18} color="#FFF" />}
     </View>
-    <Text className="text-gray-800 text-base">{label}</Text>
+    <Text className="text-gray-800 text-base ml-3">{label}</Text>
   </TouchableOpacity>
 );
 

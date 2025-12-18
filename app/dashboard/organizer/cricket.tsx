@@ -5,16 +5,26 @@ import { useOrganizerStore } from "@/store/organizerAnalyticsStore";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+
+// Helper function to capitalize first letter of each word
+const capitalizeWords = (str: string) => {
+  if (!str) return str;
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 // Tournament Modal
 const TournamentModal = ({ visible, onClose, tournament }: any) => {
@@ -35,7 +45,7 @@ const TournamentModal = ({ visible, onClose, tournament }: any) => {
             <Text style={styles.modalTitle}>{tournament.tournamentName}</Text>
             <View style={styles.modalHeaderRow}>
               <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>{tournament.status}</Text>
+                <Text style={styles.statusText}>{capitalizeWords(tournament.status)}</Text>
               </View>
               <View style={styles.ratingContainer}>
                 <Text style={styles.ratingIcon}>★</Text>
@@ -334,7 +344,7 @@ const CricketDashboard: React.FC = () => {
                           <View style={styles.tournamentMeta}>
                             <View style={styles.tournamentStatusBadge}>
                               <Text style={styles.tournamentStatusText}>
-                                {item.status}
+                                {capitalizeWords(item.status)}
                               </Text>
                             </View>
                             <Text style={styles.tournamentTeams}>
