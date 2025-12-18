@@ -6,18 +6,19 @@ import ReusableTextInput from "@/components/TextInput";
 import { router } from "expo-router";
 import api from "../../../api/api";
 
+import { organizerColors } from '@/constants/colors';
 import { useAuth } from "@/context/AuthContext";
 import * as Location from 'expo-location';
 import React, { useState } from "react";
 import {
-    Alert,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 
@@ -245,7 +246,7 @@ const CompleteProfileScreen = () => {
     >
       <StatusBar
         barStyle="light-content"
-        backgroundColor="#4D1A88"
+        backgroundColor={organizerColors.primary}
         translucent={true}
       />
 
@@ -277,7 +278,7 @@ const CompleteProfileScreen = () => {
         {/* Organization Details Section */}
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Icon name="business" size={20} color="#7C3AED" />
+            <Icon name="business" size={20} color={organizerColors.primary} />
             <Text className="text-gray-800 text-lg font-bold ml-2">
               Organization Details
             </Text>
@@ -314,7 +315,7 @@ const CompleteProfileScreen = () => {
         {/* Experience & Location Section */}
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Icon name="stats-chart" size={20} color="#7C3AED" />
+            <Icon name="stats-chart" size={20} color={organizerColors.primary} />
             <Text className="text-gray-800 text-lg font-bold ml-2">
               Experience & Location
             </Text>
@@ -367,7 +368,7 @@ const CompleteProfileScreen = () => {
         {/* Tournament Details Section */}
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Icon name="trophy" size={20} color="#7C3AED" />
+            <Icon name="trophy" size={20} color={organizerColors.primary} />
             <Text className="text-gray-800 text-lg font-bold ml-2">
               Tournament Details
             </Text>
@@ -406,7 +407,7 @@ const CompleteProfileScreen = () => {
         {/* About Organization Section */}
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Icon name="information-circle" size={20} color="#7C3AED" />
+            <Icon name="information-circle" size={20} color={organizerColors.primary} />
             <Text className="text-gray-800 text-lg font-bold ml-2">
               About Organization
             </Text>
@@ -425,7 +426,7 @@ const CompleteProfileScreen = () => {
         {/* Preferences Section */}
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
-            <Icon name="settings" size={20} color="#7C3AED" />
+            <Icon name="settings" size={20} color={organizerColors.primary} />
             <Text className="text-gray-800 text-lg font-bold ml-2">
               Preferences
             </Text>

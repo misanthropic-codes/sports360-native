@@ -22,6 +22,7 @@ import {
     View,
 } from "react-native";
 
+import { playerColors } from '@/constants/colors';
 import { useAuth } from "@/context/AuthContext";
 import { ImagePickerResult } from "@/utils/imageUtils";
 import * as Location from 'expo-location';
@@ -191,7 +192,7 @@ const CompleteProfileScreen: FC = () => {
     >
       <StatusBar
         barStyle="light-content"
-        backgroundColor="#2563EB"
+        backgroundColor={playerColors.primary}
         translucent={false}
       />
 
@@ -248,7 +249,7 @@ const CompleteProfileScreen: FC = () => {
               {/* Player Details Section */}
               <View className="mb-6">
                 <View className="flex-row items-center mb-3">
-                  <Ionicons name="person" size={20} color="#2563EB" />
+                  <Ionicons name="person" size={20} color={playerColors.primary} />
                   <Text className="text-gray-800 text-lg font-rubikBold ml-2">
                     Player Details
                   </Text>
@@ -289,7 +290,7 @@ const CompleteProfileScreen: FC = () => {
               {/* Skills Section */}
               <View className="mb-6">
                 <View className="flex-row items-center mb-3">
-                  <Ionicons name="trophy" size={20} color="#2563EB" />
+                  <Ionicons name="trophy" size={20} color={playerColors.primary} />
                   <Text className="text-gray-800 text-lg font-rubikBold ml-2">
                     Skills
                   </Text>
@@ -337,7 +338,7 @@ const CompleteProfileScreen: FC = () => {
               {/* About You Section */}
               <View className="mb-6">
                 <View className="flex-row items-center mb-3">
-                  <Ionicons name="information-circle" size={20} color="#2563EB" />
+                  <Ionicons name="information-circle" size={20} color={playerColors.primary} />
                   <Text className="text-gray-800 text-lg font-rubikBold ml-2">
                     About You
                   </Text>
@@ -354,7 +355,7 @@ const CompleteProfileScreen: FC = () => {
                               <View className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" />
                             </View>
                           ) : (
-                            <Ionicons name="location" size={14} color="#2563EB" />
+                            <Ionicons name="location" size={14} color={playerColors.primary} />
                           )}
                           <Text className="text-blue-600 text-xs font-rubikMedium ml-1">
                             {loadingLocation ? 'Getting...' : 'Use Current'}
@@ -384,7 +385,7 @@ const CompleteProfileScreen: FC = () => {
               {/* Preferences Section */}
               <View className="mb-6">
                 <View className="flex-row items-center mb-3">
-                  <Ionicons name="settings" size={20} color="#2563EB" />
+                  <Ionicons name="settings" size={20} color={playerColors.primary} />
                   <Text className="text-gray-800 text-lg font-rubikBold ml-2">
                     Preferences
                   </Text>
