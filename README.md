@@ -49,7 +49,12 @@ sports360-native/
 │   ├── tournamentStore.ts   # Tournaments state
 │   └── userStore.ts         # User profile state
 │
+├── constants/              # App constants
+│   └── colors.ts           # Centralized color scheme (role-based)
+│
 ├── hooks/                   # Custom React hooks
+│   └── useThemeColors.ts   # Theme colors hook
+│
 ├── context/                 # React Context (Auth)
 ├── utils/                   # Helper utilities
 └── assets/                  # Static assets (fonts, images)
@@ -129,12 +134,53 @@ sports360-native/
 
 ---
 
+## 🎨 Design System
+
+### Centralized Color Scheme
+
+All colors are centralized in `constants/colors.ts` for consistent theming across the app.
+
+**Role-Based Colors:**
+- **Player:** Blue theme (#2563EB)
+- **Organizer:** Purple theme (#7C3AED)
+- **Ground Owner:** Green theme (#15803d)
+
+**Usage:**
+```typescript
+import { useThemeColors } from '@/hooks/useThemeColors';
+
+const MyComponent = () => {
+  const colors = useThemeColors(); // Auto-detects user role
+  return <View style={{ backgroundColor: colors.primary }} />;
+};
+```
+
+**Common Colors:**
+- Gray scale (50-900)
+- Semantic colors (error, success, warning, info)
+- All with light/dark variants
+
+---
+
 ## 📡 API Documentation
 
 ### Base Configuration
 - **Base URL:** `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1`
 - **Authentication:** Bearer Token (JWT)
 - **Headers:** `Content-Type: application/json`
+
+### Authentication
+
+**Public Endpoints (No Auth Required):**
+- `POST /auth/login` - User login
+- `POST /auth/register/` - User registration
+
+**All Other Endpoints:** Require authentication via Bearer token in Authorization header. Token is automatically added by axios interceptor.
+
+**Error Handling:**
+- **401:** Session expired → Auto-logout modal
+- **500+:** Server error → Error modal
+- **Network errors:** Connection error modal
 
 ### API Endpoints (74+ total)
 
@@ -413,10 +459,31 @@ eas build --profile production --platform all
 
 ### Design System
 - **Styling:** NativeWind (TailwindCSS)
+- **Color Scheme:** Centralized role-based theming (`constants/colors.ts`)
 - **Typography:** Rubik font family (14 variants)
 - **Icons:** Lucide React Native, Phosphor Icons
 - **Animations:** React Native Reanimated 4.1
 - **Gestures:** React Native Gesture Handler
+
+### Recent UI Improvements
+
+**Onboarding Forms:**
+- Card-based layouts with visual sections
+- Section headers with icons (Person, Trophy, Info, Settings)
+- Location auto-detection with "Use Current" button
+- Fixed checkbox spacing and padding
+- Removed unnecessary buttons for cleaner UI
+
+**Data Formatting:**
+- Auto-capitalization for names and statuses
+- Proper date/time formatting
+- Status badges with color coding
+
+**Consistency:**
+- Standardized bottom navbar placement (100px padding)
+- Consistent spacing (24px top, 40px bottom, mb-6 between sections)
+- Fixed tournament card spacing (16px)
+- Unified color usage across all screens
 
 ### Key UI Components
 - **Navigation:** Bottom tabs for role-specific dashboards
