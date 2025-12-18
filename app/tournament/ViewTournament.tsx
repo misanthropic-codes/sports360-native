@@ -158,7 +158,7 @@ const MyTournamentsScreen = () => {
         <FlatList
           data={filteredTournaments}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 150 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 150 }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TournamentCard
