@@ -1,63 +1,64 @@
 import BottomNavBar from "@/components/Ground-owner/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
-import { useBookingStore } from "@/store/bookingStore";
+import { useGroundOwnerStore } from "@/store/groundOwnerStore";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
   Platform,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const GroundListScreen: React.FC = () => {
   const { token } = useAuth();
-  const setGrounds = useBookingStore((state) => state.setGrounds);
-  const setSelectedGround = useBookingStore((state) => state.setSelectedGround);
-  const [loading, setLoading] = useState(true);
-  const [groundsData, setGroundsData] = useState<any[]>([]);
   const router = useRouter();
+  
+  // Use ground owner store with caching
+  const {
+    bookingRequests,
+    bookingRequestsLoading,
+    bookingRequestsError,
+    fetchBookingRequests,
+  } = useGroundOwnerStore();
+  
+  const [refreshing, setRefreshing] = useState(false);
 
-  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
   const FIXED_IMAGE =
     "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2505&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
+  // Fetch booking requests with smart caching
   useEffect(() => {
-    fetchData();
+    if (token) {
+      fetchBookingRequests(token); // Smart fetch - only if not cached
+    }
   }, [token]);
 
-  const fetchData = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/ground-owner/booking-requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-
-      const grouped = json.data?.reduce((acc: any, request: any) => {
-        const groundId = request.ground.id;
-        if (!acc[groundId])
-          acc[groundId] = { ground: request.ground, bookings: [] };
-        acc[groundId].bookings.push(request);
-        return acc;
-      }, {});
-
-      const groupedArray = Object.values(grouped || {}) as any[];
-      setGrounds(groupedArray as any);
-      setGroundsData(groupedArray);
-    } catch (err) {
-      console.error("Error fetching grounds:", err);
-    } finally {
-      setLoading(false);
-    }
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    
+    setRefreshing(true);
+    await fetchBookingRequests(token, true); // Force refresh
+    setRefreshing(false);
   };
 
-  if (loading) {
+  const handleGroundPress = (item: any) => {
+    router.push({
+      pathname: "/ground_owner/BookingRequest",
+      params: { groundData: JSON.stringify(item) }
+    } as any);
+  };
+
+  // Show loading only when data is being fetched from backend (not from cache)
+  if (bookingRequestsLoading && !refreshing) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <StatusBar
@@ -79,64 +80,65 @@ const GroundListScreen: React.FC = () => {
         translucent={false}
       />
 
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Ground Booking Requests</Text>
-        </View>
-
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
-        >
-          {groundsData.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No booking requests found</Text>
-              <Text style={styles.emptySubtext}>
-                New booking requests will appear here
-              </Text>
-            </View>
-          ) : (
-            groundsData.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.groundCard}
-                activeOpacity={0.8}
-                onPress={() => {
-                  setSelectedGround(item);
-                  router.push("/ground_owner/BookingRequest");
-                }}
-              >
-                {/* Always use the fixed Unsplash image */}
-                <Image
-                  source={{ uri: FIXED_IMAGE }}
-                  style={styles.groundImage}
-                  resizeMode="cover"
-                />
-
-                <View style={styles.cardContent}>
-                  <Text style={styles.groundName}>
-                    {item.ground.groundOwnerName}
-                  </Text>
-                  <Text style={styles.groundLocation}>
-                    {item.ground.primaryLocation}
-                  </Text>
-                  <Text style={styles.bookingCount}>
-                    {item.bookings.length} booking request
-                    {item.bookings.length > 1 ? "s" : ""}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
-
-        {/* Bottom Nav flush to bottom */}
-        <View style={styles.bottomNavWrapper}>
-          <BottomNavBar />
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Ground Booking Requests</Text>
       </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#4CAF50"]}
+            tintColor="#4CAF50"
+          />
+        }
+      >
+        {bookingRequests.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No booking requests found</Text>
+            <Text style={styles.emptySubtext}>
+              New booking requests will appear here
+            </Text>
+          </View>
+        ) : (
+          bookingRequests.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.groundCard}
+              activeOpacity={0.8}
+              onPress={() => handleGroundPress(item)}
+            >
+              {/* Always use the fixed Unsplash image */}
+              <Image
+                source={{ uri: FIXED_IMAGE }}
+                style={styles.groundImage}
+                resizeMode="cover"
+              />
+
+              <View style={styles.cardContent}>
+                <Text style={styles.groundName}>
+                  {item.ground.groundOwnerName}
+                </Text>
+                <Text style={styles.groundLocation}>
+                  {item.ground.primaryLocation}
+                </Text>
+                <Text style={styles.bookingCount}>
+                  {item.bookings.length} booking request
+                  {item.bookings.length > 1 ? "s" : ""}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Bottom Nav */}
+      <BottomNavBar />
     </SafeAreaView>
   );
 };
@@ -247,15 +249,5 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: "#666",
-  },
-
-  bottomNavWrapper: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "white",
-    elevation: 0, // Android
-    shadowOpacity: 0, // iOS
   },
 });

@@ -141,7 +141,7 @@ export default function GroundOwnerAnalyticsScreen() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#15803d" />
         }

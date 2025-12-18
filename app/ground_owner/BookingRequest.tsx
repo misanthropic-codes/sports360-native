@@ -1,6 +1,6 @@
 import { reviewBookingRequest } from "@/api/booking";
 import { useAuth } from "@/context/AuthContext";
-import { useBookingStore } from "@/store/bookingStore";
+import { useGroundOwnerStore } from "@/store/groundOwnerStore";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
@@ -17,68 +17,45 @@ import {
 } from "react-native";
 
 const BookingRequestsScreen: React.FC = () => {
-  const selectedGround = useBookingStore((state) => state.selectedGround);
-  const setSelectedGround = useBookingStore((state) => state.setSelectedGround);
   const { token } = useAuth();
+  
+  // Use ground owner store with caching
+  const {
+    bookingRequests,
+    bookingRequestsLoading,
+    bookingRequestsError,
+    fetchBookingRequests,
+    updateBookingRequestStatus,
+  } = useGroundOwnerStore();
+  
+  const [selectedGround, setSelectedGround] = useState<any>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
-  // Fetch booking requests data
-  const fetchBookingRequests = async (isRefreshing = false) => {
-    try {
-      if (!isRefreshing) setLoading(true);
-      setError(null);
-
-      const res = await fetch(`${BASE_URL}/ground-owner/booking-requests`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const json = await res.json();
-
-      // Group bookings by ground (same logic as Booking.tsx)
-      const grouped = json.data?.reduce((acc: any, request: any) => {
-        const groundId = request.ground.id;
-        if (!acc[groundId])
-          acc[groundId] = { ground: request.ground, bookings: [] };
-        acc[groundId].bookings.push(request);
-        return acc;
-      }, {});
-
-      const groupedArray = Object.values(grouped || {}) as any[];
-
-      // Auto-select first ground if no ground is currently selected
-      if (!selectedGround && groupedArray.length > 0) {
-        console.log("📍 Auto-selecting first ground:", groupedArray[0].ground.groundOwnerName);
-        setSelectedGround(groupedArray[0]);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching booking requests:", err);
-      setError(err instanceof Error ? err.message : "Failed to load booking requests");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Fetch data on mount
+  // Fetch booking requests with smart caching
   useEffect(() => {
     if (token) {
-      fetchBookingRequests();
+      fetchBookingRequests(token); // Smart fetch - only if not cached
     }
   }, [token]);
 
-  const onRefresh = () => {
+  // Auto-select first ground when data changes
+  useEffect(() => {
+    if (!selectedGround && bookingRequests.length > 0) {
+      console.log("📍 Auto-selecting first ground:", bookingRequests[0].ground.groundOwnerName);
+      setSelectedGround(bookingRequests[0]);
+    }
+  }, [bookingRequests]);
+
+  // Pull to refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    
     setRefreshing(true);
-    fetchBookingRequests(true);
+    await fetchBookingRequests(token, true); // Force refresh
+    setRefreshing(false);
   };
 
   const handleReview = async (
@@ -98,19 +75,18 @@ const BookingRequestsScreen: React.FC = () => {
               await reviewBookingRequest(bookingId, status, token);
               Alert.alert("Success", `Request ${status} successfully!`);
 
-              // Update Zustand store instantly
-              useBookingStore.setState((state) => {
-                if (!state.selectedGround) return {};
-                return {
-                  selectedGround: {
-                    ...state.selectedGround,
-                    bookings: state.selectedGround.bookings.map((b: any) =>
-                      b.id === bookingId ? { ...b, status } : b
-                    ),
-                    ground: state.selectedGround.ground,
-                  },
-                };
-              });
+              // Update local cache instantly
+              updateBookingRequestStatus(bookingId, status);
+
+              // Update selected ground local state
+              if (selectedGround) {
+                setSelectedGround({
+                  ...selectedGround,
+                  bookings: selectedGround.bookings.map((b: any) =>
+                    b.id === bookingId ? { ...b, status } : b
+                  ),
+                });
+              }
 
               // Update selected booking if it's the one being reviewed
               if (selectedBooking?.id === bookingId) {
@@ -138,7 +114,8 @@ const BookingRequestsScreen: React.FC = () => {
     setSelectedBooking(null);
   };
 
-  if (loading) {
+  // Show loading only when data is being fetched from backend (not from cache)
+  if (bookingRequestsLoading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <StatusBar backgroundColor="#15803d" barStyle="light-content" />
@@ -148,15 +125,15 @@ const BookingRequestsScreen: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (bookingRequestsError) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white px-6">
         <StatusBar backgroundColor="#15803d" barStyle="light-content" />
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text className="text-gray-800 text-lg font-semibold mt-4 text-center">Error Loading Requests</Text>
-        <Text className="text-gray-600 mt-2 text-center">{error}</Text>
+        <Text className="text-gray-600 mt-2 text-center">{bookingRequestsError}</Text>
         <TouchableOpacity
-          onPress={() => fetchBookingRequests()}
+          onPress={() => token && fetchBookingRequests(token, true)}
           className="bg-green-600 px-6 py-3 rounded-lg mt-6"
         >
           <Text className="text-white font-semibold">Retry</Text>
