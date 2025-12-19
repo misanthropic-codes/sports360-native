@@ -2,21 +2,22 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from "react-native";
 import api from "../../api/api";
+import { setOnboardingComplete } from "../../utils/onboardingUtils";
 
 import Feather from "react-native-vector-icons/Feather";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
@@ -242,7 +243,9 @@ const SignupScreen = () => {
         return;
       }
 
-      // Signup successful - redirect to login
+      // Signup successful - mark onboarding complete and redirect to login
+      await setOnboardingComplete();
+      
       Alert.alert(
         "Success", 
         "Account created successfully! Please login with your credentials.",

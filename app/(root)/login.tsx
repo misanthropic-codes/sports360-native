@@ -18,6 +18,7 @@ import Feather from "react-native-vector-icons/Feather";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import api from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+import { setOnboardingComplete } from "../../utils/onboardingUtils";
 
 interface UserData {
   id: string;
@@ -75,6 +76,9 @@ const LoginScreen = () => {
 
       if (response.data && response.data.success) {
         const userData: UserData = response.data.data;
+
+        // Mark onboarding as complete
+        await setOnboardingComplete();
 
         // Save complete user object to context
         await login(userData as any);
