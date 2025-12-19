@@ -7,6 +7,7 @@ import "react-native-reanimated";
 import ErrorModal from "../components/ErrorModal";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { ApiErrorEvent, errorHandler } from "../utils/errorHandler";
+import { hasSeenOnboarding } from "../utils/onboardingUtils";
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -16,9 +17,29 @@ const InitialLayout = () => {
   const segments = useSegments();
   const router = useRouter();
   const [errorEvent, setErrorEvent] = useState<ApiErrorEvent | null>(null);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+
+  // Check onboarding status on mount
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const hasCompleted = await hasSeenOnboarding();
+      setIsCheckingOnboarding(false);
+
+      // If user hasn't seen onboarding and not in onboarding flow, redirect to splash
+      if (!hasCompleted && !segments[0]?.toString().includes('onboarding')) {
+        router.replace('/onboarding/splash');
+      }
+    };
+
+    checkOnboarding();
+  }, []);
 
   useEffect(() => {
+    // Skip navigation logic while checking onboarding
+    if (isCheckingOnboarding) return;
+
     const inAuthGroup = segments[0] === "(root)";
+    const inGuestMode = segments[0] === "guest";
 
     if (user && inAuthGroup) {
       const role = user.role;
@@ -34,10 +55,10 @@ const InitialLayout = () => {
           router.replace("/onboarding/choose-domain");
         }
       }
-    } else if (!user && !inAuthGroup) {
+    } else if (!user && !inAuthGroup && !inGuestMode && !segments[0]?.toString().includes('onboarding')) {
       router.replace("/(root)/login");
     }
-  }, [user, segments]);
+  }, [user, segments, isCheckingOnboarding]);
 
   // Subscribe to error events
   useEffect(() => {
@@ -68,10 +89,24 @@ const InitialLayout = () => {
       <Stack screenOptions={{ 
         headerShown: false,
         animation: 'none', // Disable transitions for instant navigation
+        gestureEnabled: true, // Enable swipe back gestures
       }}>
+        <Stack.Screen name="onboarding/splash" />
+        <Stack.Screen name="onboarding/slides" />
+        <Stack.Screen name="onboarding/welcome" />
+        <Stack.Screen name="guest/dashboard" />
+        <Stack.Screen name="guest/teams" />
+        <Stack.Screen name="guest/tournaments" />
+        <Stack.Screen name="guest/grounds" />
         <Stack.Screen name="(root)/index" />
         <Stack.Screen name="(root)/login" />
-        <Stack.Screen name="(root)/signup" />
+        <Stack.Screen 
+          name="(root)/signup" 
+          options={{
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
         <Stack.Screen name="verifyScreen/index" />
         <Stack.Screen name="onboarding/choose-domain" />
         <Stack.Screen name="onboarding/player/cricket-form" />
