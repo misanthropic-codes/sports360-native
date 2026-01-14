@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { errorHandler } from "../utils/errorHandler";
 
 const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -173,6 +174,13 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.warn("[GroundOwnerStore] Session expired (401) - triggering error modal");
+          errorHandler.handleSessionExpired();
+        } else if (response.status >= 500) {
+          console.warn(`[GroundOwnerStore] Server error (${response.status}) - triggering error modal`);
+          errorHandler.handleServerError(response.status, "Server error occurred. Please try again later.");
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -224,6 +232,13 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.warn("[GroundOwnerStore] Session expired (401) - triggering error modal");
+          errorHandler.handleSessionExpired();
+        } else if (response.status >= 500) {
+          console.warn(`[GroundOwnerStore] Server error (${response.status}) - triggering error modal`);
+          errorHandler.handleServerError(response.status, "Server error occurred. Please try again later.");
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -332,6 +347,13 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.warn("[GroundOwnerStore] Session expired (401) - triggering error modal");
+          errorHandler.handleSessionExpired();
+        } else if (response.status >= 500) {
+          console.warn(`[GroundOwnerStore] Server error (${response.status}) - triggering error modal`);
+          errorHandler.handleServerError(response.status, "Server error occurred. Please try again later.");
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
