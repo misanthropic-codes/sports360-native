@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { API_BASE_URL } from "../../config/apiConfig";
 
 interface TimeSlot {
   startTime: string;
