@@ -19,12 +19,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { API_BASE_URL } from "../../config/apiConfig";
 import { useBookingStore } from "../../store/bookingStore";
 import { useGroundStore } from "../../store/groundStore";
 import { useOrganizerTournamentStore } from "../../store/organizerTournamentStore";
 import { useTournamentStore } from "../../store/tournamentStore";
 
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+const BASE_URL = API_BASE_URL;
 
 type Tournament = {
   id: string;

@@ -1,7 +1,8 @@
 import axios from "axios";
 import { create } from "zustand";
+import { API_BASE_URL } from "../config/apiConfig";
 
-const BASE_URL = "https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1";
+const BASE_URL = API_BASE_URL;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Types

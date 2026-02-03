@@ -1,11 +1,13 @@
+import { API_BASE_URL } from "../config/apiConfig";
+
 export const reviewBookingRequest = async (
   bookingId: string,
-  status: "approved" | "rejected" | "pending" | "cancelled",
+  status: "approved" | "rejected",
   token: string
 ) => {
   try {
     const response = await fetch(
-      `https://nhgj9d2g-8080.inc1.devtunnels.ms/api/v1/ground-owner/booking-requests/${bookingId}/review`,
+      `${API_BASE_URL}/ground-owner/booking-requests/${bookingId}/review`,
       {
         method: "PUT",
         headers: {

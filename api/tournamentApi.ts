@@ -105,7 +105,7 @@ export const getTeamsByTournament = async (
     `/tournament/get/${id}/teams`,
     withAuthHeaders(token)
   );
-  return res.data;
+  return res.data?.data || [];
 };
 
 export const getMyTeams = async (token: string): Promise<Team[]> => {
