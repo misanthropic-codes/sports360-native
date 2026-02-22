@@ -1,13 +1,14 @@
 import { useAuth } from "@/context/AuthContext";
 import { useTeamDetailsStore } from "@/store/teamDetailsStore";
-import { useLocalSearchParams } from "expo-router";
-import { Calendar, Clipboard, Trophy } from "phosphor-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowRight, Calendar, Clipboard, Trophy } from "phosphor-react-native";
 import React, { useEffect } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
 const Matches: React.FC = () => {
   const { token } = useAuth();
   const { teamId } = useLocalSearchParams();
+  const router = useRouter();
 
   // Use teamDetailsStore instead of local state
   const {
@@ -128,13 +129,16 @@ const Matches: React.FC = () => {
       {/* Matches List */}
       {matches.map((match) => {
         const statusBadge = getStatusBadge(match.status);
-        const isCompleted = match.status.toLowerCase().includes("completed") || 
-                           match.status.toLowerCase().includes("finished");
+        const formatLower = match.status.toLowerCase();
+        const isCompleted = formatLower.includes("completed") || formatLower.includes("finished");
+        const isLive = formatLower.includes("live") || formatLower.includes("ongoing");
         
         return (
-          <View
+          <TouchableOpacity
             key={match.id}
-            className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+            onPress={() => isLive ? router.push(`/match/${match.id}/live`) : null}
+            activeOpacity={isLive ? 0.7 : 1}
+            className={`bg-white border border-gray-200 rounded-xl p-5 shadow-sm ${isLive ? 'border-red-100' : ''}`}
           >
             {/* Tournament Header */}
             <View className="flex-row items-center justify-between mb-3">
@@ -168,8 +172,8 @@ const Matches: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Score */}
-              {isCompleted && match.scoreA && match.scoreB && (
+              {/* Score (Live or Completed) */}
+              {(isCompleted || isLive) && match.scoreA && match.scoreB && (
                 <View className="flex-row items-center justify-center mt-2 pt-2 border-t border-gray-200">
                   <Text className="text-indigo-600 font-bold text-2xl">
                     {match.scoreA}
@@ -180,26 +184,42 @@ const Matches: React.FC = () => {
                   </Text>
                 </View>
               )}
+              
+              {/* LIVE Indicator */}
+              {isLive && (
+                 <View className="mt-2 flex-row justify-center items-center">
+                    <View className="w-2 h-2 rounded-full bg-red-500 mr-2" />
+                    <Text className="text-red-500 font-bold text-xs uppercase">Tap to View Score</Text>
+                 </View>
+              )}
             </View>
 
             {/* Match Info */}
-            <View className="space-y-2">
-              <View className="flex-row items-center">
-                <Calendar size={16} color="#6B7280" weight="bold" />
-                <Text className="text-gray-600 text-sm ml-2">
-                  {formatMatchDate(match.matchTime)}
-                </Text>
-              </View>
+            <View className="flex-row justify-between items-center">
+                <View className="space-y-1">
+                  <View className="flex-row items-center">
+                    <Calendar size={16} color="#6B7280" weight="bold" />
+                    <Text className="text-gray-600 text-sm ml-2">
+                      {formatMatchDate(match.matchTime)}
+                    </Text>
+                  </View>
 
-              <View className="flex-row items-center">
-                <View className="bg-gray-200 px-2 py-1 rounded">
-                  <Text className="text-gray-700 text-xs font-medium">
-                    {match.matchType}
-                  </Text>
+                  <View className="flex-row items-center">
+                    <View className="bg-gray-200 px-2 py-1 rounded">
+                      <Text className="text-gray-700 text-xs font-medium">
+                        {match.matchType}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
+                
+                {isLive && (
+                    <View className="bg-red-50 rounded-full p-2">
+                        <ArrowRight size={20} color="#EF4444" weight="bold" />
+                    </View>
+                )}
             </View>
-          </View>
+          </TouchableOpacity>
         );
       })}
     </View>

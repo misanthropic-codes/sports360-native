@@ -11,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { getLiveMatches } from '../../api/guest/guestApi';
 import SignupPrompt from '../../components/guest/SignupPrompt';
 import { useGuestStore } from '../../store/guest/guestStore';
 
@@ -18,6 +19,7 @@ const GuestDashboard = () => {
   const router = useRouter();
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [liveMatches, setLiveMatches] = useState<any[]>([]);
 
   const {
     platformStats,
@@ -25,13 +27,23 @@ const GuestDashboard = () => {
     fetchPlatformStats,
   } = useGuestStore();
 
+  const loadLiveMatches = async () => {
+    try {
+        const matches = await getLiveMatches();
+        setLiveMatches(matches);
+    } catch (e) {
+        console.error("Failed to load live matches", e);
+    }
+  };
+
   useEffect(() => {
     fetchPlatformStats();
+    loadLiveMatches();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchPlatformStats(true);
+    await Promise.all([fetchPlatformStats(true), loadLiveMatches()]);
     setRefreshing(false);
   };
 
@@ -164,6 +176,55 @@ const GuestDashboard = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Live Matches Section */}
+        {liveMatches.length > 0 && (
+          <View className="px-6 pt-6 pb-2">
+            <View className="flex-row items-center mb-3">
+               <View className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
+               <Text className="text-gray-900 font-rubikSemiBold text-lg">Live Matches</Text>
+            </View>
+            
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row -mx-1">
+              {liveMatches.map((match) => (
+                <TouchableOpacity 
+                   key={match.id}
+                   onPress={() => router.push(`/match/${match.id}/live`)}
+                   className="bg-white mr-4 rounded-xl p-4 border border-gray-200 w-64 shadow-sm"
+                >
+                   <View className="flex-row justify-between items-center mb-2">
+                       <Text className="text-xs font-bold text-red-500 uppercase tracking-widest">LIVE</Text>
+                       <Text className="text-xs text-gray-500">{match.tournament?.name || "Friendly"}</Text>
+                   </View>
+                   
+                   <View className="flex-row justify-between items-center mb-3">
+                       <View className="flex-row items-center">
+                           <View className="w-8 h-8 rounded-full bg-blue-100 justify-center items-center mr-2">
+                               <Text className="text-blue-700 font-bold text-xs">{match.teamA?.name?.[0] || "A"}</Text>
+                           </View>
+                           <Text className="font-bold text-gray-800 text-sm truncate w-16" numberOfLines={1}>{match.teamA?.name || "Team A"}</Text>
+                       </View>
+                       <Text className="font-bold text-gray-400 text-xs">VS</Text>
+                       <View className="flex-row items-center justify-end">
+                           <Text className="font-bold text-gray-800 text-sm truncate w-16 text-right" numberOfLines={1}>{match.teamB?.name || "Team B"}</Text>
+                           <View className="w-8 h-8 rounded-full bg-red-100 justify-center items-center ml-2">
+                               <Text className="text-red-700 font-bold text-xs">{match.teamB?.name?.[0] || "B"}</Text>
+                           </View>
+                       </View>
+                   </View>
+                   
+                   <View className="bg-gray-50 p-2 rounded-lg items-center">
+                       <Text className="text-gray-800 font-bold text-sm">
+                           {match.scoreA !== undefined ? `${match.scoreA}/${match.wicketsA || 0}` : "0/0"} 
+                           <Text className="text-gray-400 font-normal"> ({match.oversA || 0} ov)</Text>
+                       </Text>
+                       <Text className="text-xs text-gray-500 mt-1">{match.status || "Ongoing"}</Text>
+                   </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Stats Section */}
         <View className="px-6 pt-4 pb-2">
           <Text className="text-gray-900 font-rubikSemiBold text-lg mb-3">

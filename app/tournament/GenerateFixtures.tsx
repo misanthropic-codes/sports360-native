@@ -38,7 +38,7 @@ const GenerateFixtureScreen = () => {
       try {
         setFetchingTeams(true);
         const teamRes = await getTeamsByTournament(tournamentId, token);
-        setTeams(teamRes?.data || []);
+        setTeams(teamRes || []);
       } catch (err) {
         console.log("Error fetching teams", err);
         Alert.alert("Error", "Failed to fetch teams for this tournament");

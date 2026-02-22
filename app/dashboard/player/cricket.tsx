@@ -1,16 +1,17 @@
+import { getLiveMatches } from "@/api/guest/guestApi";
 import { useAuth } from "@/context/AuthContext";
 import { usePlayerAnalyticsStore } from "@/store/playerAnalyticsStore";
 import { useTeamStore } from "@/store/teamStore";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Modal from "react-native-modal";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,15 +19,15 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 
 import BottomNavBar from "@/components/BottomNavBar";
 import {
-    Award,
-    BookOpen,
-    ChevronRight,
-    PlusCircle,
-    Shield,
-    Target,
-    Trophy,
-    Users,
-    X,
+  Award,
+  BookOpen,
+  ChevronRight,
+  PlusCircle,
+  Shield,
+  Target,
+  Trophy,
+  Users,
+  X,
 } from "lucide-react-native";
 
 const CricketHomeScreen = () => {
@@ -48,6 +49,31 @@ const CricketHomeScreen = () => {
   const [modalType, setModalType] = useState<"teams" | "performance" | null>(
     null
   );
+  
+  /* -------------------------------------------------------------------------- */
+  /*                               Live Matches Logic                           */
+  /* -------------------------------------------------------------------------- */
+  const [liveMatches, setLiveMatches] = useState<any[]>([]); // User's matches
+  const [allLiveMatches, setAllLiveMatches] = useState<any[]>([]); // All matches
+
+  // 1. Fetch All Live Matches
+  useEffect(() => {
+    getLiveMatches()
+      .then(setAllLiveMatches)
+      .catch(e => console.error("Error fetching all live matches", e));
+  }, []); // Run once on mount (or add refresh logic)
+
+  // 2. Derive "Your Live Matches" from All Matches + My Teams
+  useEffect(() => {
+    if (allLiveMatches.length > 0 && myTeams.length > 0) {
+        const userStats = allLiveMatches.filter(m => 
+            myTeams.some(t => t.id === m.teamAId || t.id === m.teamBId)
+        );
+        setLiveMatches(userStats);
+    } else {
+        setLiveMatches([]);
+    }
+  }, [allLiveMatches, myTeams]);
 
   useEffect(() => {
     if (token) fetchAnalytics(token);
@@ -127,6 +153,80 @@ const CricketHomeScreen = () => {
         contentContainerStyle={{ paddingBottom: 120 }}
         className="px-4"
       >
+        {/* Live Matches Section */}
+        {liveMatches.length > 0 && (
+          <View className="mt-4 mb-2">
+            <View className="flex-row items-center mb-3">
+               <View className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
+               <Text className="text-slate-900 font-extrabold text-sm uppercase">Your Live Matches</Text>
+            </View>
+            
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-4 px-4 pb-2">
+              {liveMatches.map((match) => (
+                <TouchableOpacity 
+                   key={match.id}
+                   onPress={() => router.push(`/match/${match.id}/live`)}
+                   className="bg-white mr-4 rounded-xl p-4 border-l-4 border-l-red-500 border-y border-r border-gray-100 w-72 shadow-sm"
+                >
+                   <View className="flex-row justify-between items-center mb-3">
+                       <Text className="text-xs font-bold text-red-500 uppercase">LIVE NOW</Text>
+                       <Text className="text-xs text-gray-500 font-medium">{match.tournament?.name || "Match"}</Text>
+                   </View>
+                   
+                   <View className="flex-row justify-between items-center">
+                       <View className="flex-1">
+                           <Text className="font-bold text-slate-900 text-lg" numberOfLines={1}>{match.teamA?.name}</Text>
+                           <Text className="font-bold text-slate-900 text-lg" numberOfLines={1}>{match.teamB?.name}</Text>
+                       </View>
+                       <View className="items-end bg-slate-50 px-3 py-2 rounded-lg">
+                           <Text className="text-lg font-bold text-slate-800">
+                               {match.scoreA !== undefined ? `${match.scoreA}/${match.wicketsA || 0}` : "-/-"}
+                           </Text>
+                           <Text className="text-xs text-slate-500">{match.status || "Ongoing"}</Text>
+                       </View>
+                   </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+        
+        {/* All Live Matches Section */}
+        {allLiveMatches.length > 0 && (
+          <View className="mt-4 mb-2">
+            <View className="flex-row items-center mb-3">
+               <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+               <Text className="text-slate-900 font-extrabold text-sm uppercase">All Ongoing Matches</Text>
+            </View>
+            
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-4 px-4 pb-2">
+              {allLiveMatches.map((match) => (
+                <TouchableOpacity 
+                   key={match.id}
+                   onPress={() => router.push(`/match/${match.id}/live`)}
+                   className="bg-white mr-4 rounded-xl p-4 border border-slate-200 w-64 shadow-sm"
+                >
+                   <View className="flex-row justify-between items-center mb-3">
+                       <Text className="text-xs font-bold text-blue-500 uppercase">ONGOING</Text>
+                       <Text className="text-xs text-slate-500 font-medium">{match.tournament?.name || "Match"}</Text>
+                   </View>
+                   
+                   <View className="space-y-2">
+                       <View className="flex-row justify-between items-center">
+                           <Text className="font-semibold text-slate-800 text-sm flex-1 mr-2" numberOfLines={1}>{match.teamA?.name}</Text>
+                           <Text className="text-slate-600 text-xs font-bold">{match.scoreA !== undefined ? `${match.scoreA}/${match.wicketsA || 0}` : "0/0"}</Text>
+                       </View>
+                       <View className="flex-row justify-between items-center">
+                           <Text className="font-semibold text-slate-800 text-sm flex-1 mr-2" numberOfLines={1}>{match.teamB?.name}</Text>
+                           <Text className="text-slate-600 text-xs font-bold">{match.scoreB !== undefined ? `${match.scoreB}/${match.wicketsB || 0}` : "0/0"}</Text>
+                       </View>
+                   </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Performance Overview */}
         <Text className="text-slate-500 text-xs font-semibold mt-4 mb-2">
           PERFORMANCE OVERVIEW

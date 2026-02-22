@@ -217,3 +217,8 @@ export const updateMatchStatus = async (
   );
   return res.data;
 };
+
+export const getMyOngoingMatches = async (token: string) => {
+  const res = await api.get('/matches/my-live', withAuthHeaders(token));
+  return res.data?.matches || [];
+};

@@ -4,24 +4,24 @@ import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { router } from "expo-router";
 import {
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  FileText,
-  Play,
-  Trash2,
-  Trophy,
-  Zap,
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    FileText,
+    Play,
+    Trash2,
+    Trophy,
+    Zap,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface Match {
@@ -357,41 +357,51 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
         </View>
 
         {/* Status Update Button - Organizer Only */}
-        {isOrganizer && getStatusButtonConfig(item.status) && (
-          <View className="px-4 pb-3">
-            {(() => {
-              const btnConfig = getStatusButtonConfig(item.status);
-              const StatusIcon = btnConfig!.icon;
-              
-              return (
+        {isOrganizer && (
+          <View className="px-4 pb-3 flex-col gap-3">
+             {item.status.toLowerCase() === 'ongoing' && (
                 <TouchableOpacity
-                  onPress={() => handleStatusUpdate(item.id, item.status)}
-                  disabled={isUpdating}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: btnConfig!.bgColor,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 10,
-                    opacity: isUpdating ? 0.6 : 1,
-                  }}
-                  activeOpacity={0.7}
+                  onPress={() => router.push(`/match/${item.id}`)}
+                  className="bg-purple-600 py-3 px-4 rounded-xl flex-row justify-center items-center shadow-sm active:bg-purple-700"
                 >
-                  {isUpdating ? (
-                    <ActivityIndicator size="small" color={btnConfig!.color} />
-                  ) : (
-                    <>
-                      <StatusIcon size={18} color={btnConfig!.color} style={{ marginRight: 8 }} />
-                      <Text style={{ color: btnConfig!.color, fontWeight: "bold", fontSize: 14 }}>
-                        {btnConfig!.text}
-                      </Text>
-                    </>
-                  )}
+                    <Zap size={18} color="white" style={{ marginRight: 8 }} />
+                    <Text className="text-white font-bold text-sm">Start Live Updates</Text>
                 </TouchableOpacity>
-              );
-            })()}
+             )}
+
+             {getStatusButtonConfig(item.status) && (() => {
+               const btnConfig = getStatusButtonConfig(item.status);
+               const StatusIcon = btnConfig!.icon;
+               
+               return (
+                 <TouchableOpacity
+                   onPress={() => handleStatusUpdate(item.id, item.status)}
+                   disabled={isUpdating}
+                   style={{
+                     flexDirection: "row",
+                     alignItems: "center",
+                     justifyContent: "center",
+                     backgroundColor: btnConfig!.bgColor,
+                     paddingVertical: 12,
+                     paddingHorizontal: 16,
+                     borderRadius: 10,
+                     opacity: isUpdating ? 0.6 : 1,
+                   }}
+                   activeOpacity={0.7}
+                 >
+                   {isUpdating ? (
+                     <ActivityIndicator size="small" color={btnConfig!.color} />
+                   ) : (
+                     <>
+                       <StatusIcon size={18} color={btnConfig!.color} style={{ marginRight: 8 }} />
+                       <Text style={{ color: btnConfig!.color, fontWeight: "bold", fontSize: 14 }}>
+                         {btnConfig!.text}
+                       </Text>
+                     </>
+                   )}
+                 </TouchableOpacity>
+               );
+             })()}
           </View>
         )}
 

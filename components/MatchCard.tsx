@@ -1,17 +1,39 @@
-// components/MatchCard.tsx
-import { Match, Team } from "@/api/tournamentApi";
-import React from "react";
-import { Text, View } from "react-native";
+import { Match, Team, updateMatchStatus } from "@/api/tournamentApi";
+import { useAuth } from "@/context/AuthContext";
+import { router } from "expo-router";
+import React, { useState } from "react";
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
 
 interface MatchCardProps {
   match: Match;
   matchNumber: number;
   teams: Team[];
+  onRefresh?: () => void;
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, matchNumber, teams }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, matchNumber, teams, onRefresh }) => {
+  const { token } = useAuth();
+  const [status, setStatus] = useState(match.status);
+  const [loading, setLoading] = useState(false);
+
   const teamA = teams.find((t) => t.id === match.teamAId);
   const teamB = teams.find((t) => t.id === match.teamBId);
+
+  const handleUpdateStatus = async (newStatus: "ongoing" | "completed") => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      await updateMatchStatus(match.id, match.tournamentId, newStatus, token);
+      setStatus(newStatus);
+      if (onRefresh) onRefresh();
+      Alert.alert("Success", `Match is now ${newStatus}`);
+    } catch (error) {
+      console.error("Failed to update status", error);
+      Alert.alert("Error", "Failed to update match status");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -29,9 +51,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, matchNumber, teams }) => {
     };
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusColor = (s: string) => {
+    switch (s.toLowerCase()) {
       case "scheduled":
+      case "upcoming":
         return "bg-blue-100 text-blue-800";
       case "completed":
         return "bg-green-100 text-green-800";
@@ -123,14 +146,63 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, matchNumber, teams }) => {
               <Text className="text-gray-600 font-medium">Status:</Text>
             </View>
             <View
-              className={`px-3 py-1 rounded-full ${getStatusColor(match.status)}`}
+              className={`px-3 py-1 rounded-full ${getStatusColor(status)}`}
             >
               <Text className="font-medium text-sm capitalize">
-                {match.status}
+                {status}
               </Text>
             </View>
           </View>
         </View>
+      </View>
+
+      {/* Organizer Actions */}
+      <View className="p-4 border-t border-gray-100 bg-gray-50 flex-col gap-2">
+        {loading ? (
+             <ActivityIndicator color="#7C3AED" />
+        ) : (
+             <>
+                {(status.toLowerCase() === 'scheduled' || status.toLowerCase() === 'upcoming') && (
+                    <TouchableOpacity
+                        onPress={() => handleUpdateStatus('ongoing')}
+                        className="bg-purple-600 rounded-lg py-3 flex-row justify-center items-center shadow-sm active:bg-purple-700"
+                    >
+                        <Text className="text-white font-bold text-base">Start Match</Text>
+                    </TouchableOpacity>
+                )}
+
+                {status.toLowerCase() === 'ongoing' && (
+                    <>
+                        <TouchableOpacity
+                            onPress={() => router.push(`/match/${match.id}`)}
+                            className="bg-green-600 rounded-lg py-3 flex-row justify-center items-center shadow-sm active:bg-green-700 mb-2"
+                        >
+                            <Text className="text-white font-bold text-base">Start Live Updates</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                            onPress={() => Alert.alert(
+                                "Complete Match", 
+                                "Are you sure you want to mark this match as completed?", 
+                                [
+                                    { text: "Cancel", style: "cancel"},
+                                    { text: "Yes, Complete", onPress: () => handleUpdateStatus('completed'), style: 'destructive' }
+                                ]
+                            )}
+                            className="bg-gray-200 rounded-lg py-3 flex-row justify-center items-center shadow-sm active:bg-gray-300"
+                        >
+                            <Text className="text-gray-800 font-bold text-base">Complete Match</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+                
+                {status.toLowerCase() === 'completed' && (
+                     <View className="items-center py-2">
+                        <Text className="text-green-600 font-bold">Match Completed</Text>
+                     </View>
+                )}
+             </>
+        )}
       </View>
     </View>
   );
