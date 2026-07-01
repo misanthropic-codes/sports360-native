@@ -144,6 +144,38 @@ export const updateOrganizerProfile = async (
 };
 
 // ============================================
+// USER SEARCH
+// ============================================
+
+export interface SearchUser {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  profilePicUrl: string | null;
+  role: string;
+}
+
+/**
+ * Fuzzy search users by name or phone
+ * GET /user/search?query=
+ * Min 2 characters. Returns up to 20 results.
+ */
+export const searchUsers = async (
+  query: string,
+  token: string
+): Promise<{ users: SearchUser[]; totalCount: number }> => {
+  if (query.length < 2) {
+    throw new Error("Search query must be at least 2 characters");
+  }
+  const res = await api.get("/user/search", {
+    params: { query },
+    ...withAuthHeaders(token),
+  });
+  return { users: res.data?.users || [], totalCount: res.data?.totalCount || 0 };
+};
+
+// ============================================
 // HISTORY & ANALYTICS APIs
 // ============================================
 

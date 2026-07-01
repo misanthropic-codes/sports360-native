@@ -64,9 +64,11 @@ export const getPlatformStats = async () => {
 };
 
 // MATCHES
+/**
+ * Get all live (ongoing) matches — public, no auth required
+ * GET /matches/live
+ */
 export const getLiveMatches = async () => {
-  // According to docs, /matches/:id is public. Assuming /matches list exists.
-  // Status 'live' per documentation section 3.3
-  const response = await api.get('/matches', { params: { status: 'live' } });
-  return response.data?.matches || response.data?.data || [];
+  const response = await api.get('/matches/live');
+  return response.data?.matches || [];
 };

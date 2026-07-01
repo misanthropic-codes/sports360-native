@@ -204,15 +204,19 @@ export const deleteMatch = async (
  * Update Match Status
  * PATCH /matches/:matchId/status
  */
+/**
+ * Update Match Status
+ * PATCH /matches/:matchId/status
+ * Valid transitions: "scheduled" → "ongoing" → "completed"
+ */
 export const updateMatchStatus = async (
   matchId: string,
-  tournamentId: string,
-  status: "upcoming" | "ongoing" | "completed",
+  status: "scheduled" | "ongoing" | "completed",
   token: string
 ) => {
   const res = await api.patch(
     `/matches/${matchId}/status`,
-    { tournamentId, status },
+    { status },
     withAuthHeaders(token)
   );
   return res.data;
