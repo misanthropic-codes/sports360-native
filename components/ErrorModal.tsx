@@ -4,7 +4,7 @@ import { Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
 
 interface ErrorModalProps {
   visible: boolean;
-  type: "SESSION_EXPIRED" | "SERVER_ERROR";
+  type: "SESSION_EXPIRED" | "SERVER_ERROR" | "NETWORK_ERROR";
   message: string;
   onDismiss: () => void;
   onLogout?: () => void;
@@ -18,6 +18,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
   onLogout,
 }) => {
   const isSessionExpired = type === "SESSION_EXPIRED";
+  const isNetworkError = type === "NETWORK_ERROR";
 
   return (
     <Modal
@@ -49,7 +50,11 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
 
           {/* Title */}
           <Text className="text-xl font-bold text-gray-800 text-center mb-2">
-            {isSessionExpired ? "Session Expired" : "Server Error"}
+            {isSessionExpired
+              ? "Session Expired"
+              : isNetworkError
+              ? "Connection Error"
+              : "Server Error"}
           </Text>
 
           {/* Message */}

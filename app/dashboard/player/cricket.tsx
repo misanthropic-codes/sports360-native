@@ -32,7 +32,7 @@ import {
 
 const CricketHomeScreen = () => {
   const { user, token } = useAuth();
-  const { summary, isLoading, fetchAnalytics } = usePlayerAnalyticsStore();
+  const { summary, isLoading, error, fetchAnalytics } = usePlayerAnalyticsStore();
   const { myTeams, fetchTeams } = useTeamStore();
 
   const baseURL = process.env.EXPO_PUBLIC_BASE_URL;
@@ -80,10 +80,24 @@ const CricketHomeScreen = () => {
     if (token && baseURL) fetchTeams(token, baseURL);
   }, [token]);
 
-  if (isLoading) {
+  if (isLoading && !summary) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-slate-50">
         <ActivityIndicator size="large" color="#2563EB" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !summary) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-slate-50 px-6">
+        <Text className="text-gray-700 text-center mb-4">{error}</Text>
+        <TouchableOpacity
+          onPress={() => token && fetchAnalytics(token, true)}
+          className="bg-blue-600 px-6 py-3 rounded-lg"
+        >
+          <Text className="text-white font-semibold">Retry</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

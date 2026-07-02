@@ -75,7 +75,21 @@ const LoginScreen = () => {
       });
 
       if (response.data && response.data.success) {
-        const userData: UserData = response.data.data;
+        const rawData = response.data.data;
+        const token =
+          rawData?.token ||
+          rawData?.accessToken ||
+          response.data.token ||
+          response.data.accessToken;
+
+        const userData: UserData = {
+          ...rawData,
+          token: token ?? "",
+        };
+
+        if (!userData.token) {
+          throw new Error("Login succeeded but no auth token was returned.");
+        }
 
         // Mark onboarding as complete
         await setOnboardingComplete();

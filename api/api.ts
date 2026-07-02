@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { getStoredAuthToken } from "../utils/authToken";
 import { errorHandler } from "../utils/errorHandler";
 
 // Extend axios config to include metadata for timing
@@ -21,7 +21,7 @@ const api = axios.create({
 // Request interceptor - logs all outgoing API calls
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem("token");
+    const token = await getStoredAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -105,14 +105,12 @@ api.interceptors.response.use(
     
     // Handle specific HTTP error codes
     const statusCode = error.response?.status;
-    
-    console.log("🔍 Checking error status code:", statusCode);
+    const requestUrl = error.config?.url;
+
+    console.log("🔍 Checking error status code:", statusCode, "url:", requestUrl);
 
     if (statusCode === 401) {
-      // Session expired / Unauthorized
-      console.warn("🔒 Session expired (401) - triggering error modal");
-      errorHandler.handleSessionExpired();
-      console.log("✅ Called errorHandler.handleSessionExpired()");
+      console.warn("🔒 Unauthorized response - leaving session intact:", requestUrl);
     } else if (statusCode && statusCode >= 500) {
       // Server errors (500+)
       console.warn(`🔥 Server error (${statusCode}) - triggering error modal`);

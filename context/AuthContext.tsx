@@ -8,7 +8,7 @@ import React, {
     useState,
 } from "react";
 
-// Import all stores for logout cleanup
+import { persistAuthToken } from "@/utils/authToken";
 import { useBookingStore } from "@/store/bookingStore";
 import { useGroundStore as useMainGroundStore } from "@/store/groundStore";
 import { useGroundStore as useBookingGroundStore } from "@/store/groundTStore";
@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
         setToken(parsedUser.token);
+        await persistAuthToken(parsedUser.token);
       }
     };
     loadUser();
@@ -65,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(userData);
     setToken(userData.token || null);
     await AsyncStorage.setItem("user", JSON.stringify(userData));
+    await persistAuthToken(userData.token);
   };
 
   const updateUser = async (updates: Partial<User>) => {
@@ -85,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Clear AuthContext state
     setUser(null);
     setToken(null);
+    await persistAuthToken(null);
     
     // Clear all Zustand stores
     try {
