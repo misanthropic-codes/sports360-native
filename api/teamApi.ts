@@ -47,6 +47,8 @@ export interface TeamMember {
   battingStyle: string;
   bowlingStyle: string;
   batsmanType: string | null;
+  playerStatus?: string;
+  isBenched?: boolean;
 }
 
 export interface TeamDetails {
@@ -62,6 +64,7 @@ export interface JoinRequest {
   status: string;
   message?: string;
   requestedAt: string;
+  fullName?: string;
   name?: string;
 }
 

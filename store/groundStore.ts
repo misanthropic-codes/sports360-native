@@ -23,7 +23,7 @@ export interface Ground {
   city?: string;
   latitude?: number;
   longitude?: number;
-  distance?: number; // Calculated field for location-based sorting
+  distance?: number;
   coordinates?: string;
   facilities?: string | null;
   pricePerHour?: number;
@@ -32,7 +32,6 @@ export interface Ground {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  // Legacy fields that might still be needed or can be optional
   businessLogoUrl?: any;
   profileImageUrl?: any;
   businessName?: any;
@@ -48,7 +47,6 @@ export interface Ground {
   };
 }
 
-// ✅ Review structure
 export interface Review {
   id: string;
   bookingId: string;
@@ -64,7 +62,6 @@ export interface Review {
   };
 }
 
-// ✅ Review data container
 export interface GroundReviewData {
   reviews: Review[];
   averageRating: number;
@@ -73,38 +70,23 @@ export interface GroundReviewData {
   limit: number;
 }
 
-// ✅ Zustand store interface
 interface GroundStore {
   selectedGround: Ground | null;
-  groundReviews: Record<string, GroundReviewData>; // Key: groundId
-  
-  // Grounds list caching
+  groundReviews: Record<string, GroundReviewData>;
   grounds: Ground[];
   groundsLoading: boolean;
-  groundsLoaded: boolean;
-  groundsLastFetched: number | null;
   groundsError: string | null;
-  
   setSelectedGround: (ground: Ground) => void;
   setGroundReviews: (groundId: string, reviewData: GroundReviewData) => void;
-  
-  // Grounds fetching
-  fetchGrounds: (token: string, forceRefresh?: boolean) => Promise<void>;
+  fetchGrounds: (token: string, _forceRefresh?: boolean) => Promise<void>;
   invalidateGroundsCache: () => void;
 }
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-// ✅ Create store
-export const useGroundStore = create<GroundStore>((set, get) => ({
+export const useGroundStore = create<GroundStore>((set) => ({
   selectedGround: null,
   groundReviews: {},
-  
-  // Grounds list state
   grounds: [],
   groundsLoading: false,
-  groundsLoaded: false,
-  groundsLastFetched: null,
   groundsError: null,
 
   setSelectedGround: (ground: Ground) => set({ selectedGround: ground }),
@@ -113,54 +95,31 @@ export const useGroundStore = create<GroundStore>((set, get) => ({
     set((state) => ({
       groundReviews: { ...state.groundReviews, [groundId]: reviewData },
     })),
-  
-  // Fetch grounds with smart caching
-  fetchGrounds: async (token: string, forceRefresh = false) => {
-    const state = get();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && state.groundsLoaded) {
-      // Check cache freshness
-      if (state.groundsLastFetched && Date.now() - state.groundsLastFetched < CACHE_TTL) {
-        console.log("[GroundStore] Using cached grounds data");
-        return;
-      }
-    }
-    
+
+  fetchGrounds: async (token: string) => {
     if (!token) {
       console.warn("[GroundStore] No token provided");
       return;
     }
-    
+
     try {
       set({ groundsLoading: true, groundsError: null });
-      console.log("[GroundStore] Fetching grounds - forceRefresh:", forceRefresh);
-      
       const data = await getGrounds(token);
-      
       set({
         grounds: data || [],
-        groundsLoaded: true,
         groundsLoading: false,
-        groundsLastFetched: Date.now(),
         groundsError: null,
       });
     } catch (error: any) {
       console.error("[GroundStore] Error fetching grounds:", error);
-      // Error handled by axios interceptor, update local state only
-      set({ 
+      set({
         groundsLoading: false,
-        groundsError: error.response?.data?.message || "Failed to fetch grounds"
+        groundsError: error.response?.data?.message || "Failed to fetch grounds",
       });
     }
   },
-  
-  // Invalidate grounds cache
+
   invalidateGroundsCache: () => {
-    console.log("[GroundStore] Grounds cache invalidated");
-    set({
-      groundsLoaded: false,
-      groundsLastFetched: null,
-    });
+    set({ grounds: [], groundsError: null });
   },
 }));

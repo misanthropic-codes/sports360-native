@@ -24,58 +24,31 @@ export interface OrganizerTournament {
 }
 
 interface OrganizerTournamentStore {
-  // Tournaments list
   tournaments: OrganizerTournament[];
   loading: boolean;
-  isLoaded: boolean;
-  lastFetched: number | null;
   error: string | null;
-  
-  // Actions
-  fetchOrganizerTournaments: (token: string, forceRefresh?: boolean) => Promise<void>;
+  fetchOrganizerTournaments: (token: string, _forceRefresh?: boolean) => Promise<void>;
   invalidateCache: () => void;
   setTournaments: (tournaments: OrganizerTournament[]) => void;
 }
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-export const useOrganizerTournamentStore = create<OrganizerTournamentStore>((set, get) => ({
-  // Initial state
+export const useOrganizerTournamentStore = create<OrganizerTournamentStore>((set) => ({
   tournaments: [],
   loading: false,
-  isLoaded: false,
-  lastFetched: null,
   error: null,
-  
-  // Fetch tournaments with smart caching
-  fetchOrganizerTournaments: async (token: string, forceRefresh = false) => {
-    const state = get();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && state.isLoaded) {
-      // Check cache freshness
-      if (state.lastFetched && Date.now() - state.lastFetched < CACHE_TTL) {
-        console.log("[OrganizerTournamentStore] Using cached tournament data");
-        return;
-      }
-    }
-    
+
+  fetchOrganizerTournaments: async (token: string) => {
     if (!token) {
       console.warn("[OrganizerTournamentStore] No token provided");
       return;
     }
-    
+
     try {
       set({ loading: true, error: null });
-      console.log("[OrganizerTournamentStore] Fetching organizer tournaments - forceRefresh:", forceRefresh);
-      
       const data = await getOrganizerTournaments(token);
-      
       set({
         tournaments: data || [],
-        isLoaded: true,
         loading: false,
-        lastFetched: Date.now(),
         error: null,
       });
     } catch (error: any) {
@@ -86,18 +59,12 @@ export const useOrganizerTournamentStore = create<OrganizerTournamentStore>((set
       });
     }
   },
-  
-  // Manual setter for tournaments (useful for optimistic updates)
+
   setTournaments: (tournaments: OrganizerTournament[]) => {
-    set({ tournaments, isLoaded: true, lastFetched: Date.now() });
+    set({ tournaments });
   },
-  
-  // Invalidate cache to force fresh data on next fetch
+
   invalidateCache: () => {
-    console.log("[OrganizerTournamentStore] Cache invalidated");
-    set({
-      isLoaded: false,
-      lastFetched: null,
-    });
+    set({ tournaments: [], error: null });
   },
 }));

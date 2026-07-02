@@ -3,7 +3,6 @@ import { create } from "zustand";
 import { API_BASE_URL } from "../config/apiConfig";
 
 const BASE_URL = API_BASE_URL;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Types
 export interface TeamMember {
@@ -25,6 +24,7 @@ export interface TeamMember {
   battingStyle: string;
   bowlingStyle: string;
   batsmanType: string | null;
+  playerStatus?: string;
   isBenched?: boolean;
 }
 
@@ -61,7 +61,32 @@ export interface JoinRequest {
   teamId: string;
   status: string;
   requestedAt: string;
+  message?: string;
+  fullName?: string;
   name?: string;
+}
+
+function extractNameFromMessage(message?: string): string | undefined {
+  if (!message) return undefined;
+  const match = message.match(/I am ([^.]+)\./i);
+  return match?.[1]?.trim();
+}
+
+function normalizeJoinRequest(raw: any): JoinRequest {
+  const fullName =
+    raw.fullName?.trim() ||
+    raw.name?.trim() ||
+    extractNameFromMessage(raw.message);
+
+  return {
+    userId: raw.userId,
+    teamId: raw.teamId,
+    status: raw.status,
+    requestedAt: raw.requestedAt,
+    message: raw.message,
+    fullName,
+    name: fullName,
+  };
 }
 
 interface TeamDetailsCache {
@@ -77,15 +102,15 @@ interface TeamDetailsCache {
 }
 
 interface TeamDetailsStore {
-  // Cache for each team (keyed by teamId)
   teamData: Record<string, TeamDetailsCache>;
   loading: Record<string, boolean>;
+  joinRequestsLoading: Record<string, boolean>;
   
   // Fetch functions  with smart caching
   fetchTeamMembers: (teamId: string, token: string, forceRefresh?: boolean) => Promise<void>;
   fetchTeamTournaments: (teamId: string, token: string, forceRefresh?: boolean) => Promise<void>;
   fetchTeamMatches: (teamId: string, token: string, forceRefresh?: boolean) => Promise<void>;
-  fetchJoinRequests: (teamId: string, token: string, forceRefresh?: boolean) => Promise<void>;
+  fetchJoinRequests: (teamId: string, token: string, silent?: boolean) => Promise<void>;
   
   // Update local state after mutations
   updateMemberBenchStatus: (teamId: string, userId: string, isBenched: boolean) => void;
@@ -117,26 +142,16 @@ const getInitialTeamCache = (): TeamDetailsCache => ({
 export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
   teamData: {},
   loading: {},
+  joinRequestsLoading: {},
   
   // Fetch team members with smart caching
-  fetchTeamMembers: async (teamId: string, token: string, forceRefresh = false) => {
-    const state = get();
-    const cache = state.teamData[teamId] || getInitialTeamCache();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && cache.membersLoaded) {
-      if (cache.lastFetched && Date.now() - cache.lastFetched < CACHE_TTL) {
-        console.log("[TeamDetailsStore] Using cached members for team:", teamId);
-        return;
-      }
-    }
-    
+  fetchTeamMembers: async (teamId: string, token: string, _forceRefresh = false) => {
     try {
       set((state) => ({
         loading: { ...state.loading, [teamId]: true },
       }));
       
-      console.log("[TeamDetailsStore] Fetching members - teamId:", teamId, "forceRefresh:", forceRefresh);
+      console.log("[TeamDetailsStore] Fetching members - teamId:", teamId);
       
       const response = await axios.get(`${BASE_URL}/team/${teamId}/members`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -165,23 +180,13 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
   },
   
   // Fetch team tournaments with smart caching
-  fetchTeamTournaments: async (teamId: string, token: string, forceRefresh = false) => {
-    const state = get();
-    const cache = state.teamData[teamId] || getInitialTeamCache();
-    
-    if (!forceRefresh && cache.tournamentsLoaded) {
-      if (cache.lastFetched && Date.now() - cache.lastFetched < CACHE_TTL) {
-        console.log("[TeamDetailsStore] Using cached tournaments for team:", teamId);
-        return;
-      }
-    }
-    
+  fetchTeamTournaments: async (teamId: string, token: string, _forceRefresh = false) => {
     try {
       set((state) => ({
         loading: { ...state.loading, [teamId]: true },
       }));
       
-      console.log("[TeamDetailsStore] Fetching tournaments - teamId:", teamId, "forceRefresh:", forceRefresh);
+      console.log("[TeamDetailsStore] Fetching tournaments - teamId:", teamId);
       
       const response = await axios.get(`${BASE_URL}/team/${teamId}/tournaments`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -212,23 +217,13 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
   },
   
   // Fetch team matches with smart caching
-  fetchTeamMatches: async (teamId: string, token: string, forceRefresh = false) => {
-    const state = get();
-    const cache = state.teamData[teamId] || getInitialTeamCache();
-    
-    if (!forceRefresh && cache.matchesLoaded) {
-      if (cache.lastFetched && Date.now() - cache.lastFetched < CACHE_TTL) {
-        console.log("[TeamDetailsStore] Using cached matches for team:", teamId);
-        return;
-      }
-    }
-    
+  fetchTeamMatches: async (teamId: string, token: string, _forceRefresh = false) => {
     try {
       set((state) => ({
         loading: { ...state.loading, [teamId]: true },
       }));
       
-      console.log("[TeamDetailsStore] Fetching matches - teamId:", teamId, "forceRefresh:", forceRefresh);
+      console.log("[TeamDetailsStore] Fetching matches - teamId:", teamId);
       
       const response = await axios.get(`${BASE_URL}/team/${teamId}/matches`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -259,56 +254,29 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
   },
   
   // Fetch join requests with smart caching
-  fetchJoinRequests: async (teamId: string, token: string, forceRefresh = false) => {
-    const state = get();
-    const cache = state.teamData[teamId] || getInitialTeamCache();
-    
-    if (!forceRefresh && cache.joinRequestsLoaded) {
-      if (cache.lastFetched && Date.now() - cache.lastFetched < CACHE_TTL) {
-        console.log("[TeamDetailsStore] Using cached join requests for team:", teamId);
-        return;
-      }
-    }
-    
+  fetchJoinRequests: async (teamId: string, token: string, silent = false) => {
     try {
-      set((state) => ({
-        loading: { ...state.loading, [teamId]: true },
-      }));
-      
-      console.log("[TeamDetailsStore] Fetching join requests - teamId:", teamId, "forceRefresh:", forceRefresh);
-      
+      if (!silent) {
+        set((state) => ({
+          joinRequestsLoading: { ...state.joinRequestsLoading, [teamId]: true },
+        }));
+      }
+
       const response = await axios.get(`${BASE_URL}/team/${teamId}/join-requests`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: { status: "pending" },
       });
       const json = response.data;
-      
+
       if (json.success) {
-        const requestsData: JoinRequest[] = json.data;
-        
-        // Fetch user names for each request
-        const requestsWithNames = await Promise.all(
-          requestsData.map(async (req) => {
-            try {
-              const userRes = await axios.get(`${BASE_URL}/user/${req.userId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const userJson = userRes.data;
-              return {
-                ...req,
-                name: userJson.data?.name?.trim() || `User ${req.userId.slice(0, 5)}`,
-              };
-            } catch {
-              return { ...req, name: `User ${req.userId.slice(0, 5)}` };
-            }
-          })
-        );
-        
+        const requestsData: JoinRequest[] = (json.data || []).map(normalizeJoinRequest);
+
         set((state) => ({
           teamData: {
             ...state.teamData,
             [teamId]: {
               ...(state.teamData[teamId] || getInitialTeamCache()),
-              joinRequests: requestsWithNames,
+              joinRequests: requestsData,
               joinRequestsLoaded: true,
               lastFetched: Date.now(),
             },
@@ -319,7 +287,7 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
       console.error("[TeamDetailsStore] Error fetching join requests:", error);
     } finally {
       set((state) => ({
-        loading: { ...state.loading, [teamId]: false },
+        joinRequestsLoading: { ...state.joinRequestsLoading, [teamId]: false },
       }));
     }
   },
@@ -329,14 +297,20 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
     set((state) => {
       const cache = state.teamData[teamId];
       if (!cache) return state;
-      
+
       return {
         teamData: {
           ...state.teamData,
           [teamId]: {
             ...cache,
             members: cache.members.map((m) =>
-              m.userId === userId ? { ...m, isBenched } : m
+              m.userId === userId
+                ? {
+                    ...m,
+                    isBenched,
+                    playerStatus: isBenched ? "benched" : "active",
+                  }
+                : m
             ),
           },
         },
@@ -364,19 +338,9 @@ export const useTeamDetailsStore = create<TeamDetailsStore>((set, get) => ({
   
   // Invalidate cache for specific team
   invalidateTeamCache: (teamId: string) => {
-    console.log("[TeamDetailsStore] Invalidating cache for team:", teamId);
     set((state) => {
       const newTeamData = { ...state.teamData };
-      if (newTeamData[teamId]) {
-        newTeamData[teamId] = {
-          ...newTeamData[teamId],
-          membersLoaded: false,
-          tournamentsLoaded: false,
-          matchesLoaded: false,
-          joinRequestsLoaded: false,
-          lastFetched: null,
-        };
-      }
+      delete newTeamData[teamId];
       return { teamData: newTeamData };
     });
   },

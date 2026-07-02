@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LOGIN_ROUTE, roleToOnboardingSegment } from "@/utils/navigation";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -81,7 +82,7 @@ const ChooseDomainScreen: React.FC = () => {
           Alert.alert("Error", "Role not found. Please log in again.", [
             {
               text: "Go to Login",
-              onPress: () => router.replace("/(auth)/login" as any),
+              onPress: () => router.replace(LOGIN_ROUTE as any),
             },
           ]);
         }
@@ -93,7 +94,7 @@ const ChooseDomainScreen: React.FC = () => {
           [
             {
               text: "Go to Login",
-              onPress: () => router.replace("/(auth)/login" as any),
+              onPress: () => router.replace(LOGIN_ROUTE as any),
             },
           ]
         );
@@ -120,7 +121,7 @@ const ChooseDomainScreen: React.FC = () => {
         [
           {
             text: "Go to Login",
-            onPress: () => router.replace("/(auth)/login" as any),
+            onPress: () => router.replace(LOGIN_ROUTE as any),
           },
         ]
       );
@@ -154,7 +155,7 @@ const ChooseDomainScreen: React.FC = () => {
     }
 
     // Construct the path dynamically
-    const targetPathname = `/onboarding/${role}/${normalizedDomain}-form`;
+    const targetPathname = `/onboarding/${roleToOnboardingSegment(role)}/${normalizedDomain}-form`;
 
     console.log("Navigating to:", targetPathname);
 

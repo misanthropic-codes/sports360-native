@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import ErrorModal from "../components/ErrorModal";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { LOGIN_ROUTE, getDashboardPath } from "../utils/navigation";
 import { ApiErrorEvent, errorHandler } from "../utils/errorHandler";
 import { hasSeenOnboarding } from "../utils/onboardingUtils";
 import "./global.css";
@@ -47,16 +48,15 @@ const InitialLayout = () => {
 
       if (role) {
         if (role === "ground_owner") {
-          // Ground owner goes to dashboard even without a domain
-          router.replace(`/dashboard/${role}`);
+          router.replace("/dashboard/ground_owner");
         } else if (domain) {
-          router.replace(`/dashboard/${role}/${domain}` as any);
+          router.replace(getDashboardPath(role, domain) as any);
         } else {
           router.replace("/onboarding/choose-domain");
         }
       }
     } else if (!user && !inAuthGroup && !inGuestMode && !segments[0]?.toString().includes('onboarding')) {
-      router.replace("/(root)/login");
+      router.replace(LOGIN_ROUTE);
     }
   }, [user, segments, isCheckingOnboarding]);
 
@@ -81,58 +81,18 @@ const InitialLayout = () => {
   const handleLogout = async () => {
     setErrorEvent(null);
     await logout();
-    router.replace("/(root)/login");
+    router.replace(LOGIN_ROUTE);
   };
 
   return (
     <>
-      <Stack screenOptions={{ 
-        headerShown: false,
-        animation: 'none', // Disable transitions for instant navigation
-        gestureEnabled: true, // Enable swipe back gestures
-      }}>
-        <Stack.Screen name="onboarding/splash" />
-        <Stack.Screen name="onboarding/slides" />
-        <Stack.Screen name="onboarding/welcome" />
-        <Stack.Screen name="guest/dashboard" />
-        <Stack.Screen name="guest/teams" />
-        <Stack.Screen name="guest/tournaments" />
-        <Stack.Screen name="guest/grounds" />
-        <Stack.Screen name="(root)/index" />
-        <Stack.Screen name="(root)/login" />
-        <Stack.Screen 
-          name="(root)/signup" 
-          options={{
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen name="verifyScreen/index" />
-        <Stack.Screen name="onboarding/choose-domain" />
-        <Stack.Screen name="onboarding/player/cricket-form" />
-        <Stack.Screen name="onboarding/player/marathon-form" />
-        <Stack.Screen name="onboarding/organizer/cricket-form" />
-        <Stack.Screen name="onboarding/organizer/marathon-form" />
-        <Stack.Screen name="onboarding/ground-owner/cricket-form" />
-        <Stack.Screen name="feed/cricket" />
-        <Stack.Screen name="feed/marathon-feed" />
-        <Stack.Screen name="booking/Cricket-booking" />
-        <Stack.Screen name="booking/Marathon-booking" />
-        <Stack.Screen name="booking/GroundDetails" />
-        <Stack.Screen name="booking/CreateBooking" />
-        <Stack.Screen name="booking/MyBookings" />
-        <Stack.Screen name="booking/ViewAllBookings" />
-        <Stack.Screen name="booking/BrowseGrounds" />
-        <Stack.Screen name="team/Myteam" />
-        <Stack.Screen name="team/CreateTeam" />
-        <Stack.Screen name="tournament/ViewTournament" />
-        <Stack.Screen name="dashboard/player/cricket" />
-        <Stack.Screen name="dashboard/player/marathon" />
-        <Stack.Screen name="dashboard/organizer/cricket" />
-        <Stack.Screen name="dashboard/organizer/marathon" />
-        <Stack.Screen name="dashboard/ground_owner" />
-        <Stack.Screen name="profile" />
-      </Stack>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "none",
+          gestureEnabled: true,
+        }}
+      />
 
       {/* Global Error Modal */}
       {errorEvent && (

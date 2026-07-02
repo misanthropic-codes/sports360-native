@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { useTeamDetailsStore } from "../../store/teamDetailsStore";
 import { useTeamStore } from "../../store/teamStore";
+import { isMemberBenched } from "../../utils/teamMemberUtils";
 
 const TeamScreen: React.FC = () => {
   const { user } = useAuth();
@@ -170,7 +171,7 @@ const TeamScreen: React.FC = () => {
                     {member.role.toUpperCase()}
                   </Text>
                 </View>
-                {member.isBenched && (
+                {isMemberBenched(member) && (
                   <View className="px-4 py-2 rounded-lg bg-red-100 border border-red-300">
                     <Text className="font-bold text-sm text-red-800">
                       BENCHED

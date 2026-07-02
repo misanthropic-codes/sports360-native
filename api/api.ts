@@ -6,6 +6,8 @@ import { errorHandler } from "../utils/errorHandler";
 declare module "axios" {
   export interface InternalAxiosRequestConfig {
     metadata?: { startTime: number };
+    /** When true, failed requests won't trigger the global error modal */
+    skipGlobalErrorHandler?: boolean;
   }
 }
 
@@ -88,6 +90,8 @@ api.interceptors.response.use(
       timestamp: new Date().toISOString(),
     });
 
+    const skipGlobal = error.config?.skipGlobalErrorHandler;
+
     // Check for network errors first (no response from server)
     if (!error.response) {
       // Network error (offline, timeout, connection refused, etc.)
@@ -95,12 +99,11 @@ api.interceptors.response.use(
       const isNetworkError = error.message?.toLowerCase().includes('network error');
       const isConnectionRefused = error.message?.toLowerCase().includes('connection refused');
       
-      if (isTimeout || isNetworkError || isConnectionRefused) {
+      if (!skipGlobal && (isTimeout || isNetworkError || isConnectionRefused)) {
         console.warn("📡 Network error detected - triggering error modal");
         errorHandler.handleNetworkError(error.message);
-        console.log("✅ Called errorHandler.handleNetworkError()");
-        return Promise.reject(error);
       }
+      return Promise.reject(error);
     }
     
     // Handle specific HTTP error codes
@@ -111,12 +114,10 @@ api.interceptors.response.use(
 
     if (statusCode === 401) {
       console.warn("🔒 Unauthorized response - leaving session intact:", requestUrl);
-    } else if (statusCode && statusCode >= 500) {
-      // Server errors (500+)
+    } else if (!skipGlobal && statusCode && statusCode >= 500) {
       console.warn(`🔥 Server error (${statusCode}) - triggering error modal`);
       const errorMessage = error.response?.data?.message || error.message;
       errorHandler.handleServerError(statusCode, errorMessage);
-      console.log("✅ Called errorHandler.handleServerError()");
     }
 
     return Promise.reject(error);

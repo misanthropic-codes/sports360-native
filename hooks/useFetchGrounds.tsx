@@ -1,26 +1,20 @@
-// src/hooks/useFetchGrounds.ts
 import { useAuth } from "@/context/AuthContext";
 import { useGroundStore } from "@/store/groundStore";
 import { useEffect } from "react";
 
 export const useFetchGrounds = () => {
   const { token } = useAuth();
-  const { 
-    grounds, 
-    groundsLoading, 
-    groundsLoaded, 
-    fetchGrounds 
-  } = useGroundStore();
+  const { grounds, groundsLoading, groundsError, fetchGrounds } = useGroundStore();
 
   useEffect(() => {
-    if (token && !groundsLoaded) {
-      fetchGrounds(token); // Smart fetch - only if not cached
+    if (token) {
+      fetchGrounds(token);
     }
-  }, [token, groundsLoaded]);
+  }, [token]);
 
-  return { 
-    grounds, 
-    loading: groundsLoading, 
-    error: null 
+  return {
+    grounds,
+    loading: groundsLoading,
+    error: groundsError,
   };
 };

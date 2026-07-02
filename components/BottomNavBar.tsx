@@ -1,8 +1,15 @@
-import * as Haptics from 'expo-haptics';
+import { getBottomNavPaths } from "@/utils/navigation";
+import Constants from "expo-constants";
+import * as Haptics from "expo-haptics";
 import { usePathname, useRouter } from "expo-router";
 import { Home, MapPin, Trophy, User, Users } from "lucide-react-native";
 import React from "react";
 import { Animated, TouchableOpacity, View } from "react-native";
+
+function triggerTabHaptic() {
+  if (!Constants.isDevice) return;
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+}
 
 interface NavItemProps {
   icon: React.ComponentType<{ color?: string; size?: number }>;
@@ -31,8 +38,7 @@ const NavItem = React.memo<NavItemProps>(({ icon: Icon, active, onPress }) => {
   }, [active]);
 
   const handlePress = React.useCallback(() => {
-    // Trigger haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerTabHaptic();
     onPress();
   }, [onPress]);
 
@@ -70,36 +76,57 @@ interface BottomNavBarProps {
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ role, type }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { feedPath, bookingPath, dashboardPath, normalizedRole } = React.useMemo(
+    () => getBottomNavPaths(role, type),
+    [role, type]
+  );
 
   // Memoize navItems to prevent recreation on every render
   const navItems = React.useMemo(() => {
     const allItems = [
-      { 
-        name: "Teams", 
-        icon: Users, 
-        path: role === "organizer" ? `/team/ExploreTeams` : `/team/Myteam`, 
-        roles: ["player", "organizer"] 
-      }, // Route organizers to ExploreTeams, players to Myteam
-      { name: "Grounds", icon: MapPin, path: `/booking/Cricket-booking`, roles: ["player", "organizer", "ground_owner"] },
-      { name: "Home", icon: Home, path: `/feed/${type}`, roles: ["player", "organizer", "ground_owner"] },
-      { 
-        name: "Trophy", 
-        icon: Trophy, 
-        path: role === "organizer" ? `/tournament/MyTournaments` : `/tournament/ViewTournament`, 
-        roles: ["player", "organizer", "ground_owner"] 
+      {
+        name: "Teams",
+        icon: Users,
+        path:
+          normalizedRole === "organizer"
+            ? "/team/ExploreTeams"
+            : "/team/Myteam",
+        roles: ["player", "organizer"],
       },
-      { name: "Profile", icon: User, path: `/dashboard/${role}/${type}`, roles: ["player", "organizer", "ground_owner"] },
+      {
+        name: "Grounds",
+        icon: MapPin,
+        path: bookingPath,
+        roles: ["player", "organizer", "ground_owner"],
+      },
+      { name: "Home", icon: Home, path: feedPath, roles: ["player", "organizer", "ground_owner"] },
+      {
+        name: "Trophy",
+        icon: Trophy,
+        path:
+          normalizedRole === "organizer"
+            ? "/tournament/MyTournaments"
+            : "/tournament/ViewTournament",
+        roles: ["player", "organizer", "ground_owner"],
+      },
+      {
+        name: "Profile",
+        icon: User,
+        path: dashboardPath,
+        roles: ["player", "organizer", "ground_owner"],
+      },
     ];
-    
-    // Filter items based on role
-    return allItems.filter(item => item.roles.includes(role));
-  }, [role, type]);
 
-  // Memoize navigation handler
-  const handleNavigation = React.useCallback((path: string) => {
-    // Use push for instant navigation (replace is slower)
-    router.push(path as any);
-  }, [router]);
+    return allItems.filter((item) => item.roles.includes(normalizedRole));
+  }, [normalizedRole, feedPath, bookingPath, dashboardPath]);
+
+  const handleNavigation = React.useCallback(
+    (path: string) => {
+      if (pathname === path) return;
+      router.replace(path as any);
+    },
+    [router, pathname]
+  );
 
   return (
     <View

@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { API_BASE_URL } from "../config/apiConfig";
 
 const BASE_URL = API_BASE_URL;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Types
 export interface Summary {
@@ -145,17 +144,7 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
   analyticsError: null,
   
   // Fetch booking status with smart caching (for dashboard)
-  fetchBookingStatus: async (token: string, forceRefresh = false) => {
-    const state = get();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && state.bookingStatusLoaded) {
-      if (state.bookingStatusLastFetched && Date.now() - state.bookingStatusLastFetched < CACHE_TTL) {
-        console.log("[GroundOwnerStore] Using cached booking status");
-        return;
-      }
-    }
-    
+  fetchBookingStatus: async (token: string, _forceRefresh = false) => {
     if (!token) {
       console.warn("[GroundOwnerStore] No token provided for fetchBookingStatus");
       return;
@@ -163,7 +152,7 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
     
     try {
       set({ bookingStatusLoading: true, bookingStatusError: null });
-      console.log("[GroundOwnerStore] Fetching booking status - forceRefresh:", forceRefresh);
+      console.log("[GroundOwnerStore] Fetching booking status");
       
       const response = await fetch(`${BASE_URL}/booking/status`, {
         method: "GET",
@@ -200,17 +189,7 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
   },
   
   // Fetch booking requests with smart caching (for booking requests screen)
-  fetchBookingRequests: async (token: string, forceRefresh = false) => {
-    const state = get();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && state.bookingRequestsLoaded) {
-      if (state.bookingRequestsLastFetched && Date.now() - state.bookingRequestsLastFetched < CACHE_TTL) {
-        console.log("[GroundOwnerStore] Using cached booking requests");
-        return;
-      }
-    }
-    
+  fetchBookingRequests: async (token: string, _forceRefresh = false) => {
     if (!token) {
       console.warn("[GroundOwnerStore] No token provided for fetchBookingRequests");
       return;
@@ -218,7 +197,7 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
     
     try {
       set({ bookingRequestsLoading: true, bookingRequestsError: null });
-      console.log("[GroundOwnerStore] Fetching booking requests - forceRefresh:", forceRefresh);
+      console.log("[GroundOwnerStore] Fetching booking requests");
       
       const response = await fetch(`${BASE_URL}/ground-owner/booking-requests`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -306,17 +285,7 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
   },
   
   // Fetch analytics with smart caching
-  fetchAnalytics: async (token: string, forceRefresh = false) => {
-    const state = get();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && state.analyticsLoaded) {
-      if (state.analyticsLastFetched && Date.now() - state.analyticsLastFetched < CACHE_TTL) {
-        console.log("[GroundOwnerStore] Using cached analytics");
-        return;
-      }
-    }
-    
+  fetchAnalytics: async (token: string, _forceRefresh = false) => {
     if (!token) {
       console.warn("[GroundOwnerStore] No token provided for fetchAnalytics");
       return;
@@ -324,7 +293,7 @@ export const useGroundOwnerStore = create<GroundOwnerStore>((set, get) => ({
     
     try {
       set({ analyticsLoading: true, analyticsError: null });
-      console.log("[GroundOwnerStore] Fetching analytics - forceRefresh:", forceRefresh);
+      console.log("[GroundOwnerStore] Fetching analytics");
       
       const response = await fetch(`${BASE_URL}/ground-owner/analytics`, {
         headers: {

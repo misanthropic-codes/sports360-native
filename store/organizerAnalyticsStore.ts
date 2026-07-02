@@ -60,6 +60,7 @@ export const useOrganizerStore = create<OrganizerState>((set) => ({
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        skipGlobalErrorHandler: true,
       });
 
       const data = response.data;

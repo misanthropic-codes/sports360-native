@@ -3,9 +3,7 @@ import { create } from "zustand";
 import { API_BASE_URL } from "../config/apiConfig";
 
 const BASE_URL = API_BASE_URL;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Types
 export interface Booking {
   id: string;
   groundId: string;
@@ -34,27 +32,16 @@ export interface GroundWithBookings {
 }
 
 interface BookingStore {
-  // My bookings
   bookings: Booking[];
   bookingsLoading: boolean;
-  bookingsLoaded: boolean;
-  bookingsLastFetched: number | null;
   bookingsError: string | null;
-  
-  // Ground details cache (keyed by groundId)
   groundDetails: Record<string, GroundDetails>;
   groundDetailsLoading: Record<string, boolean>;
-  groundDetailsLoaded: Record<string, boolean>;
-  groundDetailsLastFetched: Record<string, number>;
   groundDetailsError: Record<string, string | null>;
-  
-  // Ground owner booking requests
   grounds: GroundWithBookings[];
   selectedGround: GroundWithBookings | null;
-  
-  // Actions
-  fetchMyBookings: (token: string, forceRefresh?: boolean) => Promise<void>;
-  fetchGroundDetails: (groundId: string, forceRefresh?: boolean) => Promise<void>;
+  fetchMyBookings: (token: string, _forceRefresh?: boolean) => Promise<void>;
+  fetchGroundDetails: (groundId: string, _forceRefresh?: boolean) => Promise<void>;
   getGroundDetails: (groundId: string) => GroundDetails | null;
   setGrounds: (grounds: GroundWithBookings[]) => void;
   setSelectedGround: (ground: GroundWithBookings | null) => void;
@@ -64,95 +51,52 @@ interface BookingStore {
 }
 
 export const useBookingStore = create<BookingStore>((set, get) => ({
-  // Initial state
   bookings: [],
   bookingsLoading: false,
-  bookingsLoaded: false,
-  bookingsLastFetched: null,
   bookingsError: null,
   groundDetails: {},
   groundDetailsLoading: {},
-  groundDetailsLoaded: {},
-  groundDetailsLastFetched: {},
   groundDetailsError: {},
   grounds: [],
   selectedGround: null,
-  
-  // Fetch my bookings with smart caching
-  fetchMyBookings: async (token: string, forceRefresh = false) => {
-    const state = get();
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && state.bookingsLoaded) {
-      if (state.bookingsLastFetched && Date.now() - state.bookingsLastFetched < CACHE_TTL) {
-        console.log("[BookingStore] Using cached bookings");
-        return;
-      }
-    }
-    
+
+  fetchMyBookings: async (token: string) => {
     try {
       set({ bookingsLoading: true, bookingsError: null });
-      console.log("[BookingStore] Fetching my bookings - forceRefresh:", forceRefresh);
-      
+
       const response = await axios.get(`${BASE_URL}/booking/my-bookings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       const bookings = response.data?.data || [];
-      
+
       set({
         bookings,
-        bookingsLoaded: true,
-        bookingsLastFetched: Date.now(),
         bookingsLoading: false,
         bookingsError: null,
       });
     } catch (error: any) {
       console.error("[BookingStore] Error fetching bookings:", error);
-      // Error handled by axios interceptor, update local state only
-      set({ 
+      set({
         bookingsLoading: false,
-        bookingsError: error.response?.data?.message || "Failed to fetch bookings"
+        bookingsError: error.response?.data?.message || "Failed to fetch bookings",
       });
     }
   },
-  
-  // Fetch ground details with smart caching
-  fetchGroundDetails: async (groundId: string, forceRefresh = false) => {
-    const state = get();
-    const cached = state.groundDetailsLoaded[groundId];
-    const lastFetched = state.groundDetailsLastFetched[groundId];
-    
-    // Check if we should skip fetching
-    if (!forceRefresh && cached) {
-      if (lastFetched && Date.now() - lastFetched < CACHE_TTL) {
-        console.log("[BookingStore] Using cached ground details for:", groundId);
-        return;
-      }
-    }
-    
+
+  fetchGroundDetails: async (groundId: string) => {
     try {
       set((state) => ({
         groundDetailsLoading: { ...state.groundDetailsLoading, [groundId]: true },
       }));
-      
-      console.log("[BookingStore] Fetching ground details - groundId:", groundId, "forceRefresh:", forceRefresh);
-      
+
       const response = await axios.get(`${BASE_URL}/booking/grounds/${groundId}`);
       const groundData = response.data.data;
-      
+
       set((state) => ({
         groundDetails: {
           ...state.groundDetails,
           [groundId]: groundData,
-        },
-        groundDetailsLoaded: {
-          ...state.groundDetailsLoaded,
-          [groundId]: true,
-        },
-        groundDetailsLastFetched: {
-          ...state.groundDetailsLastFetched,
-          [groundId]: Date.now(),
         },
         groundDetailsLoading: {
           ...state.groundDetailsLoading,
@@ -161,65 +105,51 @@ export const useBookingStore = create<BookingStore>((set, get) => ({
       }));
     } catch (error: any) {
       console.error("[BookingStore] Error fetching ground details:", error);
-      // Error handled by axios interceptor, update local state only
       set((state) => ({
         groundDetailsLoading: { ...state.groundDetailsLoading, [groundId]: false },
-        groundDetailsError: { 
-          ...state.groundDetailsError, 
-          [groundId]: error.response?.data?.message || "Failed to fetch ground details" 
+        groundDetailsError: {
+          ...state.groundDetailsError,
+          [groundId]: error.response?.data?.message || "Failed to fetch ground details",
         },
       }));
     }
   },
-  
-  // Get cached ground details
+
   getGroundDetails: (groundId: string) => {
     return get().groundDetails[groundId] || null;
   },
-  
-  // Set grounds (for ground owner booking requests)
+
   setGrounds: (grounds: GroundWithBookings[]) => {
     set({ grounds });
   },
-  
-  // Set selected ground (for ground owner booking requests)
+
   setSelectedGround: (ground: GroundWithBookings | null) => {
     set({ selectedGround: ground });
   },
-  
-  // Invalidate bookings cache
+
   invalidateBookings: () => {
-    console.log("[BookingStore] Invalidating bookings cache");
-    set({
-      bookingsLoaded: false,
-      bookingsLastFetched: null,
+    set({ bookings: [], bookingsError: null });
+  },
+
+  invalidateGroundDetails: (groundId: string) => {
+    set((state) => {
+      const groundDetails = { ...state.groundDetails };
+      const groundDetailsLoading = { ...state.groundDetailsLoading };
+      const groundDetailsError = { ...state.groundDetailsError };
+      delete groundDetails[groundId];
+      delete groundDetailsLoading[groundId];
+      delete groundDetailsError[groundId];
+      return { groundDetails, groundDetailsLoading, groundDetailsError };
     });
   },
-  
-  // Invalidate specific ground details cache
-  invalidateGroundDetails: (groundId: string) => {
-    console.log("[BookingStore] Invalidating ground details cache for:", groundId);
-    set((state) => ({
-      groundDetailsLoaded: {
-        ...state.groundDetailsLoaded,
-        [groundId]: false,
-      },
-      groundDetailsLastFetched: {
-        ...state.groundDetailsLastFetched,
-        [groundId]: 0,
-      },
-    }));
-  },
-  
-  // Invalidate all caches
+
   invalidateAllCache: () => {
-    console.log("[BookingStore] Invalidating all booking caches");
     set({
-      bookingsLoaded: false,
-      bookingsLastFetched: null,
+      bookings: [],
+      bookingsError: null,
       groundDetails: {},
-      groundDetailsLoaded: {},
-      groundDetailsLastFetched: {},
+      groundDetailsLoading: {},
+      groundDetailsError: {},
       grounds: [],
       selectedGround: null,
     });

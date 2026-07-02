@@ -1,7 +1,11 @@
 import api from "@/api/api";
 import { benchMember, unbenchMember } from "@/api/teamApi";
 import { useAuth } from "@/context/AuthContext";
-import { useTeamDetailsStore } from "@/store/teamDetailsStore";
+import { TeamMember, useTeamDetailsStore } from "@/store/teamDetailsStore";
+import {
+  isMemberActivePlayer,
+  isMemberBenched,
+} from "@/utils/teamMemberUtils";
 import { useLocalSearchParams } from "expo-router";
 import { CaretDown, CaretUp, Crown, DotsThreeVertical, User } from "phosphor-react-native";
 import React, { useEffect, useState } from "react";
@@ -137,10 +141,7 @@ const TeamMembers: React.FC = () => {
                 await benchMember(teamId, memberId, token);
               }
 
-              // ✅ Invalidate cache and force refresh to update UI
-              const { invalidateTeamCache, fetchTeamMembers } = useTeamDetailsStore.getState();
-              invalidateTeamCache(teamId);
-              await fetchTeamMembers(teamId, token, true);
+              await fetchTeamMembers(teamId, token);
 
               Alert.alert(
                 "Success",
@@ -188,12 +189,16 @@ const TeamMembers: React.FC = () => {
     );
   }
 
-  const renderMember = ({ item: member }: { item: any }) => {
-    const isMemberCaptain = member.role.toLowerCase().includes("captain") || 
+  const activeCount = members.filter(isMemberActivePlayer).length;
+  const benchedCount = members.filter(isMemberBenched).length;
+
+  const renderMember = ({ item: member }: { item: TeamMember }) => {
+    const isMemberCaptain = member.role.toLowerCase().includes("captain") ||
                             member.role.toLowerCase().includes("leader");
     const isMenuOpen = openMenuId === member.userId;
     const isExpanded = expandedId === member.userId;
     const shouldShowMenu = isCurrentUserCaptain && !isMemberCaptain;
+    const memberIsBenched = isMemberBenched(member);
 
     return (
       <View className="px-4 mb-3">
@@ -242,15 +247,15 @@ const TeamMembers: React.FC = () => {
               <View className="flex-row items-center">
                 <View
                   className={`px-2.5 py-1 rounded-full mr-2 ${
-                    member.isActive ? "bg-emerald-100" : "bg-slate-100"
+                    memberIsBenched ? "bg-red-100" : "bg-emerald-100"
                   }`}
                 >
                   <Text
                     className={`text-xs font-semibold ${
-                      member.isActive ? "text-emerald-700" : "text-slate-600"
+                      memberIsBenched ? "text-red-700" : "text-emerald-700"
                     }`}
                   >
-                    {member.isActive ? "Active" : "Inactive"}
+                    {memberIsBenched ? "Benched" : "Active"}
                   </Text>
                 </View>
                 
@@ -269,13 +274,6 @@ const TeamMembers: React.FC = () => {
                   {member.role}
                 </Text>
               </View>
-              {member.isBenched && (
-                <View className="px-3 py-1 rounded-full bg-red-100 border border-red-300 mb-1">
-                  <Text className="text-xs font-bold uppercase tracking-wide text-red-700">
-                    BENCHED
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 
@@ -370,16 +368,16 @@ const TeamMembers: React.FC = () => {
                         }}
                       >
                         <TouchableOpacity
-                          onPress={() => handleBenchMember(member.userId, member.isBenched || false)}
+                          onPress={() => handleBenchMember(member.userId, memberIsBenched)}
                           className="px-4 py-3"
                           activeOpacity={0.7}
                         >
                           <Text
                             className={`font-semibold text-sm ${
-                              member.isBenched ? "text-emerald-600" : "text-red-600"
+                              memberIsBenched ? "text-emerald-600" : "text-red-600"
                             }`}
                           >
-                            {member.isBenched ? "Unbench Member" : "Bench Member"}
+                            {memberIsBenched ? "Unbench Member" : "Bench Member"}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -416,12 +414,20 @@ const TeamMembers: React.FC = () => {
                 Total Members
               </Text>
             </View>
-            <View className="items-end">
+            <View className="items-center">
               <Text className="text-2xl font-bold text-emerald-600">
-                {members.filter(m => m.isActive).length}
+                {activeCount}
               </Text>
               <Text className="text-slate-500 text-sm mt-0.5">
                 Active
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-2xl font-bold text-red-500">
+                {benchedCount}
+              </Text>
+              <Text className="text-slate-500 text-sm mt-0.5">
+                Benched
               </Text>
             </View>
           </View>

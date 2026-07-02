@@ -89,7 +89,14 @@ export const getAllTournaments = async (token: string) => {
 
 export const getOrganizerTournaments = async (token: string) => {
   const res = await api.get("/organizer-profile/tournaments", withAuthHeaders(token));
-  return res.data?.data || [];
+  const raw = res.data?.data ?? res.data ?? [];
+  const list = Array.isArray(raw) ? raw : [];
+
+  return list.map((tournament: any) => ({
+    ...tournament,
+    id: tournament.id ?? tournament.tournamentId,
+    status: tournament.status ?? "upcoming",
+  }));
 };
 
 export const getTournamentById = async (id: string, token: string) => {
@@ -223,6 +230,13 @@ export const updateMatchStatus = async (
 };
 
 export const getMyOngoingMatches = async (token: string) => {
-  const res = await api.get('/matches/my-live', withAuthHeaders(token));
-  return res.data?.matches || [];
+  try {
+    const res = await api.get('/matches/my-live', {
+      ...withAuthHeaders(token),
+      skipGlobalErrorHandler: true,
+    });
+    return res.data?.matches || [];
+  } catch {
+    return [];
+  }
 };

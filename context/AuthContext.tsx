@@ -12,6 +12,9 @@ import { persistAuthToken } from "@/utils/authToken";
 import { useBookingStore } from "@/store/bookingStore";
 import { useGroundStore as useMainGroundStore } from "@/store/groundStore";
 import { useGroundStore as useBookingGroundStore } from "@/store/groundTStore";
+import { useOrganizerTournamentStore } from "@/store/organizerTournamentStore";
+import { useGroundOwnerStore } from "@/store/groundOwnerStore";
+import { useGuestStore } from "@/store/guest/guestStore";
 import { useOrganizerStore } from "@/store/organizerAnalyticsStore";
 import { usePlayerAnalyticsStore } from "@/store/playerAnalyticsStore";
 import { useTeamDetailsStore } from "@/store/teamDetailsStore";
@@ -95,8 +98,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       useTeamStore.getState().invalidateCache();
       useTeamDetailsStore.getState().invalidateAllCache();
       
-      // Tournament store
+      // Tournament stores
       useTournamentStore.getState().invalidateCache();
+      useOrganizerTournamentStore.getState().invalidateCache();
       
       // User & Analytics stores
       useUserStore.getState().invalidateCache();
@@ -107,6 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       useBookingStore.getState().invalidateAllCache();
       useMainGroundStore.getState().invalidateGroundsCache();
       useBookingGroundStore.getState().resetStore();
+      useGroundOwnerStore.getState().invalidateAllCache();
+      useGuestStore.getState().clearCache();
       
       console.log("✅ All Zustand stores cleared");
     } catch (error) {

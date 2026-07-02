@@ -1,4 +1,5 @@
 
+import { isMemberBenched } from "../utils/teamMemberUtils";
 import api from "./api";
 import { getTeamMembers } from "./teamApi";
 import { getMatchById } from "./tournamentApi";
@@ -198,11 +199,17 @@ export const getMatchScore = async (
   matchId: string,
   token?: string | null
 ): Promise<MatchScoreState | null> => {
-  const config = token ? withAuthHeaders(token) : {};
-  const res = await api.get(`/score/${matchId}`, config);
-  // Server returns { score: null } when no score yet
-  if (res.data?.score === null) return null;
-  return res.data;
+  try {
+    const config = {
+      ...(token ? withAuthHeaders(token) : {}),
+      skipGlobalErrorHandler: true,
+    };
+    const res = await api.get(`/score/${matchId}`, config);
+    if (res.data?.score === null) return null;
+    return res.data;
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -281,7 +288,7 @@ export const getPlayingXI = async (
     role: m.role,
     isCaptain: m.role === "captain",
     isWicketKeeper: false,
-    isBenched: m.isBenched ?? false,
+    isBenched: isMemberBenched(m),
   });
 
   return {

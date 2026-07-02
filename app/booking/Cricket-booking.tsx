@@ -304,7 +304,10 @@ const GroundBookingScreen = () => {
                 distance={locationEnabled && ground.distance ? ground.distance : undefined}
                 onBookNowPress={() => {
                   setSelectedGround(ground);
-                  router.push(`booking/GroundDetails?groundId=${ground.id}` as any);
+                  router.push({
+                    pathname: "/booking/GroundDetails",
+                    params: { groundId: ground.id },
+                  } as any);
                 }}
               />
             ))}

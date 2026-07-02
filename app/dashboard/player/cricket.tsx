@@ -58,10 +58,16 @@ const CricketHomeScreen = () => {
 
   // 1. Fetch All Live Matches
   useEffect(() => {
-    getLiveMatches()
-      .then(setAllLiveMatches)
-      .catch(e => console.error("Error fetching all live matches", e));
-  }, []); // Run once on mount (or add refresh logic)
+    let cancelled = false;
+
+    getLiveMatches().then((matches) => {
+      if (!cancelled) setAllLiveMatches(matches);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 2. Derive "Your Live Matches" from All Matches + My Teams
   useEffect(() => {

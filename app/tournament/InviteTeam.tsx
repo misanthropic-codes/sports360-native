@@ -2,8 +2,9 @@ import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
 import { useOrganizerTournamentStore } from "@/store/organizerTournamentStore";
 import { router, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Calendar, MapPin, Send, Trophy } from "lucide-react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -34,20 +35,21 @@ const InviteTeamScreen = () => {
   const [message, setMessage] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch organizer's tournaments on mount (with smart caching)
-  useEffect(() => {
-    if (token) {
-      fetchOrganizerTournaments(token);
-    }
-  }, [token]);
+  // Always fetch fresh tournaments when this screen is opened
+  useFocusEffect(
+    useCallback(() => {
+      if (token) {
+        fetchOrganizerTournaments(token);
+      }
+    }, [token, fetchOrganizerTournaments])
+  );
 
-  // Filter for active/upcoming tournaments
+  // Tournaments eligible for invites (exclude finished/cancelled only)
   const tournaments = useMemo(() => {
-    return allTournaments.filter(
-      (t) => 
-        t.status?.toLowerCase() === "upcoming" || 
-        t.status?.toLowerCase() === "draft"
-    );
+    return allTournaments.filter((t) => {
+      const status = t.status?.toLowerCase() ?? "";
+      return !["completed", "cancelled", "canceled"].includes(status);
+    });
   }, [allTournaments]);
 
   const handleInvite = async () => {
