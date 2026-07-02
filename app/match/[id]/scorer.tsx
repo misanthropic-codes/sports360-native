@@ -12,8 +12,10 @@ import {
     updateBallScore,
     WicketType,
 } from "@/api/scoreApi";
+import { getTeamMembers } from "@/api/teamApi";
 import Dropdown from "@/components/Ui/Dropdown";
 import { useAuth } from "@/context/AuthContext";
+import { isMemberBenched } from "@/utils/teamMemberUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -37,15 +39,20 @@ const ScoreButton = ({
   onPress,
   color = "bg-blue-100",
   textColor = "text-gray-800",
+  disabled = false,
 }: {
   label: string;
   onPress: () => void;
   color?: string;
   textColor?: string;
+  disabled?: boolean;
 }) => (
   <TouchableOpacity
     onPress={onPress}
-    className={`${color} w-16 h-16 justify-center items-center rounded-full m-2 shadow`}
+    disabled={disabled}
+    className={`${color} w-16 h-16 justify-center items-center rounded-full m-2 shadow ${
+      disabled ? "opacity-40" : ""
+    }`}
     activeOpacity={0.7}
   >
     <Text className={`text-xl font-bold ${textColor}`}>{label}</Text>
@@ -57,10 +64,14 @@ const ActionButton = ({
   onPress,
   color = "bg-gray-200",
   textColor = "text-black",
+  disabled = false,
 }: any) => (
   <TouchableOpacity
     onPress={onPress}
-    className={`${color} py-3 px-5 rounded-lg m-1 shadow flex-1 items-center`}
+    disabled={disabled}
+    className={`${color} py-3 px-5 rounded-lg m-1 shadow flex-1 items-center ${
+      disabled ? "opacity-40" : ""
+    }`}
     activeOpacity={0.75}
   >
     <Text className={`font-bold ${textColor}`}>{label}</Text>
@@ -99,12 +110,16 @@ export default function ScorerDashboard() {
   const [showBowlerModal, setShowBowlerModal] = useState(false);
   const [nextBowlerId, setNextBowlerId] = useState("");
 
-  // — New Batsman Modal (after wicket) —
+  // — New Batsman (after wicket) —
   const [showNewBatsmanModal, setShowNewBatsmanModal] = useState(false);
   const [newBatsmanId, setNewBatsmanId] = useState("");
+  const [batsmanToReplace, setBatsmanToReplace] = useState<
+    "striker" | "non_striker" | null
+  >(null);
 
   // Track previous over to detect over end
   const prevOverRef = useRef<number>(0);
+  const lastOutBatsmanIdRef = useRef("");
 
   const wicketOptions = [
     { label: "Caught", value: "caught" },
@@ -119,24 +134,76 @@ export default function ScorerDashboard() {
   /*                           Data Fetching                                */
   /* ---------------------------------------------------------------------- */
 
+  const loadBowlingRoster = useCallback(
+    async (bowlingTeamId: string) => {
+      if (!token) return;
+      try {
+        const members = await getTeamMembers(bowlingTeamId, token);
+        const players = members
+          .filter((m) => !isMemberBenched(m))
+          .map((m) => ({
+            playerId: m.userId,
+            playerName: m.fullName || m.email || "Unknown Player",
+          }));
+        if (players.length > 0) {
+          setBowlingTeamPlayers(players);
+        }
+      } catch (e) {
+        console.error("Failed to load bowling roster:", e);
+      }
+    },
+    [token]
+  );
+
+  const loadBattingRoster = useCallback(
+    async (battingTeamId: string) => {
+      if (!token) return;
+      try {
+        const members = await getTeamMembers(battingTeamId, token);
+        const players = members
+          .filter((m) => !isMemberBenched(m))
+          .map((m) => ({
+            playerId: m.userId,
+            playerName: m.fullName || m.email || "Unknown Player",
+          }));
+        if (players.length > 0) {
+          setBattingTeamPlayers(players);
+        }
+      } catch (e) {
+        console.error("Failed to load batting roster:", e);
+      }
+    },
+    [token]
+  );
+
   const fetchPlayers = useCallback(
     async (data: MatchScoreState) => {
       try {
         const xi = await getPlayingXI(matchId!, token);
         if (xi) {
-          const isTeamABatting = data.battingTeamId === xi.teamA.teamId;
+          const teamAPlayers = xi.teamA.playingXI;
+          const teamBPlayers = xi.teamB.playingXI;
+
           setBattingTeamPlayers(
-            isTeamABatting ? xi.teamA.playingXI : xi.teamB.playingXI
+            data.battingTeamId === xi.teamA.teamId ? teamAPlayers : teamBPlayers
           );
           setBowlingTeamPlayers(
-            isTeamABatting ? xi.teamB.playingXI : xi.teamA.playingXI
+            data.bowlingTeamId === xi.teamA.teamId ? teamAPlayers : teamBPlayers
           );
+          return;
         }
       } catch (e) {
         console.error("Failed to fetch XI:", e);
       }
+
+      if (data.bowlingTeamId && token) {
+        await loadBowlingRoster(data.bowlingTeamId);
+      }
+      if (data.battingTeamId && token) {
+        await loadBattingRoster(data.battingTeamId);
+      }
     },
-    [matchId, token]
+    [matchId, token, loadBowlingRoster, loadBattingRoster]
   );
 
   const fetchDismissed = useCallback(async () => {
@@ -159,6 +226,21 @@ export default function ScorerDashboard() {
       }
       setMatchData(data);
       prevOverRef.current = data.currentOver;
+      if (
+        data.striker?.playerId &&
+        !data.currentBowler?.playerId &&
+        !data.matchComplete
+      ) {
+        setNextBowlerId("");
+      }
+      if (
+        !data.matchComplete &&
+        data.nonStriker?.playerId &&
+        !data.striker?.playerId
+      ) {
+        setBatsmanToReplace("striker");
+        setNewBatsmanId("");
+      }
       await Promise.all([fetchPlayers(data), fetchDismissed()]);
     } catch (error) {
       console.error("Error fetching match data:", error);
@@ -171,6 +253,16 @@ export default function ScorerDashboard() {
   useEffect(() => {
     fetchData();
   }, [matchId, token]);
+
+  useEffect(() => {
+    if (!matchData?.bowlingTeamId || bowlingTeamPlayers.length > 0) return;
+    loadBowlingRoster(matchData.bowlingTeamId);
+  }, [matchData?.bowlingTeamId, bowlingTeamPlayers.length, loadBowlingRoster]);
+
+  useEffect(() => {
+    if (!matchData?.battingTeamId || battingTeamPlayers.length > 0) return;
+    loadBattingRoster(matchData.battingTeamId);
+  }, [matchData?.battingTeamId, battingTeamPlayers.length, loadBattingRoster]);
 
   /* ---------------------------------------------------------------------- */
   /*                      Post-ball State Detection                          */
@@ -205,14 +297,20 @@ export default function ScorerDashboard() {
         return;
       }
 
-      // ③ Wicket fell → fetch dismissed list, show new batsman picker
+      // ③ Wicket fell → fetch dismissed list, prompt new batsman
       if (
         newState.totalWickets > (matchData?.totalWickets ?? 0) &&
         !newState.matchComplete
       ) {
         await fetchDismissed();
+        const outId = lastOutBatsmanIdRef.current;
+        const replaceRole: "striker" | "non_striker" =
+          outId && outId === matchData?.nonStriker?.playerId
+            ? "non_striker"
+            : "striker";
+        setBatsmanToReplace(replaceRole);
         setNewBatsmanId("");
-        setShowNewBatsmanModal(true);
+        lastOutBatsmanIdRef.current = "";
         return;
       }
 
@@ -224,7 +322,6 @@ export default function ScorerDashboard() {
       if (overEnded) {
         prevOverRef.current = newState.currentOver;
         setNextBowlerId("");
-        setShowBowlerModal(true);
         return;
       }
 
@@ -247,8 +344,8 @@ export default function ScorerDashboard() {
     tournamentId: data.tournamentId,
     runs,
     deliveryType,
-    batsmanId: data.striker.playerId,
-    bowlerId: data.currentBowler.playerId,
+    batsmanId: data.striker!.playerId,
+    bowlerId: data.currentBowler!.playerId,
     currentOver: data.currentOver,
     currentBall: data.currentBall,
     isFour: extras.isFour ?? false,
@@ -257,23 +354,74 @@ export default function ScorerDashboard() {
     ...(extras.outBatsmanId && { outBatsmanId: extras.outBatsmanId }),
   });
 
+  const ensureReadyToScore = (): boolean => {
+    if (!matchData?.striker?.playerId) {
+      Alert.alert("Error", "Striker not set. Please set players.");
+      return false;
+    }
+    if (!matchData?.currentBowler?.playerId) {
+      return false;
+    }
+    return true;
+  };
+
+  const shouldSwapStriker = (
+    runs: number,
+    deliveryType: DeliveryType,
+    isFour = false,
+    isSix = false
+  ) => {
+    if (deliveryType === "wicket" || isFour || isSix) return false;
+    return runs % 2 === 1;
+  };
+
+  const applyAutoStrikerSwap = async (
+    previous: MatchScoreState,
+    updated: MatchScoreState,
+    runs: number,
+    deliveryType: DeliveryType,
+    isFour = false,
+    isSix = false
+  ): Promise<MatchScoreState> => {
+    if (updated.striker?.playerId !== previous.striker?.playerId) {
+      return updated;
+    }
+
+    const lastBall = updated.lastBalls?.[updated.lastBalls.length - 1];
+    const needsSwap =
+      lastBall?.strikerSwapped ||
+      shouldSwapStriker(runs, deliveryType, isFour, isSix);
+
+    if (!needsSwap) return updated;
+
+    return swapBatsmen(
+      { matchId: matchId!, tournamentId: updated.tournamentId },
+      token!
+    );
+  };
+
   const handleScore = async (
     runs: number,
     deliveryType: DeliveryType = "normal",
     isFour = false,
     isSix = false
   ) => {
-    if (!matchData || !matchData.striker?.playerId) {
-      Alert.alert("Error", "Striker or Bowler not set. Please set players.");
-      return;
-    }
+    if (!ensureReadyToScore()) return;
     setSending(true);
     try {
       const payload = buildBasePayload(matchData, deliveryType, runs, {
         isFour,
         isSix,
       });
-      const newState = await updateBallScore(payload, token!);
+      let newState = await updateBallScore(payload, token!);
+      newState = await applyAutoStrikerSwap(
+        matchData,
+        newState,
+        runs,
+        deliveryType,
+        isFour,
+        isSix
+      );
       await handleStateAfterUpdate(newState);
     } catch (error: any) {
       console.error("Score update failed:", error);
@@ -294,10 +442,12 @@ export default function ScorerDashboard() {
       Alert.alert("Error", "Please select who got out");
       return;
     }
+    if (!ensureReadyToScore()) return;
     setSending(true);
     setShowWicketModal(false);
 
     try {
+      lastOutBatsmanIdRef.current = outBatsmanId;
       const payload = buildBasePayload(matchData!, "wicket", 0, {
         wicketType,
         outBatsmanId,
@@ -314,26 +464,52 @@ export default function ScorerDashboard() {
   };
 
   const handleNewBatsman = async () => {
+    const replaceRole = batsmanToReplace ?? "striker";
     if (!newBatsmanId) {
-      Alert.alert("Error", "Please select a new batsman");
+      Alert.alert("Error", "Please select the next batsman");
       return;
     }
+    if (!matchData?.nonStriker?.playerId && replaceRole === "striker") {
+      Alert.alert("Error", "Non-striker not set. Please set players.");
+      return;
+    }
+    if (!matchData?.striker?.playerId && replaceRole === "non_striker") {
+      Alert.alert("Error", "Striker not set. Please set players.");
+      return;
+    }
+    if (!matchData?.currentBowler?.playerId) {
+      Alert.alert("Error", "Please select a bowler before resuming.");
+      return;
+    }
+
     setSending(true);
     setShowNewBatsmanModal(false);
 
     try {
       const player = battingTeamPlayers.find((p) => p.playerId === newBatsmanId);
-      const nonStriker = matchData!.nonStriker;
-      const bowler = matchData!.currentBowler;
+      const bowler = matchData.currentBowler;
+
+      let strikerId = matchData.striker?.playerId ?? "";
+      let strikerName = matchData.striker?.playerName ?? "";
+      let nonStrikerId = matchData.nonStriker?.playerId ?? "";
+      let nonStrikerName = matchData.nonStriker?.playerName ?? "";
+
+      if (replaceRole === "striker") {
+        strikerId = newBatsmanId;
+        strikerName = player?.playerName ?? "";
+      } else {
+        nonStrikerId = newBatsmanId;
+        nonStrikerName = player?.playerName ?? "";
+      }
 
       const newState = await setCurrentPlayers(
         {
           matchId: matchId!,
-          tournamentId: matchData!.tournamentId,
-          strikerId: newBatsmanId,
-          strikerName: player?.playerName ?? "",
-          nonStrikerId: nonStriker.playerId,
-          nonStrikerName: nonStriker.playerName,
+          tournamentId: matchData.tournamentId,
+          strikerId,
+          strikerName,
+          nonStrikerId,
+          nonStrikerName,
           bowlerId: bowler.playerId,
           bowlerName: bowler.playerName,
         },
@@ -341,8 +517,10 @@ export default function ScorerDashboard() {
       );
       setMatchData(newState);
       setNewBatsmanId("");
+      setBatsmanToReplace(null);
     } catch (error: any) {
       console.error("Set new batsman failed:", error);
+      setShowNewBatsmanModal(true);
       Alert.alert("Error", error?.response?.data?.message || "Failed to set new batsman");
     } finally {
       setSending(false);
@@ -355,7 +533,6 @@ export default function ScorerDashboard() {
       return;
     }
     setSending(true);
-    setShowBowlerModal(false);
 
     try {
       const player = bowlingTeamPlayers.find((p) => p.playerId === nextBowlerId);
@@ -370,8 +547,10 @@ export default function ScorerDashboard() {
       );
       setMatchData(newState);
       setNextBowlerId("");
+      setShowBowlerModal(false);
     } catch (error: any) {
       console.error("Change bowler failed:", error);
+      setShowBowlerModal(true);
       Alert.alert("Error", error?.response?.data?.message || "Failed to change bowler");
     } finally {
       setSending(false);
@@ -466,11 +645,17 @@ export default function ScorerDashboard() {
   }
 
   // Build options for modals
+  const activeBatsmanRole = batsmanToReplace ?? "striker";
+
+  const creaseBatsmanId =
+    activeBatsmanRole === "striker"
+      ? matchData.nonStriker?.playerId
+      : matchData.striker?.playerId;
+
   const availableBatsmen = battingTeamPlayers
     .filter(
       (p) =>
-        !dismissedIds.includes(p.playerId) &&
-        p.playerId !== matchData.nonStriker?.playerId
+        !dismissedIds.includes(p.playerId) && p.playerId !== creaseBatsmanId
     )
     .map((p) => ({ label: p.playerName, value: p.playerId }));
 
@@ -485,6 +670,134 @@ export default function ScorerDashboard() {
   }));
 
   const overs = `${matchData.currentOver}.${matchData.currentBall}`;
+  const canRecordBall = Boolean(
+    matchData.striker?.playerId && matchData.currentBowler?.playerId
+  );
+  const needsBowlerSelection = !matchData.currentBowler?.playerId;
+  const needsBatsmanSelection =
+    batsmanToReplace !== null ||
+    (!matchData.striker?.playerId &&
+      Boolean(matchData.nonStriker?.playerId) &&
+      !matchData.matchComplete);
+
+  const renderBatsmanPicker = (compact = false) => (
+    <View className={compact ? "" : "mb-2"}>
+      {availableBatsmen.length === 0 ? (
+        <Text className="text-center text-red-500 py-4">
+          No more batsmen available — innings may be ending.
+        </Text>
+      ) : (
+        <>
+          <View className={compact ? "mb-3" : "mb-1"}>
+            <Dropdown
+              label={
+                compact
+                  ? undefined
+                  : activeBatsmanRole === "non_striker"
+                  ? "Next non-striker"
+                  : "Next striker"
+              }
+              placeholder={
+                activeBatsmanRole === "non_striker"
+                  ? "Select non-striker"
+                  : "Select striker"
+              }
+              options={availableBatsmen}
+              value={newBatsmanId}
+              onSelect={setNewBatsmanId}
+            />
+          </View>
+          <View className="flex-row flex-wrap gap-2 mb-3">
+            {availableBatsmen.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                onPress={() => setNewBatsmanId(option.value)}
+                className={`px-3 py-2 rounded-full border ${
+                  newBatsmanId === option.value
+                    ? "bg-green-600 border-green-600"
+                    : "bg-white border-gray-200"
+                }`}
+              >
+                <Text
+                  className={`text-sm font-semibold ${
+                    newBatsmanId === option.value ? "text-white" : "text-gray-700"
+                  }`}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            onPress={handleNewBatsman}
+            disabled={!newBatsmanId || sending}
+            className={`py-4 rounded-xl items-center ${
+              !newBatsmanId || sending ? "bg-gray-300" : "bg-green-600"
+            }`}
+          >
+            {sending ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-bold text-lg">Set Batsman</Text>
+            )}
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+
+  const renderBowlerPicker = (compact = false) => (
+    <View className={compact ? "" : "mb-2"}>
+      {bowlerOptions.length === 0 ? (
+        <View className="py-4 items-center">
+          <ActivityIndicator color="#7C3AED" />
+          <Text className="text-gray-500 text-sm mt-2">Loading bowlers…</Text>
+        </View>
+      ) : (
+        <>
+          <View className={compact ? "mb-3" : "mb-1"}>
+            <Dropdown
+              label={compact ? undefined : "Next bowler"}
+              placeholder="Select bowler"
+              options={bowlerOptions}
+              value={nextBowlerId}
+              onSelect={setNextBowlerId}
+            />
+          </View>
+          <View className="flex-row flex-wrap gap-2 mb-3">
+            {bowlerOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                onPress={() => setNextBowlerId(option.value)}
+                className={`px-3 py-2 rounded-full border ${
+                  nextBowlerId === option.value
+                    ? "bg-purple-600 border-purple-600"
+                    : "bg-white border-gray-200"
+                }`}
+              >
+                <Text
+                  className={`text-sm font-semibold ${
+                    nextBowlerId === option.value ? "text-white" : "text-gray-700"
+                  }`}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            onPress={handleChangeBowler}
+            disabled={!nextBowlerId || sending}
+            className={`py-4 rounded-xl items-center ${
+              !nextBowlerId || sending ? "bg-gray-300" : "bg-purple-600"
+            }`}
+          >
+            <Text className="text-white font-bold text-lg">Set Bowler</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["top", "bottom"]}>
@@ -557,23 +870,37 @@ export default function ScorerDashboard() {
         <View className="bg-white mx-4 rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
           <View className="flex-row justify-between border-b border-gray-100 pb-3 mb-3">
             <View className="flex-1">
-              <View className="flex-row items-center mb-1">
-                <Text
-                  className="font-bold text-lg text-gray-800 max-w-[80%]"
-                  numberOfLines={1}
-                >
-                  {matchData.striker?.playerName}
-                </Text>
-                <Ionicons name="caret-back" size={16} color="#7C3AED" />
-              </View>
-              <Text className="text-gray-500 font-medium">
-                {matchData.striker?.runs}{" "}
-                <Text className="text-xs">
-                  ({matchData.striker?.balls}b) •{" "}
-                  {matchData.striker?.fours}×4 •{" "}
-                  {matchData.striker?.sixes}×6
-                </Text>
-              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (needsBatsmanSelection) setShowNewBatsmanModal(true);
+                }}
+                disabled={!needsBatsmanSelection}
+              >
+                <View className="flex-row items-center mb-1">
+                  <Text
+                    className="font-bold text-lg text-gray-800 max-w-[80%]"
+                    numberOfLines={1}
+                  >
+                    {matchData.striker?.playerName ?? "Select striker"}
+                  </Text>
+                  {matchData.striker?.playerId ? (
+                    <Ionicons name="caret-back" size={16} color="#7C3AED" />
+                  ) : null}
+                </View>
+                {matchData.striker?.playerId ? (
+                  <Text className="text-gray-500 font-medium">
+                    {matchData.striker.runs}{" "}
+                    <Text className="text-xs">
+                      ({matchData.striker.balls}b) • {matchData.striker.fours}×4 •{" "}
+                      {matchData.striker.sixes}×6
+                    </Text>
+                  </Text>
+                ) : (
+                  <Text className="text-xs text-red-600 font-medium">
+                    Tap to choose next batsman
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
             <View className="flex-1 items-end opacity-70">
               <Text
@@ -593,20 +920,32 @@ export default function ScorerDashboard() {
 
           {/* Bowler row + swap button */}
           <View className="flex-row items-center justify-between">
-            <View>
+            <TouchableOpacity
+              onPress={() => {
+                setNextBowlerId("");
+                setShowBowlerModal(true);
+              }}
+              className="flex-1"
+            >
               <Text className="text-xs uppercase text-gray-400 font-bold mb-1">
                 Bowling
               </Text>
               <Text className="font-bold text-md text-gray-800">
-                {matchData.currentBowler?.playerName}
+                {matchData.currentBowler?.playerName ?? "Select next bowler"}
               </Text>
-              <Text className="text-xs text-gray-500">
-                {matchData.currentBowler?.overs}.
-                {matchData.currentBowler?.balls} ov •{" "}
-                {matchData.currentBowler?.runs} runs •{" "}
-                {matchData.currentBowler?.wickets} wkts
-              </Text>
-            </View>
+              {matchData.currentBowler ? (
+                <Text className="text-xs text-gray-500">
+                  {matchData.currentBowler.overs}.
+                  {matchData.currentBowler.balls} ov •{" "}
+                  {matchData.currentBowler.runs} runs •{" "}
+                  {matchData.currentBowler.wickets} wkts
+                </Text>
+              ) : (
+                <Text className="text-xs text-amber-600 font-medium">
+                  Tap to choose next bowler
+                </Text>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSwapBatsmen}
               className="bg-indigo-100 py-2 px-4 rounded-xl flex-row items-center gap-1"
@@ -617,6 +956,32 @@ export default function ScorerDashboard() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {needsBatsmanSelection && (
+          <View className="mx-4 mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
+            <Text className="font-bold text-red-900 text-base mb-1">
+              Wicket — new batsman required
+            </Text>
+            <Text className="text-red-800 text-sm mb-4">
+              {activeBatsmanRole === "non_striker"
+                ? "Select the next non-striker to continue."
+                : "Select the next striker to continue."}
+            </Text>
+            {renderBatsmanPicker()}
+          </View>
+        )}
+
+        {needsBowlerSelection && (
+          <View className="mx-4 mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <Text className="font-bold text-amber-900 text-base mb-1">
+              Over complete
+            </Text>
+            <Text className="text-amber-800 text-sm mb-4">
+              Select the next bowler to continue scoring.
+            </Text>
+            {renderBowlerPicker()}
+          </View>
+        )}
 
         {/* ③ Recent Balls */}
         <View className="px-4 mb-4">
@@ -682,12 +1047,12 @@ export default function ScorerDashboard() {
             Runs
           </Text>
           <View className="flex-row flex-wrap justify-center mb-6">
-            <ScoreButton label="0" color="bg-gray-100" onPress={() => handleScore(0, "normal")} />
-            <ScoreButton label="1" color="bg-gray-100" onPress={() => handleScore(1, "normal")} />
-            <ScoreButton label="2" color="bg-gray-100" onPress={() => handleScore(2, "normal")} />
-            <ScoreButton label="3" color="bg-gray-100" onPress={() => handleScore(3, "normal")} />
-            <ScoreButton label="4" color="bg-green-100" textColor="text-green-800" onPress={() => handleScore(4, "normal", true, false)} />
-            <ScoreButton label="6" color="bg-purple-100" textColor="text-purple-800" onPress={() => handleScore(6, "normal", false, true)} />
+            <ScoreButton label="0" color="bg-gray-100" disabled={!canRecordBall} onPress={() => handleScore(0, "normal")} />
+            <ScoreButton label="1" color="bg-gray-100" disabled={!canRecordBall} onPress={() => handleScore(1, "normal")} />
+            <ScoreButton label="2" color="bg-gray-100" disabled={!canRecordBall} onPress={() => handleScore(2, "normal")} />
+            <ScoreButton label="3" color="bg-gray-100" disabled={!canRecordBall} onPress={() => handleScore(3, "normal")} />
+            <ScoreButton label="4" color="bg-green-100" textColor="text-green-800" disabled={!canRecordBall} onPress={() => handleScore(4, "normal", true, false)} />
+            <ScoreButton label="6" color="bg-purple-100" textColor="text-purple-800" disabled={!canRecordBall} onPress={() => handleScore(6, "normal", false, true)} />
           </View>
 
           <View className="h-[1px] bg-gray-100 my-2" />
@@ -699,6 +1064,7 @@ export default function ScorerDashboard() {
           <View className="flex-row flex-wrap justify-between mb-4">
             <ActionButton
               label="WD"
+              disabled={!canRecordBall}
               onPress={() => {
                 setExtrasDelivery("wide");
                 setExtrasRuns("0");
@@ -709,6 +1075,7 @@ export default function ScorerDashboard() {
             />
             <ActionButton
               label="NB"
+              disabled={!canRecordBall}
               onPress={() => {
                 setExtrasDelivery("no_ball");
                 setExtrasRuns("0");
@@ -719,6 +1086,7 @@ export default function ScorerDashboard() {
             />
             <ActionButton
               label="BYE"
+              disabled={!canRecordBall}
               onPress={() => {
                 setExtrasDelivery("bye");
                 setExtrasRuns("1");
@@ -729,6 +1097,7 @@ export default function ScorerDashboard() {
             />
             <ActionButton
               label="LB"
+              disabled={!canRecordBall}
               onPress={() => {
                 setExtrasDelivery("leg_bye");
                 setExtrasRuns("1");
@@ -745,11 +1114,18 @@ export default function ScorerDashboard() {
           <View className="flex-row justify-between mt-4 gap-2">
             <TouchableOpacity
               onPress={() => {
+                if (!canRecordBall) {
+                  ensureReadyToScore();
+                  return;
+                }
                 setOutBatsmanId(matchData.striker?.playerId ?? "");
                 setWicketType("caught");
                 setShowWicketModal(true);
               }}
-              className="bg-red-500 flex-1 py-4 rounded-xl items-center shadow-sm"
+              disabled={!canRecordBall}
+              className={`bg-red-500 flex-1 py-4 rounded-xl items-center shadow-sm ${
+                !canRecordBall ? "opacity-40" : ""
+              }`}
               activeOpacity={0.8}
             >
               <Text className="text-white font-bold text-lg">WICKET</Text>
@@ -915,7 +1291,12 @@ export default function ScorerDashboard() {
       </Modal>
 
       {/* ─── BOWLER CHANGE MODAL ─── */}
-      <Modal visible={showBowlerModal} transparent animationType="slide">
+      <Modal
+        visible={showBowlerModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {}}
+      >
         <View className="flex-1 bg-black/60 justify-end">
           <View className="bg-white rounded-t-3xl p-6">
             <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-5" />
@@ -926,32 +1307,18 @@ export default function ScorerDashboard() {
               Select the next bowler
             </Text>
 
-            <View className="mb-6">
-              <Dropdown
-                placeholder="Select Bowler"
-                options={bowlerOptions}
-                value={nextBowlerId}
-                onSelect={setNextBowlerId}
-              />
-            </View>
-
-            <TouchableOpacity
-              onPress={handleChangeBowler}
-              disabled={!nextBowlerId}
-              className={`py-4 rounded-xl items-center mb-2 ${
-                !nextBowlerId ? "bg-gray-300" : "bg-purple-600"
-              }`}
-            >
-              <Text className="text-white font-bold text-lg">
-                Set Bowler
-              </Text>
-            </TouchableOpacity>
+            {renderBowlerPicker(true)}
           </View>
         </View>
       </Modal>
 
       {/* ─── NEW BATSMAN MODAL ─── */}
-      <Modal visible={showNewBatsmanModal} transparent animationType="slide">
+      <Modal
+        visible={showNewBatsmanModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNewBatsmanModal(false)}
+      >
         <View className="flex-1 bg-black/60 justify-end">
           <View className="bg-white rounded-t-3xl p-6">
             <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-5" />
@@ -959,46 +1326,18 @@ export default function ScorerDashboard() {
               Wicket! 🎯
             </Text>
             <Text className="text-center text-gray-500 mb-5">
-              Select the next batsman
+              {activeBatsmanRole === "non_striker"
+                ? "Select the next non-striker"
+                : "Select the next striker"}
             </Text>
 
-            {availableBatsmen.length === 0 ? (
-              <Text className="text-center text-red-500 mb-6">
-                No more batsmen available — innings ending...
-              </Text>
-            ) : (
-              <View className="mb-6">
-                <Dropdown
-                  placeholder="Select New Batsman"
-                  options={availableBatsmen}
-                  value={newBatsmanId}
-                  onSelect={setNewBatsmanId}
-                />
-              </View>
-            )}
+            {renderBatsmanPicker(true)}
 
-            {availableBatsmen.length > 0 && (
-              <TouchableOpacity
-                onPress={handleNewBatsman}
-                disabled={!newBatsmanId || sending}
-                className={`py-4 rounded-xl items-center mb-2 ${
-                  !newBatsmanId ? "bg-gray-300" : "bg-green-600"
-                }`}
-              >
-                {sending ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-bold text-lg">
-                    Resume Scoring
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               onPress={() => setShowNewBatsmanModal(false)}
               className="py-3 items-center mb-2"
             >
-              <Text className="text-gray-500 font-medium">Dismiss Later</Text>
+              <Text className="text-gray-500 font-medium">Close</Text>
             </TouchableOpacity>
           </View>
         </View>

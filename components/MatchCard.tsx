@@ -23,7 +23,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, matchNumber, teams, onRefr
     if (!token) return;
     try {
       setLoading(true);
-      await updateMatchStatus(match.id, match.tournamentId, newStatus, token);
+      await updateMatchStatus(match.id, newStatus, token);
       setStatus(newStatus);
       if (onRefresh) onRefresh();
       Alert.alert("Success", `Match is now ${newStatus}`);

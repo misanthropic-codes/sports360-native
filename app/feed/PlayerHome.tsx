@@ -35,6 +35,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNavBar from "../../components/BottomNavBar";
+import LiveMatchesSection from "../../components/LiveMatchesSection";
+import { useLiveMatches } from "../../hooks/useLiveMatches";
+import { getLiveMatchPath, isLiveMatchStatus } from "../../utils/matchNavigation";
 
 const PlayerHome = () => {
   const { user, token } = useAuth();
@@ -43,6 +46,32 @@ const PlayerHome = () => {
   const { summary, matches, fetchAnalytics, isLoading: analyticsLoading } = usePlayerAnalyticsStore();
   const { myTeams, fetchTeams, loading: teamsLoading } = useTeamStore();
   const { tournaments, fetchTournaments, loading: tournamentsLoading } = useTournamentStore();
+
+  const ongoingMatches = useMemo(() => {
+    if (!matches || matches.length === 0) return [];
+    return matches.filter((m) => isLiveMatchStatus(m.status));
+  }, [matches]);
+
+  const extraLiveMatches = useMemo(
+    () =>
+      ongoingMatches.map((m) => ({
+        id: m.matchId,
+        teamAId: m.userTeamId,
+        teamBId: m.opponentTeamId ?? undefined,
+        teamAName: m.userTeamName,
+        teamBName: m.opponentTeamName ?? "Opponent",
+        scoreA: m.scoreA,
+        scoreB: m.scoreB,
+        status: m.status,
+        matchTime: m.matchTime,
+      })),
+    [ongoingMatches]
+  );
+
+  const { myLiveMatches, allLiveMatches, refresh: refreshLiveMatches } = useLiveMatches(
+    token,
+    extraLiveMatches
+  );
   
   const [refreshing, setRefreshing] = useState(false);
   const [expandedMatch, setExpandedMatch] = useState<string | null>(null);
@@ -74,11 +103,12 @@ const PlayerHome = () => {
         fetchAnalytics(token, true),
         fetchTournaments(token, true),
         baseURL ? fetchTeams(token, baseURL, true) : Promise.resolve(),
+        refreshLiveMatches(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [token, baseURL]);
+  }, [token, baseURL, refreshLiveMatches]);
 
   // Playing Pattern Analysis
   const playingPattern = useMemo(() => {
@@ -294,8 +324,15 @@ const PlayerHome = () => {
     if (!matches || matches.length === 0) return null;
     const now = new Date();
     const upcoming = matches
-      .filter(m => new Date(m.matchTime) > now)
-      .sort((a, b) => new Date(a.matchTime).getTime() - new Date(b.matchTime).getTime());
+      .filter(
+        (m) =>
+          !isLiveMatchStatus(m.status) &&
+          new Date(m.matchTime) > now
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.matchTime).getTime() - new Date(b.matchTime).getTime()
+      );
     return upcoming[0] || null;
   }, [matches]);
 
@@ -312,7 +349,11 @@ const PlayerHome = () => {
     if (!matches || matches.length === 0) return [];
     const now = new Date();
     return matches
-      .filter(m => new Date(m.matchTime) > now)
+      .filter(
+        (m) =>
+          !isLiveMatchStatus(m.status) &&
+          new Date(m.matchTime) > now
+      )
       .sort((a, b) => new Date(a.matchTime).getTime() - new Date(b.matchTime).getTime())
       .slice(0, 5);
   }, [matches]);
@@ -440,6 +481,11 @@ const PlayerHome = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#3B82F6"]} tintColor="#3B82F6" />
         }
       >
+        <LiveMatchesSection
+          myLiveMatches={myLiveMatches}
+          allLiveMatches={allLiveMatches}
+        />
+
         {/* Performance Streak */}
         {performanceStreak.count >= 3 && (
           <View className="mt-4 mx-4 bg-amber-50 rounded-2xl p-4 border border-amber-100">
@@ -635,10 +681,15 @@ const PlayerHome = () => {
           </View>
 
           {upcomingMatches.length > 0 ? (
-            upcomingMatches.slice(0, 3).map((match, index) => (
+            upcomingMatches.slice(0, 3).map((match) => (
               <TouchableOpacity
                 key={match.matchId}
                 className="bg-white rounded-xl p-4 mb-3 shadow-sm"
+                onPress={() => {
+                  if (isLiveMatchStatus(match.status)) {
+                    router.push(getLiveMatchPath(match.matchId));
+                  }
+                }}
                 style={{
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 1 },
@@ -648,12 +699,24 @@ const PlayerHome = () => {
                 }}
               >
                 <View className="flex-row items-center justify-between mb-2">
-                  <View className="bg-blue-50 px-3 py-1 rounded-full">
-                    <Text className="text-blue-600 font-semibold text-xs">
-                      {new Date(match.matchTime).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
+                  <View
+                    className={`px-3 py-1 rounded-full ${
+                      isLiveMatchStatus(match.status) ? "bg-red-100" : "bg-blue-50"
+                    }`}
+                  >
+                    <Text
+                      className={`font-semibold text-xs ${
+                        isLiveMatchStatus(match.status)
+                          ? "text-red-600"
+                          : "text-blue-600"
+                      }`}
+                    >
+                      {isLiveMatchStatus(match.status)
+                        ? "LIVE"
+                        : new Date(match.matchTime).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
                     </Text>
                   </View>
                   <View className="flex-row items-center">

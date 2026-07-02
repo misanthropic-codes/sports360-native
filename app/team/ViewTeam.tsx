@@ -16,6 +16,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTeamDetailsStore } from "../../store/teamDetailsStore";
 import { useTeamStore } from "../../store/teamStore";
 import { isMemberBenched } from "../../utils/teamMemberUtils";
+import { getLiveMatchPath, isLiveMatchStatus } from "../../utils/matchNavigation";
 
 const TeamScreen: React.FC = () => {
   const { user } = useAuth();
@@ -331,9 +332,15 @@ const TeamScreen: React.FC = () => {
           </Text>
         </View>
       ) : (
-        matches.map((match) => (
-          <View
+        matches.map((match) => {
+          const isLive = isLiveMatchStatus(match.status);
+          return (
+          <TouchableOpacity
             key={match.id}
+            activeOpacity={isLive ? 0.85 : 1}
+            onPress={() => {
+              if (isLive) router.push(getLiveMatchPath(match.id));
+            }}
             className="bg-white rounded-2xl p-5 mb-4 border border-emerald-100"
             style={{
               shadowColor: "#000",
@@ -344,9 +351,16 @@ const TeamScreen: React.FC = () => {
             }}
           >
             <View className="mb-3">
-              <Text className="text-slate-900 font-bold text-lg mb-1">
-                vs {match.opponentTeamName || "TBD"}
-              </Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-slate-900 font-bold text-lg mb-1 flex-1">
+                  vs {match.opponentTeamName || "TBD"}
+                </Text>
+                {isLive && (
+                  <View className="bg-red-100 px-2 py-1 rounded-full">
+                    <Text className="text-red-600 text-xs font-bold">LIVE</Text>
+                  </View>
+                )}
+              </View>
               {match.result && (
                 <View className="bg-emerald-50 px-3 py-1.5 rounded-lg mt-2 self-start">
                   <Text className="text-emerald-700 text-sm font-semibold">
@@ -368,8 +382,9 @@ const TeamScreen: React.FC = () => {
                 })}
               </Text>
             </View>
-          </View>
-        ))
+          </TouchableOpacity>
+          );
+        })
       )}
     </View>
   );

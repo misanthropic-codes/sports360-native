@@ -188,7 +188,7 @@ const MatchesTab = ({ tournamentId }: { tournamentId: string }) => {
 
               setUpdatingMatchId(matchId);
 
-              await updateMatchStatus(matchId, tournamentId, nextStatus, token);
+              await updateMatchStatus(matchId, nextStatus, token);
 
               // Update local state
               setMatches((prevMatches) =>

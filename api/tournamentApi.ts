@@ -235,7 +235,8 @@ export const getMyOngoingMatches = async (token: string) => {
       ...withAuthHeaders(token),
       skipGlobalErrorHandler: true,
     });
-    return res.data?.matches || [];
+    const payload = res.data;
+    return payload?.matches ?? payload?.data?.matches ?? [];
   } catch {
     return [];
   }

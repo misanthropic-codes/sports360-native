@@ -133,11 +133,11 @@ export default function SetPlayersScreen() {
         return;
       }
 
-      // Ensure match is set to ongoing
-      try {
+      // Start match only if not already live (re-submitting players is allowed)
+      const currentStatus = matchDetails?.status?.toLowerCase() ?? "";
+      const isAlreadyLive = currentStatus === "ongoing" || currentStatus === "live";
+      if (!isAlreadyLive) {
         await updateMatchStatus(matchId!, "ongoing", token!);
-      } catch (_) {
-        // May already be ongoing — ignore
       }
 
       await setCurrentPlayers(

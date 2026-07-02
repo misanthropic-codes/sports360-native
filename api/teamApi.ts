@@ -223,7 +223,10 @@ export const getTeamMembers = async (
   token: string
 ): Promise<TeamMember[]> => {
   const res = await api.get(`/team/${teamId}/members`, withAuthHeaders(token));
-  return res.data?.data || [];
+  const raw = res.data;
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.data)) return raw.data;
+  return [];
 };
 
 /**

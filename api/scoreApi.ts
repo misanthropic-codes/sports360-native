@@ -138,6 +138,25 @@ export interface MatchScoreState {
   updatedAt?: string;
 }
 
+const normalizeMatchScoreState = (raw: unknown): MatchScoreState | null => {
+  if (!raw || typeof raw !== "object") return null;
+
+  const payload = raw as Record<string, unknown>;
+
+  if (payload.score === null) return null;
+
+  const inner = payload.data;
+  if (inner && typeof inner === "object") {
+    const score = inner as Record<string, unknown>;
+    if (score.score === null) return null;
+    if (typeof score.matchId === "string") return score as MatchScoreState;
+  }
+
+  if (typeof payload.matchId === "string") return payload as MatchScoreState;
+
+  return null;
+};
+
 /* -------------------------------------------------------------------------- */
 /*                                  Endpoints                                 */
 /* -------------------------------------------------------------------------- */
@@ -151,7 +170,7 @@ export const updateBallScore = async (
   token: string
 ): Promise<MatchScoreState> => {
   const res = await api.post("/score/ball", payload, withAuthHeaders(token));
-  return res.data;
+  return normalizeMatchScoreState(res.data)!;
 };
 
 /**
@@ -164,7 +183,7 @@ export const setCurrentPlayers = async (
   token: string
 ): Promise<MatchScoreState> => {
   const res = await api.post("/score/set-players", payload, withAuthHeaders(token));
-  return res.data;
+  return normalizeMatchScoreState(res.data)!;
 };
 
 /**
@@ -176,7 +195,7 @@ export const changeBowler = async (
   token: string
 ): Promise<MatchScoreState> => {
   const res = await api.post("/score/change-bowler", payload, withAuthHeaders(token));
-  return res.data;
+  return normalizeMatchScoreState(res.data)!;
 };
 
 /**
@@ -188,7 +207,7 @@ export const swapBatsmen = async (
   token: string
 ): Promise<MatchScoreState> => {
   const res = await api.post("/score/swap-batsmen", payload, withAuthHeaders(token));
-  return res.data;
+  return normalizeMatchScoreState(res.data)!;
 };
 
 /**
@@ -205,8 +224,7 @@ export const getMatchScore = async (
       skipGlobalErrorHandler: true,
     };
     const res = await api.get(`/score/${matchId}`, config);
-    if (res.data?.score === null) return null;
-    return res.data;
+    return normalizeMatchScoreState(res.data);
   } catch {
     return null;
   }
@@ -222,7 +240,12 @@ export const getDismissedBatsmen = async (
 ): Promise<string[]> => {
   const config = token ? withAuthHeaders(token) : {};
   const res = await api.get(`/score/${matchId}/dismissed`, config);
-  return res.data || [];
+  const raw = res.data;
+
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.data)) return raw.data;
+
+  return [];
 };
 
 /**
@@ -239,7 +262,7 @@ export const resetLastBall = async (
     { tournamentId },
     withAuthHeaders(token)
   );
-  return res.data;
+  return normalizeMatchScoreState(res.data)!;
 };
 
 /**
@@ -256,7 +279,7 @@ export const resetMatchScore = async (
     { tournamentId },
     withAuthHeaders(token)
   );
-  return res.data;
+  return normalizeMatchScoreState(res.data)!;
 };
 
 

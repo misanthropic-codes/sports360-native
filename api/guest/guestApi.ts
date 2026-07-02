@@ -75,7 +75,8 @@ export const getPlatformStats = async () => {
 export const getLiveMatches = async () => {
   try {
     const response = await api.get('/matches/live', silentRequest);
-    return response.data?.matches || [];
+    const payload = response.data;
+    return payload?.matches ?? payload?.data?.matches ?? [];
   } catch (error) {
     console.warn('[guestApi] Failed to load live matches:', error);
     return [];

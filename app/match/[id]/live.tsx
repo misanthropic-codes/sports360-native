@@ -1,5 +1,6 @@
 
 import { MatchScoreState } from "@/api/scoreApi";
+import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
 import { useMatchStore } from "@/store/matchStore";
 import {
@@ -8,7 +9,7 @@ import {
     ScoreUpdateEvent,
     socketService,
 } from "@/utils/socketService";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -139,6 +140,12 @@ export default function LiveMatchScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
+      <Header
+        type="title"
+        title="Live Score"
+        showBackButton
+        onBackPress={() => router.back()}
+      />
       <ScrollView className="flex-1">
         {/* ── Match Result Banner ── */}
         {(matchResult || matchData.matchComplete) && (
